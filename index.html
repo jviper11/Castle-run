@@ -241,11 +241,26 @@ body {
   position: relative;
   z-index: 10;
   display: flex;
+  flex-direction: column;
+  background: rgba(10,8,9,0.9);
+  border-bottom: 1px solid var(--border);
+}
+.hud-main-row {
+  display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0.6rem 1.2rem;
-  background: rgba(10,8,9,0.9);
-  border-bottom: 1px solid var(--border);
+  width: 100%;
+  box-sizing: border-box;
+}
+.hud-dice-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0.35rem 1rem;
+  border-top: 1px solid var(--border);
+  background: rgba(10,8,9,0.85);
 }
 .hud-floor { font-family: 'Cinzel', serif; font-size: 0.85rem; color: var(--gold); letter-spacing: 0.1em; }
 .hud-room { font-size: 0.8rem; color: var(--text2); font-style: italic; }
@@ -1656,7 +1671,10 @@ body {
   /* ── COMBAT SCREEN ── */
   #combat-screen { min-height: 0; }
 
-  .combat-hud { padding: 0.25rem 0.55rem; flex-wrap: nowrap; gap: 0.2rem; }
+  .hud-main-row { padding: 0.25rem 0.55rem; flex-wrap: nowrap; gap: 0.2rem; }
+  #hud-dice-row { display: flex !important; padding: 0.15rem 0.5rem; gap: 0.5rem; border-top: 1px solid var(--border); }
+  .combat-controls { display: none !important; }
+  .hud-die { width: 28px; height: 28px; font-size: 0.85rem; border-width: 1px; min-height: unset; }
   .hud-floor { font-size: 0.68rem; }
   .hud-room { font-size: 0.62rem; }
   .hud-map-btn { font-size: 0.7rem; padding: 0.2rem 0.45rem; }
@@ -1720,28 +1738,7 @@ body {
   .status-icons { justify-content: flex-start; min-height: 14px; }
   .status-icon { font-size: 0.58rem; }
 
-  .combat-controls {
-  flex: 0 0 auto;
-  padding: 0.2rem 0.5rem;
-}
-
-.combat-controls .dice-panel {
-  gap: 0.6rem;
-  padding: 0.35rem 0.6rem;
-  flex-wrap: nowrap;
-  justify-content: center;
-}
-  /* Dice panel — slim single row */
-  .dice-panel {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.2rem 0.6rem;
-    flex-wrap: nowrap;
-    min-height: 44px;
-    max-height: 50px;
-  }
+  /* dice panel moved to HUD row on mobile — combat-controls hidden via rule above */
   .die { width: 34px; height: 34px; font-size: 1rem; border-width: 1px; }
   .die-affinity-label { font-size: 0.6rem; white-space: nowrap; }
   .reroll-btn { font-size: 0.6rem; padding: 0.2rem 0.6rem; min-height: unset; }
@@ -2028,23 +2025,31 @@ body {
     <div class="hint-particles" id="hint-particles"></div>
 
     <div class="combat-hud">
-      <div>
-        <div class="hud-floor" id="hud-floor">FLOOR 1</div>
-        <div class="hud-room" id="hud-room">Room 1</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:0.8rem;">
-        <div class="cores-display" id="cores-display"></div>
-        <div style="font-size:0.8rem;color:var(--gold)">🪙 <span id="hud-gold">0</span></div>
-        <div style="font-size:0.8rem;color:var(--text2)">💀 <span id="hud-souls">0</span></div>
-        <div class="hud-combat-stats" id="hud-combat-stats">
-          <span style="color:var(--energy)">⚡<span id="hud-energy-val">3/3</span></span>
-          <span style="color:var(--text3)">📋<span id="hud-draw-val">0</span> 🗑<span id="hud-disc-val">0</span></span>
+      <div class="hud-main-row">
+        <div>
+          <div class="hud-floor" id="hud-floor">FLOOR 1</div>
+          <div class="hud-room" id="hud-room">Room 1</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.8rem;">
+          <div class="cores-display" id="cores-display"></div>
+          <div style="font-size:0.8rem;color:var(--gold)">🪙 <span id="hud-gold">0</span></div>
+          <div style="font-size:0.8rem;color:var(--text2)">💀 <span id="hud-souls">0</span></div>
+          <div class="hud-combat-stats" id="hud-combat-stats">
+            <span style="color:var(--energy)">⚡<span id="hud-energy-val">3/3</span></span>
+            <span style="color:var(--text3)">📋<span id="hud-draw-val">0</span> 🗑<span id="hud-disc-val">0</span></span>
+          </div>
+        </div>
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+          <button class="btn hud-map-btn" onclick="toggleMap()">🗺 MAP</button>
+          <button class="btn hud-map-btn" onclick="toggleDeckViewer()" style="border-color:var(--border2);color:var(--text2)">📋 DECK</button>
+          <button class="btn hud-menu-btn" onclick="toggleMenu()">☰</button>
         </div>
       </div>
-      <div style="display:flex;gap:0.5rem;align-items:center;">
-        <button class="btn hud-map-btn" onclick="toggleMap()">🗺 MAP</button>
-        <button class="btn hud-map-btn" onclick="toggleDeckViewer()" style="border-color:var(--border2);color:var(--text2)">📋 DECK</button>
-        <button class="btn hud-menu-btn" onclick="toggleMenu()">☰</button>
+      <div class="hud-dice-row" id="hud-dice-row" style="display:none;">
+        <div class="die hud-die" id="m-current-die">?</div>
+        <div class="die-affinity-label" id="m-affinity-label">—</div>
+        <div id="m-dice-pool"></div>
+        <button class="btn reroll-btn" id="m-reroll-btn" onclick="useReroll()">🎲 REROLL</button>
       </div>
     </div>
 
@@ -3558,6 +3563,7 @@ function checkAffinityHighlight(g, roll) {
   const dieTypeLbl = document.getElementById('die-type-label');
   if (dieTypeLbl) dieTypeLbl.textContent = (g.currentDieType && g.currentDieType.type ? g.currentDieType.type : 'd6');
   renderHand();
+  syncMobileDice();
 }
 
 function checkAffinity(g, roll, affinity) {
@@ -3582,6 +3588,8 @@ function useReroll() {
   if (!G.aldricInfiniteReroll) {
     G.rerollUsed = true;
     document.getElementById('reroll-btn').disabled = true;
+    const mBtn = document.getElementById('m-reroll-btn');
+    if (mBtn) mBtn.disabled = true;
   }
   rollDice(G);
   if (G.aldricInfiniteReroll) {
@@ -4358,6 +4366,7 @@ function renderAll() {
   renderStatuses();
   updateHUD();
   updateIntent();
+  syncMobileDice();
 }
 
 function renderHP() {
@@ -4455,6 +4464,27 @@ function renderEnergy() {
   const rerollsLeft = G.rerollUsed ? 0 : 1;
   rerollBtn.innerHTML = `🎲 REROLL <span style="font-size:0.7em;opacity:0.8">(${rerollsLeft})</span>`;
   renderDicePool();
+}
+
+function syncMobileDice() {
+  const srcDie = document.getElementById('current-die');
+  const mDie = document.getElementById('m-current-die');
+  if (mDie && srcDie) {
+    mDie.textContent = srcDie.textContent;
+    mDie.className = srcDie.className + ' hud-die';
+  }
+  const srcLabel = document.getElementById('affinity-label');
+  const mLabel = document.getElementById('m-affinity-label');
+  if (mLabel && srcLabel) mLabel.textContent = srcLabel.textContent;
+  const srcPool = document.getElementById('dice-pool-display');
+  const mPool = document.getElementById('m-dice-pool');
+  if (mPool && srcPool) mPool.innerHTML = srcPool.innerHTML;
+  const srcReroll = document.getElementById('reroll-btn');
+  const mReroll = document.getElementById('m-reroll-btn');
+  if (mReroll && srcReroll) {
+    mReroll.disabled = srcReroll.disabled;
+    mReroll.innerHTML = srcReroll.innerHTML;
+  }
 }
 
 function renderDicePool() {
