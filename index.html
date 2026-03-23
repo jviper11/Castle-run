@@ -2552,19 +2552,19 @@ function getDie(type) { return DICE_TYPES[type] || DICE_TYPES.d6; }
 
 const FLOOR_ENEMIES = {
   1: [ // Castle Entrance — easy pool
-    { name:'Castle Guard',   emoji:'⚔️', hp:55, block:0,  damage:10, reward:15, souls:2,
+    { name:'Castle Guard',   emoji:'⚔️', hp:55, block:0,  damage:13, reward:15, souls:2,
       special:{ name:'Shield Up', desc:'Gains 6 Block every other turn',
         trigger:'turn', effect:(g,turn)=>{ if(turn%2===0){ g.enemy.block+=6; showMsg('🛡 Castle Guard raises shield!'); } } } },
-    { name:'Dungeon Rat',    emoji:'🐀', hp:45, block:0,  damage:7,  reward:12,  souls:1,
+    { name:'Dungeon Rat',    emoji:'🐀', hp:45, block:0,  damage:9,  reward:12,  souls:1,
       special:{ name:'Swarm', desc:'Heals 5 HP if alive for 3+ turns',
         trigger:'turn', effect:(g,turn)=>{ if(turn===3){ g.enemy.hp=Math.min(g.enemy.hp+5,g.enemy.maxHp); floatDamage('enemy-combatant',5,'heal'); showMsg('🐀 Rats swarm — enemy healed!'); } } } },
-    { name:'Iron Archer',    emoji:'🏹', hp:50, block:0,  damage:10, reward:14,  souls:2,
+    { name:'Iron Archer',    emoji:'🏹', hp:50, block:0,  damage:12, reward:14,  souls:2,
       special:{ name:'Aim', desc:'Skips a turn then deals double damage',
-        trigger:'turn', effect:(g,turn)=>{ if(turn%2===1){ g.enemy.intent='defend'; showMsg('🏹 Archer is aiming...'); } else { g.enemy.damage=20; g.enemy.intent='attack'; } } } },
-    { name:'Skeleton',       emoji:'💀', hp:48, block:0,  damage:7,  reward:13,  souls:2,
+        trigger:'turn', effect:(g,turn)=>{ if(turn%2===1){ g.enemy.intent='defend'; showMsg('🏹 Archer is aiming...'); } else { g.enemy.damage=24; g.enemy.intent='attack'; } } } },
+    { name:'Skeleton',       emoji:'💀', hp:48, block:0,  damage:9,  reward:13,  souls:2,
       special:{ name:'Reassemble', desc:'Heals 8 HP once when first below 10 HP',
         trigger:'hp', effect:(g)=>{ if(!g.enemy._reassembled && g.enemy.hp<10 && g.enemy.hp>0){ g.enemy.hp+=8; g.enemy._reassembled=true; floatDamage('enemy-combatant',8,'heal'); showMsg('💀 Skeleton reassembles!'); } } } },
-    { name:'Cursed Hound',   emoji:'🐺', hp:50, block:0,  damage:10, reward:14,  souls:2,
+    { name:'Cursed Hound',   emoji:'🐺', hp:50, block:0,  damage:12, reward:14,  souls:2,
       special:{ name:'Rabid', desc:'Applies 1 Vulnerable on each attack',
         trigger:'attack', effect:(g)=>{ applyStatus(g,'player','🫗Vulnerable',1); showMsg('🐺 Rabid bite — Vulnerable!'); } } },
   ],
@@ -2623,9 +2623,9 @@ const FLOOR_ENEMIES = {
 
 // Easy pool for first 2 battles of floor 1
 const EASY_ENEMIES = [
-  { name:'Castle Guard', emoji:'⚔️', hp:45, block:0, damage:8,  reward:8, souls:1, special:null },
-  { name:'Dungeon Rat',  emoji:'🐀', hp:35, block:0, damage:6,  reward:5, souls:1, special:null },
-  { name:'Skeleton',     emoji:'💀', hp:40, block:0, damage:7,  reward:6, souls:1, special:null },
+  { name:'Castle Guard', emoji:'⚔️', hp:45, block:0, damage:10, reward:8, souls:1, special:null },
+  { name:'Dungeon Rat',  emoji:'🐀', hp:35, block:0, damage:8,  reward:5, souls:1, special:null },
+  { name:'Skeleton',     emoji:'💀', hp:40, block:0, damage:9,  reward:6, souls:1, special:null },
 ];
 
 // Keep flat ENEMIES for backwards compatibility
@@ -3464,7 +3464,7 @@ function startCombat(isElite) {
   }
 
   const e = { ...rand(pool) };
-  G.enemy = { ...e, maxHp: e.hp, turnCount: 0 };
+  G.enemy = { ...e, maxHp: e.hp, turnCount: 0, intent: 'attack' };
   G.block = 0;
   G.statuses = { player: [], enemy: [] };
   G.exhaustedPile = [];
@@ -3753,7 +3753,10 @@ function endTurn() {
   }
 
   // ── STEP 6: Alternate enemy intent for next turn ──
-  G.enemy.intent = G.enemy.intent === 'attack' ? (Math.random() < 0.3 ? 'defend' : 'attack') : 'attack';
+  // Enemies are mostly aggressive — 15% defend chance after attacking, always attack after defending
+  const hpPct = G.enemy.hp / G.enemy.maxHp;
+  const defendChance = hpPct < 0.4 ? 0.25 : 0.15; // slightly more defensive when low HP
+  G.enemy.intent = G.enemy.intent === 'attack' ? (Math.random() < defendChance ? 'defend' : 'attack') : 'attack';
 
   // ── STEP 7: Discard hand, check end, start next turn ──
   G.discardPile.push(...G.hand);
