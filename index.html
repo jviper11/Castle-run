@@ -1682,37 +1682,34 @@ body {
   .combatant {
     flex-direction: column;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.2rem;
+    justify-content: flex-start;
+    gap: 0.3rem;
     min-width: 90px;
     width: auto;
-    min-height: 165px;
+    min-height: 0;
   }
   .combatant-info {
     align-items: center;
-    gap: 0.25rem;
+    gap: 0.2rem;
     flex: unset;
     min-width: 0;
     width: 100%;
   }
-   .combatant-sprite {
-  width: 110px;
-  height: 95px;
-  max-width: 110px;
-  max-height: 95px;
-  font-size: 5rem;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  overflow: hidden;
-  line-height: 1;
-
-  background-size: contain;
-  background-position: center bottom;
-  background-repeat: no-repeat;
-}
+  .combatant-sprite {
+    width: 90px;
+    height: 110px;
+    max-width: 90px;
+    max-height: 110px;
+    font-size: 4.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    line-height: 1;
+    background-size: contain;
+    background-position: center bottom;
+    background-repeat: no-repeat;
+  }
   .combatant-name { font-size: 0.72rem; }
     .hp-bar-wrap {
     width: 88px;
