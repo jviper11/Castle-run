@@ -1729,17 +1729,25 @@ body {
   justify-content: center;
 }
   /* Dice panel compact */
-    .dice-panel {
-    gap: 0.4rem;
-    padding: 0.15rem 0.4rem;
-    flex-wrap: nowrap;
-    justify-content: center;
-  }
-  .die { width: 40px; height: 40px; font-size: 1rem; }
+   .dice-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 0.35rem;
+  padding: 0.15rem 0.4rem;
+
+  flex-wrap: nowrap;
+}
+/* shrink any text inside */
+.dice-panel * {
+  font-size: 0.6rem;
+}
+  .die { width: 34px; height: 34px; font-size: 0.9rem; }
   .die-affinity-label { font-size: 0.65rem; }
-  .reroll-btn { font-size: 0.68rem; padding: 0.28rem 0.65rem; }
-  .energy-pip { width: 10px; height: 10px; }
-  .energy-display { font-size: 0.68rem; gap: 0.22rem; }
+  .reroll-btn { font-size: 0.6rem; padding: 0.2rem 0.45rem; }
+  .energy-pip { width: 8px; height: 8px; }
+  .energy-display { font-size: 0.6rem; gap: 0.2rem; }
 
   /* Hand area — fills remaining space, cards scroll horizontally */
  .hand-area {
