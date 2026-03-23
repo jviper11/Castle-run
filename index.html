@@ -250,6 +250,7 @@ body {
 .hud-floor { font-family: 'Cinzel', serif; font-size: 0.85rem; color: var(--gold); letter-spacing: 0.1em; }
 .hud-room { font-size: 0.8rem; color: var(--text2); font-style: italic; }
 .hud-map-btn { font-size: 0.75rem; padding: 0.3rem 0.8rem; }
+.hud-combat-stats { display: none; flex-direction: column; gap: 0.1rem; font-size: 0.7rem; }
 .hud-menu-btn { font-size: 0.9rem; padding: 0.3rem 0.6rem; border-color: var(--border2); color: var(--text2); }
 .hud-menu-btn:hover { color: var(--bg); }
 .hud-menu-btn::before { background: var(--text2); }
@@ -1731,31 +1732,22 @@ body {
   flex-wrap: nowrap;
   justify-content: center;
 }
-  /* Dice panel compact */
-   .dice-panel {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  gap: 0.25rem;
-  padding: 0.08rem 0.3rem;
-
-  flex-wrap: nowrap;
-  min-height: 46px;
-  max-height: 46px;
-  opacity: 0.92;
-  transform: scale(0.95);
-}
-/* shrink any text inside */
-.dice-panel * {
-  font-size: 0.52rem;
-  line-height: 1;
-}
-  .die { width: 30px; height: 30px; font-size: 0.8rem; border-width: 1px; }
-  .die-affinity-label { font-size: 0.65rem; }
-  .reroll-btn { font-size: 0.52rem; padding: 0.12rem 0.35rem; min-height: unset;}
-  .energy-pip { width: 7px; height: 7px; }
-  .energy-display { font-size: 0.52rem; gap: 0.12rem; }
+  /* Dice panel — slim single row */
+  .dice-panel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.2rem 0.6rem;
+    flex-wrap: nowrap;
+    min-height: 44px;
+    max-height: 50px;
+  }
+  .die { width: 34px; height: 34px; font-size: 1rem; border-width: 1px; }
+  .die-affinity-label { font-size: 0.6rem; }
+  .reroll-btn { font-size: 0.6rem; padding: 0.2rem 0.6rem; min-height: unset; }
+  /* HUD combat stats visible on mobile */
+  .hud-combat-stats { display: flex; font-size: 0.62rem; gap: 0.3rem; }
 
   /* Hand area — fills remaining space, cards scroll horizontally */
  .hand-area {
@@ -2042,6 +2034,10 @@ body {
         <div class="cores-display" id="cores-display"></div>
         <div style="font-size:0.8rem;color:var(--gold)">🪙 <span id="hud-gold">0</span></div>
         <div style="font-size:0.8rem;color:var(--text2)">💀 <span id="hud-souls">0</span></div>
+        <div class="hud-combat-stats" id="hud-combat-stats">
+          <span style="color:var(--energy)">⚡<span id="hud-energy-val">3/3</span></span>
+          <span style="color:var(--text3)">📋<span id="hud-draw-val">0</span> 🗑<span id="hud-disc-val">0</span></span>
+        </div>
       </div>
       <div style="display:flex;gap:0.5rem;align-items:center;">
         <button class="btn hud-map-btn" onclick="toggleMap()">🗺 MAP</button>
@@ -2101,27 +2097,11 @@ body {
         </div>
       </div>
 
-      <!-- Dice pool — shows all dice you own -->
-      <div style="display:flex;flex-direction:column;align-items:center;gap:0.2rem;">
-        <div style="font-size:0.6rem;color:var(--text3);letter-spacing:0.05em;text-transform:uppercase;">ACTIVE DIE</div>
-        <div style="font-size:0.58rem;color:var(--text3);font-style:italic;">tap to see bonus</div>
-        <div id="dice-pool-display" style="display:flex;gap:0.3rem;flex-wrap:wrap;justify-content:center;max-width:120px;"></div>
-      </div>
+      <!-- Dice pool -->
+      <div id="dice-pool-display" style="display:flex;gap:0.3rem;flex-wrap:wrap;justify-content:center;"></div>
 
       <button class="btn reroll-btn" id="reroll-btn" onclick="useReroll()">🎲 REROLL</button>
       <div id="aldric-curse-indicator"></div>
-      <div class="energy-display">
-        <span>⚡</span>
-        <div id="energy-pips"></div>
-        <span id="energy-text">3/3</span>
-      </div>
-      <div style="display:flex;flex-direction:column;align-items:center;gap:0.2rem;">
-        <div style="font-size:0.58rem;color:var(--text3);text-align:center;">
-          <span title="Cards in draw pile">📋 <span id="draw-count">0</span></span>
-          &nbsp;
-          <span title="Cards in discard pile">🗑 <span id="discard-count">0</span></span>
-        </div>
-      </div>
     </div>
 </div>
     <div class="hand-area" id="hand-area">
@@ -4461,24 +4441,20 @@ function renderHand() {
 }
 
 function renderEnergy() {
-  const pips = document.getElementById('energy-pips');
-  pips.innerHTML = '';
-  for (let i = 0; i < G.maxEnergy; i++) {
-    const p = document.createElement('div');
-    p.className = `energy-pip${i < G.energy ? ' filled' : ''}`;
-    pips.appendChild(p);
-  }
-  document.getElementById('energy-text').textContent = `${G.energy}/${G.maxEnergy}`;
+  // Energy in HUD
+  const hudEnergy = document.getElementById('hud-energy-val');
+  if (hudEnergy) hudEnergy.textContent = `${G.energy}/${G.maxEnergy}`;
+  // Draw/discard in HUD
+  const hudDraw = document.getElementById('hud-draw-val');
+  const hudDisc = document.getElementById('hud-disc-val');
+  if (hudDraw) hudDraw.textContent = G.drawPile ? G.drawPile.length : 0;
+  if (hudDisc) hudDisc.textContent = G.discardPile ? G.discardPile.length : 0;
+
   const rerollBtn = document.getElementById('reroll-btn');
   rerollBtn.disabled = G.rerollUsed;
   const rerollsLeft = G.rerollUsed ? 0 : 1;
   rerollBtn.innerHTML = `🎲 REROLL <span style="font-size:0.7em;opacity:0.8">(${rerollsLeft})</span>`;
   renderDicePool();
-  // Draw and discard counts
-  const drawEl = document.getElementById('draw-count');
-  const discardEl = document.getElementById('discard-count');
-  if (drawEl) drawEl.textContent = G.drawPile ? G.drawPile.length : 0;
-  if (discardEl) discardEl.textContent = G.discardPile ? G.discardPile.length : 0;
 }
 
 function renderDicePool() {
