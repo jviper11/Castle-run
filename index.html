@@ -1744,7 +1744,8 @@ body {
     width: 88px;
   }
   .bar-label { font-size: 0.62rem; }
-  .bar-track { height: 6px; }
+  .bar-track { height: 7px; }
+  .block-fill { background: linear-gradient(90deg, #4fc3f7, #5dade2); }
   .intent-box { font-size: 0.58rem; padding: 0.18rem 0.3rem; max-width: 92px; margin-bottom: 2px; }
   .status-icons { justify-content: flex-start; min-height: 14px; }
   .status-icon { font-size: 0.58rem; }
@@ -4791,11 +4792,12 @@ function updateCombatSprites(charKey, enemyKey) {
     enemyEl.style.width = '160px';
     enemyEl.style.height = '200px';
   } else if (!enemyKey) {
-    // Regular enemy — reset to emoji
+    // Regular enemy — reset to emoji, size based on viewport
+    const mobile = window.innerWidth <= 1100;
     enemyEl.style.backgroundImage = 'none';
-    enemyEl.style.fontSize = '5rem';
-    enemyEl.style.width = '110px';
-    enemyEl.style.height = '95px';
+    enemyEl.style.fontSize = mobile ? '3rem' : '5rem';
+    enemyEl.style.width = mobile ? '70px' : '110px';
+    enemyEl.style.height = mobile ? '65px' : '95px';
   }
 }
 
