@@ -461,6 +461,7 @@ body {
 .die-affinity-label { font-size: 0.7rem; color: var(--text2); font-style: italic; }
 
 .reroll-btn { font-size: 0.8rem; padding: 0.4rem 1rem; }
+#dice-corner { display: none; }
 .reroll-btn:disabled { opacity: 0.3; cursor: not-allowed; border-color: var(--border); color: var(--text3); }
 .reroll-btn:disabled:hover { color: var(--text3); }
 .reroll-btn:disabled::before { display: none; }
@@ -1672,9 +1673,19 @@ body {
   #combat-screen { min-height: 0; }
 
   .hud-main-row { padding: 0.25rem 0.55rem; flex-wrap: nowrap; gap: 0.2rem; }
-  #hud-dice-row { display: flex !important; padding: 0.15rem 0.5rem; gap: 0.5rem; border-top: 1px solid var(--border); }
   .combat-controls { display: none !important; }
-  .hud-die { width: 28px; height: 28px; font-size: 0.85rem; border-width: 1px; min-height: unset; }
+  #dice-corner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    position: absolute;
+    bottom: 0.45rem;
+    left: 0.5rem;
+    z-index: 20;
+  }
+  #dice-corner .die { width: 36px; height: 36px; font-size: 1rem; border-width: 1px; min-height: unset; }
+  #dice-corner .reroll-btn { font-size: 0.5rem; padding: 0.1rem 0.35rem; min-height: unset; height: auto; }
   .hud-floor { font-size: 0.68rem; }
   .hud-room { font-size: 0.62rem; }
   .hud-map-btn { font-size: 0.7rem; padding: 0.2rem 0.45rem; }
@@ -1754,9 +1765,12 @@ body {
   overflow-y: hidden;
   flex-wrap: nowrap;
   align-items: flex-end;
-  justify-content: flex-start;
+  justify-content: center;
   padding: 0.2rem 0.4rem 0.4rem;
+  padding-left: 90px;
+  padding-right: 85px;
   gap: 0.25rem;
+  position: relative;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
@@ -2045,12 +2059,6 @@ body {
           <button class="btn hud-menu-btn" onclick="toggleMenu()">☰</button>
         </div>
       </div>
-      <div class="hud-dice-row" id="hud-dice-row" style="display:none;">
-        <div class="die hud-die" id="m-current-die">?</div>
-        <div class="die-affinity-label" id="m-affinity-label">—</div>
-        <div id="m-dice-pool"></div>
-        <button class="btn reroll-btn" id="m-reroll-btn" onclick="useReroll()">🎲 REROLL</button>
-      </div>
     </div>
 
     <div class="combat-arena">
@@ -2109,6 +2117,10 @@ body {
     </div>
 </div>
     <div class="hand-area" id="hand-area">
+      <div id="dice-corner">
+        <div class="die" id="m-current-die">?</div>
+        <button class="btn reroll-btn" id="m-reroll-btn" onclick="useReroll()">🎲 REROLL (1)</button>
+      </div>
       <button class="btn end-turn-btn" onclick="endTurn()">END TURN</button>
     </div>
   </div>
@@ -4509,12 +4521,13 @@ function renderStatuses() {
 function renderCores() {
   const el = document.getElementById('cores-display');
   el.innerHTML = '';
-  const allBosses = BOSSES.filter(b => b.charKey !== G.charKey);
-  allBosses.forEach(b => {
+  if (!G.cores || G.cores.length === 0) return;
+  G.cores.forEach(charKey => {
     const span = document.createElement('span');
-    span.className = `core-icon${G.cores.includes(b.charKey) ? ' collected' : ''}`;
-    span.textContent = (CHARACTERS[b.charKey] && CHARACTERS[b.charKey].emoji ? CHARACTERS[b.charKey].emoji : '💠');
-    span.title = `Core: ${b.name}`;
+    span.className = 'core-icon collected';
+    span.textContent = (CHARACTERS[charKey] && CHARACTERS[charKey].emoji ? CHARACTERS[charKey].emoji : '💠');
+    const boss = BOSSES.find(b => b.charKey === charKey);
+    span.title = boss ? `Core: ${boss.name}` : 'Core';
     el.appendChild(span);
   });
 }
