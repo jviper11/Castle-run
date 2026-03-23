@@ -1744,10 +1744,10 @@ body {
     max-height: 50px;
   }
   .die { width: 34px; height: 34px; font-size: 1rem; border-width: 1px; }
-  .die-affinity-label { font-size: 0.6rem; }
+  .die-affinity-label { font-size: 0.6rem; white-space: nowrap; }
   .reroll-btn { font-size: 0.6rem; padding: 0.2rem 0.6rem; min-height: unset; }
-  /* HUD combat stats visible on mobile */
-  .hud-combat-stats { display: flex; font-size: 0.62rem; gap: 0.3rem; }
+  /* HUD combat stats visible on mobile — single row */
+  .hud-combat-stats { display: flex; flex-direction: row; align-items: center; gap: 0.4rem; font-size: 0.62rem; }
 
   /* Hand area — fills remaining space, cards scroll horizontally */
  .hand-area {
@@ -2091,10 +2091,7 @@ body {
       <!-- Current roll -->
       <div class="dice-display">
         <div class="die" id="current-die">?</div>
-        <div>
-          <div class="die-affinity-label" id="affinity-label">Roll to begin turn</div>
-          <div style="font-size:0.65rem;color:var(--text3)" id="die-type-label"></div>
-        </div>
+        <div class="die-affinity-label" id="affinity-label">Roll to begin turn</div>
       </div>
 
       <!-- Dice pool -->
@@ -3554,9 +3551,10 @@ function checkAffinityHighlight(g, roll) {
     affinityHint = `Extreme: roll 1 or ${thisDieMax}`;
   }
   document.getElementById('affinity-label').textContent = isMatch
-    ? `✨ ${affinityHint} — Bonus Active!`
+    ? `✨ ${affinityHint}`
     : affinityHint;
-  document.getElementById('die-type-label').textContent = (g.currentDieType && g.currentDieType.type ? g.currentDieType.type : 'd6');
+  const dieTypeLbl = document.getElementById('die-type-label');
+  if (dieTypeLbl) dieTypeLbl.textContent = (g.currentDieType && g.currentDieType.type ? g.currentDieType.type : 'd6');
   renderHand();
 }
 
