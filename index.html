@@ -1588,7 +1588,7 @@ body {
    MOBILE RESPONSIVE — phones and small screens
    ═══════════════════════════════════════════════════════════════════ */
 
- @media (max-width: 950px) {
+ @media (max-width: 1100px) {
 
   /* Prevent tap highlight flicker on all interactive elements */
   * { -webkit-tap-highlight-color: transparent; }
@@ -1979,7 +1979,7 @@ body {
 }
 
 /* Medium screens (tablets) */
-@media (min-width: 601px) and (max-width: 900px) {
+@media (min-width: 601px) and (max-width: 1100px) {
   .combat-arena { padding: 0 1rem 0.5rem; }
   .combatant-sprite { font-size: 4rem; }
   .hp-bar-wrap { width: 130px; }
@@ -4767,9 +4767,9 @@ function updateCombatSprites(charKey, enemyKey) {
   } else if (!enemyKey) {
     // Regular enemy — reset to emoji
     enemyEl.style.backgroundImage = 'none';
-    enemyEl.style.fontSize = '';
-    enemyEl.style.width = '';
-    enemyEl.style.height = '';
+    enemyEl.style.fontSize = '5rem';
+    enemyEl.style.width = '110px';
+    enemyEl.style.height = '95px';
   }
 }
 
