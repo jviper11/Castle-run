@@ -1767,11 +1767,8 @@ body {
   flex-wrap: nowrap;
   align-items: flex-end;
   justify-content: center;
-  padding: 0.2rem 0.4rem 0.4rem;
-  padding-left: 90px;
-  padding-right: 85px;
+  padding: 0.2rem 85px 0.4rem 90px;
   gap: 0.25rem;
-  position: relative;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
@@ -2118,11 +2115,11 @@ body {
     </div>
 </div>
     <div class="hand-area" id="hand-area">
-      <div id="dice-corner">
-        <div class="die" id="m-current-die">?</div>
-        <button class="btn reroll-btn" id="m-reroll-btn" onclick="useReroll()">🎲 REROLL (1)</button>
-      </div>
       <button class="btn end-turn-btn" onclick="endTurn()">END TURN</button>
+    </div>
+    <div id="dice-corner">
+      <div class="die" id="m-current-die">?</div>
+      <button class="btn reroll-btn" id="m-reroll-btn" onclick="useReroll()">🎲 REROLL (1)</button>
     </div>
   </div>
 
@@ -4484,7 +4481,8 @@ function syncMobileDice() {
   const mDie = document.getElementById('m-current-die');
   if (mDie && srcDie) {
     mDie.textContent = srcDie.textContent;
-    mDie.className = srcDie.className + ' hud-die';
+    // copy affinity-match only — skip 'rolling' to prevent layout shake on mobile
+    mDie.className = 'die' + (srcDie.classList.contains('affinity-match') ? ' affinity-match' : '');
   }
   const srcLabel = document.getElementById('affinity-label');
   const mLabel = document.getElementById('m-affinity-label');
