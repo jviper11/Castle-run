@@ -1637,7 +1637,8 @@ body {
   #combat-screen.active {
     display: flex !important;
     flex-direction: column;
-    overflow: visible;
+    height: calc(var(--vh, 1vh) * 100);
+    overflow: hidden;
   }
 
   /* ── TITLE ── */
@@ -1666,6 +1667,7 @@ body {
     padding: 0 7% 0.5rem;
     gap: 1rem;
     flex: 1;
+    min-height: 0;
   }
 
   
@@ -1725,6 +1727,7 @@ body {
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     min-height: 150px;
+    max-height: 160px;
   }
 
   .hand-area::-webkit-scrollbar {
