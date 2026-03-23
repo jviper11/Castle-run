@@ -1588,13 +1588,14 @@ body {
    MOBILE RESPONSIVE — phones and small screens
    ═══════════════════════════════════════════════════════════════════ */
 
-@media (hover: none) and (pointer: coarse) and (orientation: landscape) and (max-width: 950px)  {
+ @media (max-width: 950px) {
 
   /* Prevent tap highlight flicker on all interactive elements */
   * { -webkit-tap-highlight-color: transparent; }
 
   /* Chrome mobile viewport fix */
   body {
+    touch-action: manipulation;
     overflow: hidden;
     height: calc(var(--vh, 1vh) * 100);
     width: 100%;
