@@ -77,10 +77,39 @@ All UI updates go through `renderAll()` which calls: `renderHP()`, `renderHand()
 ## Mobile Layout
 
 The game targets mobile-first. Key breakpoints:
-- `@media (max-width: 950px)` — main mobile overrides (~lines 1591–1980)
-- `@media (min-width: 601px) and (max-width: 900px)` — tablet tweaks
+- `@media (max-width: 1100px)` — main mobile overrides (covers large-screen phones in landscape)
+- `@media (min-width: 601px) and (max-width: 1100px)` — tablet tweaks
 
-The combat screen uses `height: 100dvh; overflow: hidden` with a fixed flex column layout. Row heights (from top): HUD (~36px) → arena (`flex: 1`) → dice panel (46px max) → hand area (120–135px).
+### Combat Screen Column Layout
+`height: 100dvh; overflow: hidden` with a fixed flex column. Heights from top:
+- **HUD** (~40px) — floor/room, character icons, gold/souls, energy + draw counts, MAP/DECK/☰
+- **Arena** (`flex: 1`) — fills all remaining space
+- **Dice panel** (~44–50px) — die face, affinity label, active die pool, reroll button
+- **Hand area** (120–135px) — horizontally scrollable cards, END TURN button (position: absolute)
+
+### Combat HUD
+The HUD contains two sections of combat info to keep the dice panel slim:
+- **Left**: floor label + room/path info
+- **Center**: core icons, gold (🪙), souls (💀), energy (`⚡` `hud-energy-val`), draw/discard (`hud-draw-val` / `hud-disc-val`)
+- **Right**: MAP, DECK, ☰ buttons
+
+`renderEnergy()` updates both the HUD energy/draw elements and the reroll button state.
+
+### Dice Panel
+Intentionally minimal — only what's needed per turn:
+- Current die face (`#current-die`) + affinity label (`#affinity-label`, `white-space: nowrap`)
+- Active die pool (`#dice-pool-display`) — rendered by `renderDicePool()`
+- Reroll button (`#reroll-btn`) — exempt from the 42px tap-target min-height via explicit override after the `.btn` rule
+
+### Enemy Sprites
+Regular enemies use emoji set via `updateCombatSprites(charKey, null)` which sets inline `font-size: 5rem; width: 110px; height: 95px` directly in JS (not via CSS) so it works at any viewport width. Boss sprites use PNG background images. The `⚔️` emoji (Castle Guard) renders as two small glyphs on some Android versions — a known OS-level rendering issue, not a code bug.
+
+### Key Mobile Gotchas
+- `.btn { min-height: 42px }` applies to all buttons for tap targets — override it explicitly for any button inside the dice panel, and place the override **after** the `.btn` rule in the media query (same specificity = last rule wins)
+- The `#combat-screen` has two rules in the media query — the `.active` version (higher specificity) sets `height: 100dvh; overflow: hidden`; do not add a second `#combat-screen` rule that sets `height: auto` or `overflow-y: auto`
+- `overflow-y: auto` and `-webkit-overflow-scrolling: touch` are set on all non-combat screens so they scroll on mobile
+- The reward screen uses `justify-content: flex-start` (not `center`) on mobile so 4-card layouts + the Skip button don't overflow off the bottom
+- The hand area `max-height` must be large enough to show full card height (~120–135px); adding `padding-bottom` to reserve space for the absolute-positioned END TURN button eats into card visibility — don't do this since the button is `position: absolute`
 
 ## Design Document
 
