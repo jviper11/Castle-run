@@ -1637,7 +1637,7 @@ body {
   #combat-screen.active {
     display: flex !important;
     flex-direction: column;
-    height: calc(var(--vh, 1vh) * 100);
+     height: 100dvh; /* 🔥 better than vh on mobile */
     overflow: hidden;
   }
 
@@ -1660,15 +1660,15 @@ body {
   .hud-menu-btn { font-size: 0.85rem; padding: 0.25rem 0.5rem; }
 
   /* Arena — compact fixed height, no dead space */
-  .combat-arena {
-    flex-direction: row;
-    align-items: flex-end;
-    justify-content: space-between;
-    padding: 0 7% 0.5rem;
-    gap: 1rem;
-    flex: 1;
-    min-height: 0;
-  }
+ .combat-arena {
+  flex: 1;
+  min-height: 0;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 5% 0.3rem;
+  gap: 1rem;
+}
 
   
 
@@ -1701,6 +1701,17 @@ body {
   .status-icons { justify-content: flex-start; min-height: 14px; }
   .status-icon { font-size: 0.58rem; }
 
+  .combat-controls {
+  flex: 0 0 auto;
+  padding: 0.2rem 0.5rem;
+}
+
+.combat-controls .dice-panel {
+  gap: 0.6rem;
+  padding: 0.35rem 0.6rem;
+  flex-wrap: nowrap;
+  justify-content: center;
+}
   /* Dice panel compact */
     .dice-panel {
     gap: 0.9rem;
@@ -1715,20 +1726,20 @@ body {
   .energy-display { font-size: 0.75rem; gap: 0.3rem; }
 
   /* Hand area — fills remaining space, cards scroll horizontally */
-  .hand-area {
-    flex: 0 0 auto;
-    overflow-x: auto;
-    overflow-y: hidden;
-    flex-wrap: nowrap;
-    align-items: flex-end;
-    justify-content: flex-start;
-    padding: 0.5rem 0.7rem 0.8rem;
-    gap: 0.45rem;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    min-height: 150px;
-    max-height: 160px;
-  }
+ .hand-area {
+  flex: 0 0 auto;
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex-wrap: nowrap;
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: 0.35rem 0.7rem 0.7rem;
+  gap: 0.45rem;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  min-height: 120px;
+  max-height: 130px;
+}
 
   .hand-area::-webkit-scrollbar {
     display: none;
@@ -2041,7 +2052,7 @@ body {
         </div>
       </div>
     </div>
-
+<div class="combat-controls">
     <div class="dice-panel">
       <!-- Current roll -->
       <div class="dice-display">
@@ -2074,7 +2085,7 @@ body {
         </div>
       </div>
     </div>
-
+</div>
     <div class="hand-area" id="hand-area">
       <button class="btn end-turn-btn" onclick="endTurn()">END TURN</button>
     </div>
