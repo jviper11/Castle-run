@@ -1597,15 +1597,15 @@ body {
   body {
     background: red !important;
     touch-action: manipulation;
-    overflow: hidden;
-    height: calc(var(--vh, 1vh) * 100);
+    overflow-x: hidden;
+    overflow-y: auto;
+    min-height: 100vh;
     width: 100%;
     position: relative;
   }
   #game {
-    height: calc(var(--vh, 1vh) * 100);
+    min-height: 100vh;
     width: 100%;
-    overflow: hidden;
     position: relative;
   }
 
@@ -1637,7 +1637,7 @@ body {
   #combat-screen.active {
     display: flex !important;
     flex-direction: column;
-    overflow: hidden;
+    overflow: visible;
   }
 
   /* ── TITLE ── */
