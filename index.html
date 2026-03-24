@@ -2291,6 +2291,7 @@ body {
       <p style="font-size:0.8rem;color:var(--text2);font-style:italic">Your run will be lost if you return to the main menu.</p>
       <div style="display:flex;flex-direction:column;gap:0.6rem;width:100%;">
         <button class="btn" onclick="toggleMenu()" style="width:100%;font-size:0.85rem;padding:0.7rem">Continue Run</button>
+        <button class="btn" id="sfx-mute-btn" onclick="SFX.toggleMute()" style="width:100%;font-size:0.85rem;padding:0.7rem;border-color:var(--border2);color:var(--text2)">🔊 Sounds On</button>
         <button class="btn" onclick="confirmNewRun()" style="width:100%;font-size:0.85rem;padding:0.7rem;border-color:var(--red2);color:var(--red2)">↩ Back to Main Menu</button>
       </div>
     </div>
@@ -2895,6 +2896,287 @@ const SHOP_ITEMS = [
 ];
 
 loadStatus('Ready...');
+// ═══════════════════════════════════════════════════════════════════
+// SOUND EFFECTS (Web Audio API — no external files)
+// ═══════════════════════════════════════════════════════════════════
+
+const SFX = (() => {
+  let ctx = null;
+  let _muted = false;
+
+  function getCtx() {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  }
+
+  function play(fn) {
+    if (_muted) return;
+    try { fn(getCtx()); } catch(e) {}
+  }
+
+  function noise(c, dur) {
+    const buf = c.createBuffer(1, Math.ceil(c.sampleRate * dur), c.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    const src = c.createBufferSource();
+    src.buffer = buf;
+    return src;
+  }
+
+  const sfx = {
+    // Card swish
+    cardPlay() {
+      play(c => {
+        const n = noise(c, 0.12);
+        const f = c.createBiquadFilter();
+        f.type = 'bandpass'; f.frequency.value = 1800; f.Q.value = 0.6;
+        f.frequency.setValueAtTime(1800, c.currentTime);
+        f.frequency.exponentialRampToValueAtTime(500, c.currentTime + 0.12);
+        const g = c.createGain();
+        g.gain.setValueAtTime(0.28, c.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.12);
+        n.connect(f); f.connect(g); g.connect(c.destination);
+        n.start(); n.stop(c.currentTime + 0.14);
+      });
+    },
+
+    // Attack hit — player strikes enemy
+    attack() {
+      play(c => {
+        const osc = c.createOscillator();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(200, c.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(45, c.currentTime + 0.13);
+        const g = c.createGain();
+        g.gain.setValueAtTime(0.55, c.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.15);
+        const n = noise(c, 0.07);
+        const ng = c.createGain(); ng.gain.value = 0.35;
+        const hpf = c.createBiquadFilter(); hpf.type = 'highpass'; hpf.frequency.value = 1000;
+        osc.connect(g); g.connect(c.destination);
+        n.connect(hpf); hpf.connect(ng); ng.connect(c.destination);
+        osc.start(); osc.stop(c.currentTime + 0.18);
+        n.start(); n.stop(c.currentTime + 0.08);
+      });
+    },
+
+    // Player takes damage
+    playerHurt() {
+      play(c => {
+        const n = noise(c, 0.18);
+        const f = c.createBiquadFilter();
+        f.type = 'lowpass'; f.frequency.value = 700;
+        const g = c.createGain();
+        g.gain.setValueAtTime(0.45, c.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.18);
+        n.connect(f); f.connect(g); g.connect(c.destination);
+        n.start(); n.stop(c.currentTime + 0.2);
+      });
+    },
+
+    // Block gained — metallic clank
+    block() {
+      play(c => {
+        const osc = c.createOscillator();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(750, c.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(580, c.currentTime + 0.09);
+        const g = c.createGain();
+        g.gain.setValueAtTime(0.18, c.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.11);
+        osc.connect(g); g.connect(c.destination);
+        osc.start(); osc.stop(c.currentTime + 0.13);
+      });
+    },
+
+    // Heal — ascending chime
+    heal() {
+      play(c => {
+        [523, 659, 784].forEach((freq, i) => {
+          const osc = c.createOscillator();
+          osc.type = 'sine'; osc.frequency.value = freq;
+          const g = c.createGain();
+          const t = c.currentTime + i * 0.09;
+          g.gain.setValueAtTime(0, t);
+          g.gain.linearRampToValueAtTime(0.22, t + 0.03);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+          osc.connect(g); g.connect(c.destination);
+          osc.start(t); osc.stop(t + 0.32);
+        });
+      });
+    },
+
+    // Dice roll — rattling clicks
+    diceRoll() {
+      play(c => {
+        for (let i = 0; i < 7; i++) {
+          const t = c.currentTime + i * 0.038;
+          const n = noise(c, 0.025);
+          const f = c.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 2500;
+          const g = c.createGain(); g.gain.value = 0.13 + i * 0.025;
+          n.connect(f); f.connect(g); g.connect(c.destination);
+          n.start(t); n.stop(t + 0.028);
+        }
+      });
+    },
+
+    // Reroll — faster rattle
+    reroll() {
+      play(c => {
+        for (let i = 0; i < 9; i++) {
+          const t = c.currentTime + i * 0.03;
+          const n = noise(c, 0.022);
+          const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 3200; f.Q.value = 2;
+          const g = c.createGain(); g.gain.value = 0.22;
+          n.connect(f); f.connect(g); g.connect(c.destination);
+          n.start(t); n.stop(t + 0.025);
+        }
+      });
+    },
+
+    // Affinity match — bright ping
+    affinityMatch() {
+      play(c => {
+        [880, 1320].forEach((freq, i) => {
+          const osc = c.createOscillator();
+          osc.type = 'sine'; osc.frequency.value = freq;
+          const g = c.createGain();
+          const t = c.currentTime + i * 0.07;
+          g.gain.setValueAtTime(0.18, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+          osc.connect(g); g.connect(c.destination);
+          osc.start(t); osc.stop(t + 0.25);
+        });
+      });
+    },
+
+    // Enemy dies — descending crush
+    enemyDie() {
+      play(c => {
+        const osc = c.createOscillator();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(320, c.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(28, c.currentTime + 0.5);
+        const ws = c.createWaveShaper();
+        const curve = new Float32Array(256);
+        for (let i = 0; i < 256; i++) {
+          const x = (i * 2) / 255 - 1;
+          curve[i] = (Math.PI + 180) * x / (Math.PI + 180 * Math.abs(x));
+        }
+        ws.curve = curve;
+        const g = c.createGain();
+        g.gain.setValueAtTime(0.5, c.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.55);
+        osc.connect(ws); ws.connect(g); g.connect(c.destination);
+        osc.start(); osc.stop(c.currentTime + 0.58);
+      });
+    },
+
+    // Card draw — quick whisper
+    cardDraw() {
+      play(c => {
+        const n = noise(c, 0.09);
+        const f = c.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 3500;
+        const g = c.createGain();
+        g.gain.setValueAtTime(0.16, c.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.09);
+        n.connect(f); f.connect(g); g.connect(c.destination);
+        n.start(); n.stop(c.currentTime + 0.1);
+      });
+    },
+
+    // Poison/burn tick — dark bubble
+    statusTick() {
+      play(c => {
+        const osc = c.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(180, c.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(90, c.currentTime + 0.1);
+        const g = c.createGain();
+        g.gain.setValueAtTime(0.18, c.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.12);
+        osc.connect(g); g.connect(c.destination);
+        osc.start(); osc.stop(c.currentTime + 0.14);
+      });
+    },
+
+    // End turn — firm thunk
+    endTurn() {
+      play(c => {
+        const osc = c.createOscillator();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(180, c.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(90, c.currentTime + 0.08);
+        const g = c.createGain();
+        g.gain.setValueAtTime(0.18, c.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.1);
+        osc.connect(g); g.connect(c.destination);
+        osc.start(); osc.stop(c.currentTime + 0.12);
+      });
+    },
+
+    // Gold — coin clink
+    gold() {
+      play(c => {
+        const osc = c.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1400, c.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(900, c.currentTime + 0.14);
+        const g = c.createGain();
+        g.gain.setValueAtTime(0.22, c.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.2);
+        osc.connect(g); g.connect(c.destination);
+        osc.start(); osc.stop(c.currentTime + 0.22);
+      });
+    },
+
+    // Victory — ascending fanfare
+    victory() {
+      play(c => {
+        [523, 659, 784, 1047].forEach((freq, i) => {
+          const osc = c.createOscillator();
+          osc.type = 'triangle'; osc.frequency.value = freq;
+          const g = c.createGain();
+          const t = c.currentTime + i * 0.16;
+          g.gain.setValueAtTime(0, t);
+          g.gain.linearRampToValueAtTime(0.28, t + 0.05);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+          osc.connect(g); g.connect(c.destination);
+          osc.start(t); osc.stop(t + 0.55);
+        });
+      });
+    },
+
+    // Game over — descending minor fall
+    gameOver() {
+      play(c => {
+        [220, 196, 165, 110].forEach((freq, i) => {
+          const osc = c.createOscillator();
+          osc.type = 'sawtooth'; osc.frequency.value = freq;
+          const g = c.createGain();
+          const t = c.currentTime + i * 0.32;
+          g.gain.setValueAtTime(0, t);
+          g.gain.linearRampToValueAtTime(0.28, t + 0.08);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+          osc.connect(g); g.connect(c.destination);
+          osc.start(t); osc.stop(t + 0.6);
+        });
+      });
+    },
+
+    setMuted(v) { _muted = v; },
+    isMuted() { return _muted; },
+    toggleMute() {
+      _muted = !_muted;
+      const btn = document.getElementById('sfx-mute-btn');
+      if (btn) btn.textContent = _muted ? '🔇 Sounds Off' : '🔊 Sounds On';
+    },
+  };
+
+  return sfx;
+})();
+
 // ═══════════════════════════════════════════════════════════════════
 // GAME STATE
 // ═══════════════════════════════════════════════════════════════════
@@ -3707,6 +3989,7 @@ function startTurn() {
 }
 
 function rollDice(g) {
+  SFX.diceRoll();
   let roll = Math.floor(Math.random() * g.diceMax) + 1;
   // Gambler min 2
   if (g.charKey === 'gambler' && roll < 2) roll = 2;
@@ -3730,6 +4013,7 @@ function rollDice(g) {
 
 function checkAffinityHighlight(g, roll) {
   const isMatch = checkAffinity(g, roll, g.char.diceAffinity);
+  if (isMatch) SFX.affinityMatch();
   const die = document.getElementById('current-die');
   die.classList.toggle('affinity-match', isMatch);
   const thisDieMax = g.currentDieType ? g.currentDieType.max : g.diceMax;
@@ -3765,6 +4049,7 @@ function checkAffinity(g, roll, affinity) {
 
 function useReroll() {
   if (G.rerollUsed && !G.aldricInfiniteReroll) return;
+  SFX.reroll();
   if (!G.aldricInfiniteReroll) {
     G.rerollUsed = true;
     document.getElementById('reroll-btn').disabled = true;
@@ -3806,6 +4091,8 @@ function playCard(cardKey) {
   if (G.energy < actualCost) { showMsg('Not enough energy!'); return; }
   if (!G.enemy && card.type === 'Attack') { showMsg('No enemy to attack!'); return; }
 
+  SFX.cardPlay();
+
   G.energy -= actualCost;
   const roll = G.currentDie || 1;
   card.effect(G, roll);
@@ -3843,11 +4130,14 @@ function endTurn() {
   if (!G.enemy) return;
   const e = G.enemy;
 
+  SFX.endTurn();
+
   // ── STEP 1: Tick status effects on enemy FIRST ──
   const poison = G.statuses.enemy.find(s => s.name === '☠️Poison');
   if (poison) {
     G.enemy.hp -= poison.stacks;
     floatDamage('enemy-combatant', poison.stacks, 'dmg');
+    SFX.statusTick();
     poison.stacks--;
     if (poison.stacks <= 0) {
       G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '☠️Poison');
@@ -3858,6 +4148,7 @@ function endTurn() {
   if (burn) {
     G.enemy.hp -= burn.stacks * 2;
     floatDamage('enemy-combatant', burn.stacks * 2, 'dmg');
+    SFX.statusTick();
     burn.stacks--;
     if (burn.stacks <= 0) {
       G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '🔥Burn');
@@ -4082,6 +4373,7 @@ function dealDamage(g, target, amount) {
     const pen = Math.max(0, amount - g.enemy.block);
     g.enemy.block = Math.max(0, g.enemy.block - amount);
     g.enemy.hp -= pen;
+    SFX.attack();
     playAttackAnimation({
       attackerEl: playerEl,
       targetEl: enemyEl,
@@ -4112,7 +4404,7 @@ function dealDamage(g, target, amount) {
     const pen = Math.max(0, amount - g.block);
     g.block = Math.max(0, g.block - amount);
     g.hp -= pen;
-
+    if (pen > 0) SFX.playerHurt();
     playAttackAnimation({
       attackerEl: enemyEl,
       targetEl: playerEl,
@@ -4130,12 +4422,14 @@ function gainBlock(g, target, amount) {
   if (target === 'player') {
     g.block += amount;
     floatDamage('player-combatant', amount, 'block');
+    SFX.block();
   }
   renderAll();
 }
 
 function healPlayer(g, amount) {
   g.hp = Math.min(g.maxHp, g.hp + amount);
+  SFX.heal();
   floatDamage('player-combatant', amount, 'heal');
   renderAll();
 }
@@ -4149,6 +4443,7 @@ function applyStatus(g, target, name, stacks) {
 }
 
 function drawCards(g, n) {
+  if (n > 0) SFX.cardDraw();
   for (let i = 0; i < n; i++) {
     if (g.drawPile.length === 0) {
       if (g.discardPile.length > 0) {
@@ -4174,6 +4469,7 @@ function shuffleDeck() {
 function checkCombatEnd() {
   if (G.hp <= 0) {
     G.runSouls += G.souls;
+    SFX.gameOver();
     setTimeout(showGameOver, 600);
     return;
   }
@@ -4182,6 +4478,8 @@ function checkCombatEnd() {
     G.gold += G.enemy.reward;
     G.souls += G.enemy.souls;
     G.runSouls += G.enemy.souls;
+    SFX.enemyDie();
+    if (G.enemy.reward > 0) setTimeout(() => SFX.gold(), 300);
 
     document.getElementById('enemy-sprite').classList.add('dying');
 
@@ -5293,6 +5591,7 @@ function showCombatScreen() { showScreen('combat-screen'); }
 function showAldricEnding() {
   const hasTrueEnding = G.aldricHasRelics;
   const vs = document.getElementById('victory-screen');
+  SFX.victory();
   showScreen('victory-screen');
 
   // Override victory text based on ending
