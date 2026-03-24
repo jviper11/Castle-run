@@ -3594,7 +3594,7 @@ function startCombat(isElite) {
     // First 2 rooms of Floor 1 use easy pool
     const isEasy = G.currentFloor === 0 &&
       (G.map[0][`roomIndex${G.map[0].currentPath}`] || 0) < 2;
-    pool = isEasy ? EASY_ENEMIES : (FLOOR_ENEMIES[G.currentFloor + 1] || FLOOR_ENEMIES[1]);
+    pool = FLOOR_ENEMIES[G.currentFloor + 1] || FLOOR_ENEMIES[1];
   }
 
   const e = { ...rand(pool) };
