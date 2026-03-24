@@ -3598,12 +3598,14 @@ function startCombat(isElite) {
   }
 
   const e = { ...rand(pool) };
-  G.enemy = { ...e, maxHp: e.hp, turnCount: 0, intent: 'attack' };
-  // Moves-based enemies: set opening move
-  if (e.moves) {
+  G.enemy = { ...e, maxHp: e.hp, turnCount: 0};
+ // Moves-based enemies: set opening move
+  if (e.moves && e.moves.length) {
     const opener = e.moves.find(m => m.isOpener) || e.moves[0];
     G.enemy.currentMove = opener;
-    G.enemy._moveHistory = [opener.name];
+    G.enemy._moveHistory = [];
+  } else {
+    G.enemy.intent = 'attack';
   }
   G.block = 0;
   G.statuses = { player: [], enemy: [] };
