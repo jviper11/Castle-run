@@ -393,3 +393,4 @@ const ALDRIC_RELIC_TRIGGERS = [
   { hp: 75,  icon: '⚔️', name: 'THE SWORD',  quote: '"I swore to protect..."',           effect: 'Aldric damage is halved.' },
   { hp: 50,  icon: '🔱', name: 'THE SIGIL',  quote: '"The pact... it is breaking..."',   effect: 'Your Reroll is now infinite.' },
   { hp: 25,  icon: '🤝', name: 'THE VOW',    quote: '"I… am still here…"',             effect: 'Aldric stops attacking.' }
+];
