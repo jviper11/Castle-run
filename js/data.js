@@ -389,23 +389,98 @@ const FLOOR_ENEMIES = {
       ],
       constraints:[{move:'Stone Skin',maxStreak:1},{move:'Dive',maxStreak:1}] },
   ],
-  2: [ // Catacombs
-    { name:'Shadow Wraith',  emoji:'👻', hp:60, block:0,  damage:10, reward:20, souls:3,  aggro:'balanced',
-      special:{ name:'Phase', desc:'Immune to damage every other turn',
-        trigger:'turn', effect:(g,turn)=>{ g.enemy._phased = turn%2===0; if(g.enemy._phased) showMsg('👻 Wraith phases — immune this turn!'); } } },
-    { name:'Bone Archer',    emoji:'🦴', hp:65, block:0,  damage:12, reward:20, souls:2,  aggro:'glass',
-      special:{ name:'Poison Arrow', desc:'Applies 2 Poison on each hit',
-        trigger:'attack', effect:(g)=>{ applyStatus(g,'player','☠️Poison',2); showMsg('🦴 Poison Arrow!'); } } },
-    { name:'Cursed Knight',  emoji:'🗡️', hp:75, block:8,  damage:13, reward:25, souls:4,  aggro:'cautious',
-      special:{ name:'Undying', desc:'Revives once with 15 HP',
-        trigger:'hp', effect:(g)=>{ if(!g.enemy._revived && g.enemy.hp<=0){ g.enemy.hp=15; g.enemy._revived=true; floatDamage('enemy-combatant',15,'heal'); showMsg('🗡️ Cursed Knight rises again!'); } } } },
-    { name:'Crypt Crawler',  emoji:'🦂', hp:58, block:0,  damage:8,  reward:18,  souls:2,  aggro:'balanced',
-      special:{ name:'Acid Touch', desc:'Removes 4 Block from player on hit',
-        trigger:'attack', effect:(g)=>{ const lost=Math.min(g.block,4); g.block-=lost; showMsg(`🦂 Acid Touch — lost ${lost} Block!`); } } },
-    { name:'Blood Bat',      emoji:'🦇', hp:45, block:0,  damage:8,  reward:16,  souls:2,  aggro:'glass',
-      special:{ name:'Drain', desc:'Steals 3 Block from player on hit',
-        trigger:'attack', effect:(g)=>{ const s=Math.min(g.block,3); g.block-=s; g.enemy.block+=s; showMsg('🦇 Blood Bat drains your block!'); } } },
-  ],
+  2: [ // Catacombs — fixed opener + weighted moves (medium tier)
+
+  { name:'Shadow Wraith', emoji:'👻', hp:60, block:0, damage:12, reward:20, souls:3,
+    moves:[
+      { name:'Phase', isOpener:true, type:'buff', desc:'Immune this turn',
+        effect(g){ g.enemy._phased=true; showMsg('👻 Wraith phases — immune!'); } },
+      { name:'Haunt', weight:60, type:'attack', dmg:12, desc:'Deal 12 dmg',
+        effect(g){ _emAtk(g,12); showMsg('👻 Haunt!'); } },
+      { name:'Phase', weight:25, type:'buff', desc:'Immune this turn',
+        effect(g){ g.enemy._phased=true; showMsg('👻 Phases — immune this turn!'); } },
+      { name:'Wail', weight:15, type:'debuff', dmg:8, desc:'8 dmg + 1 Weak',
+        effect(g){ _emAtk(g,8); applyStatus(g,'player','😵Weak',1); showMsg('👻 Wail — Weakened!'); } },
+    ],
+    constraints:[{move:'Phase',maxStreak:1},{move:'Haunt',maxStreak:2}] },
+
+  { name:'Bone Archer', emoji:'🦴', hp:65, block:0, damage:12, reward:20, souls:2,
+    moves:[
+      { name:'Nock', isOpener:true, type:'buff', desc:'Skip — next arrow deals double Poison',
+        effect(g){ g.enemy._nocked=true; showMsg('🦴 Bone Archer nocks a poisoned arrow...'); } },
+      { name:'Poison Arrow', weight:50, type:'debuff', dmg:10, desc:'10 dmg + 2 Poison',
+        effect(g){ _emAtk(g,10); const stacks=g.enemy._nocked?4:2; applyStatus(g,'player','☠️Poison',stacks); g.enemy._nocked=false; showMsg(`🦴 Poison Arrow — ${stacks} Poison!`); } },
+      { name:'Volley', weight:35, type:'attack', dmg:8, desc:'Deal 8 dmg twice',
+        effect(g){ _emAtk(g,8); _emAtk(g,8); g.enemy._nocked=false; showMsg('🦴 Volley!'); } },
+      { name:'Nock', weight:15, type:'buff', desc:'Skip — next arrow deals double Poison',
+        effect(g){ g.enemy._nocked=true; showMsg('🦴 Nocking again...'); } },
+    ],
+    constraints:[{move:'Nock',maxStreak:1},{move:'Volley',maxStreak:1}] },
+
+  { name:'Cursed Knight', emoji:'🗡️', hp:75, block:8, damage:14, reward:25, souls:4,
+    moves:[
+      { name:'Undying Oath', isOpener:true, type:'block', desc:'Gain 10 Block, flag revive',
+        effect(g){ g.enemy.block+=10; floatDamage('enemy-combatant',10,'block'); g.enemy._canRevive=true; showMsg('🗡️ Undying Oath — will not fall!'); } },
+      { name:'Cursed Slash', weight:55, type:'attack', dmg:14, desc:'Deal 14 dmg',
+        effect(g){ _emAtk(g,14); } },
+      { name:'Dark Shield', weight:30, type:'block', desc:'Gain 8 Block',
+        effect(g){ g.enemy.block+=8; floatDamage('enemy-combatant',8,'block'); showMsg('🗡️ Dark Shield!'); } },
+      { name:'Smite', weight:15, type:'debuff', dmg:11, desc:'11 dmg + 1 Vulnerable',
+        effect(g){ _emAtk(g,11); applyStatus(g,'player','🫗Vulnerable',1); showMsg('🗡️ Smite — Vulnerable!'); } },
+    ],
+    constraints:[{move:'Dark Shield',maxStreak:2},{move:'Cursed Slash',maxStreak:2}],
+    onDeath(g){ if(g.enemy._canRevive && !g.enemy._revived){ g.enemy.hp=15; g.enemy._revived=true; g.enemy._canRevive=false; g.enemy.block=0; floatDamage('enemy-combatant',15,'heal'); showMsg('🗡️ Cursed Knight rises again!'); return true; } return false; } },
+
+  { name:'Crypt Crawler', emoji:'🦂', hp:58, block:0, damage:9, reward:18, souls:2,
+    moves:[
+      { name:'Acid Spit', isOpener:true, type:'debuff', dmg:6, desc:'6 dmg + remove 4 Block',
+        effect(g){ _emAtk(g,6); const lost=Math.min(g.block,4); g.block=Math.max(0,g.block-4); showMsg(`🦂 Acid Spit — lost ${lost} Block!`); } },
+      { name:'Acid Touch', weight:65, type:'debuff', dmg:9, desc:'9 dmg + remove 3 Block',
+        effect(g){ _emAtk(g,9); const lost=Math.min(g.block,3); g.block=Math.max(0,g.block-3); showMsg(`🦂 Acid Touch — lost ${lost} Block!`); } },
+      { name:'Scuttle', weight:25, type:'block', desc:'Gain 5 Block',
+        effect(g){ g.enemy.block+=5; floatDamage('enemy-combatant',5,'block'); showMsg('🦂 Scuttle!'); } },
+      { name:'Acid Spit', weight:10, type:'debuff', dmg:6, desc:'6 dmg + remove 4 Block',
+        effect(g){ _emAtk(g,6); const lost=Math.min(g.block,4); g.block=Math.max(0,g.block-4); showMsg(`🦂 Acid Spit!`); } },
+    ],
+    constraints:[{move:'Acid Touch',maxStreak:2},{move:'Scuttle',maxStreak:1}] },
+
+  { name:'Blood Bat', emoji:'🦇', hp:45, block:0, damage:9, reward:16, souls:2,
+    moves:[
+      { name:'Swoop', isOpener:true, type:'attack', dmg:9, desc:'Deal 9 dmg',
+        effect(g){ _emAtk(g,9); showMsg('🦇 Swoop!'); } },
+      { name:'Blood Drain', weight:50, type:'mixed', dmg:8, desc:'8 dmg, steal 3 Block',
+        effect(g){ _emAtk(g,8); const s=Math.min(g.block,3); g.block=Math.max(0,g.block-s); g.enemy.block+=s; showMsg(`🦇 Blood Drain — stole ${s} Block!`); } },
+      { name:'Swoop', weight:35, type:'attack', dmg:9, desc:'Deal 9 dmg',
+        effect(g){ _emAtk(g,9); } },
+      { name:'Frenzy', weight:15, type:'attack', dmg:6, desc:'Deal 6 dmg twice',
+        effect(g){ _emAtk(g,6); _emAtk(g,6); showMsg('🦇 Frenzy!'); } },
+    ],
+    constraints:[{move:'Blood Drain',maxStreak:1},{move:'Frenzy',maxStreak:1}] },
+
+  { name:'Grave Revenant', emoji:'💀', hp:68, block:0, damage:13, reward:22, souls:3,
+    moves:[
+      { name:'Rise', isOpener:true, type:'heal', desc:'Heal 10 HP + gain 6 Block',
+        effect(g){ g.enemy.hp=Math.min(g.enemy.hp+10,g.enemy.maxHp); floatDamage('enemy-combatant',10,'heal'); g.enemy.block+=6; floatDamage('enemy-combatant',6,'block'); showMsg('💀 Rise — the dead stir!'); } },
+      { name:'Grave Slam', weight:45, type:'attack', dmg:13, desc:'Deal 13 dmg',
+        effect(g){ _emAtk(g,13); showMsg('💀 Grave Slam!'); } },
+      { name:'Rotten Touch', weight:35, type:'debuff', dmg:8, desc:'8 dmg + 2 Poison',
+        effect(g){ _emAtk(g,8); applyStatus(g,'player','☠️Poison',2); showMsg('💀 Rotten Touch — Poisoned!'); } },
+      { name:'Rise', weight:20, type:'heal', desc:'Heal 8 HP',
+        effect(g){ g.enemy.hp=Math.min(g.enemy.hp+8,g.enemy.maxHp); floatDamage('enemy-combatant',8,'heal'); showMsg('💀 Rise — regenerating!'); } },
+    ],
+    constraints:[{move:'Rise',maxStreak:1},{move:'Rotten Touch',maxStreak:1}] },
+
+  { name:'Dungeon Wraith', emoji:'🌑', hp:55, block:0, damage:11, reward:19, souls:2,
+    moves:[
+      { name:'Shadow Claw', weight:50, type:'attack', dmg:11, desc:'Deal 11 dmg',
+        effect(g){ _emAtk(g,11); showMsg('🌑 Shadow Claw!'); } },
+      { name:'Drain', weight:35, type:'mixed', dmg:8, desc:'8 dmg, heal 5 HP',
+        effect(g){ _emAtk(g,8); g.enemy.hp=Math.min(g.enemy.hp+5,g.enemy.maxHp); floatDamage('enemy-combatant',5,'heal'); showMsg('🌑 Drain!'); } },
+      { name:'Fade', weight:15, type:'block', desc:'Gain 8 Block',
+        effect(g){ g.enemy.block+=8; floatDamage('enemy-combatant',8,'block'); showMsg('🌑 Fade — shadows shield it!'); } },
+    ],
+    constraints:[{move:'Shadow Claw',maxStreak:2},{move:'Drain',maxStreak:1}] },
+],
   3: [ // Inner Sanctum
     { name:'Dark Sorcerer',     emoji:'🧙', hp:75, block:0,  damage:11, reward:28, souls:3,  aggro:'balanced',
       special:{ name:'Arcane Burn', desc:'Applies 2 Burn each turn',
@@ -448,14 +523,13 @@ const EASY_ENEMIES = [
   { name:'Dungeon Rat',  emoji:'🐀', hp:35, block:0, damage:8,  reward:5, souls:1, aggro:'glass',    special:null },
   { name:'Skeleton',     emoji:'💀', hp:40, block:0, damage:9,  reward:6, souls:1, aggro:'berserker',special:null },
 ];
-
-// Early Floor 2 pool for the first 2 standard fights
-const EARLY_FLOOR2_ENEMIES = [
-  FLOOR_ENEMIES[2][0], // Shadow Wraith
-  FLOOR_ENEMIES[2][3], // Crypt Crawler
-  FLOOR_ENEMIES[2][4], // Blood Bat
+// Easy pool for first 2 battles of floor 
+const FLOOR2_EARLY_ENEMIES = [
+  "Hellfang Pup",
+  "Bone Priest",
+  "Blackblade Duelist",
+  "Executioner's Guard"
 ];
-
 // Keep flat ENEMIES for backwards compatibility
 const ENEMIES = [...FLOOR_ENEMIES[1], ...FLOOR_ENEMIES[2]];
 
