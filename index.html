@@ -2558,7 +2558,35 @@ const AGGRO_PROFILES = {
   balanced:  { defendChance: 0.20, hurtDefendChance: 0.20, defendBlock: 8 },   // reads the situation
   forced:    { defendChance: 0.00, hurtDefendChance: 0.00, defendBlock: 0 },   // intent fully controlled by special ability
 };
+function getPreviewDamage(g, baseAmount, target = 'enemy') {
+  let amount = baseAmount;
 
+  if (target === 'enemy' && g.enemy) {
+    const playerRage = g.statuses.player.find(s => s.name === '💢Rage');
+    if (playerRage && playerRage.stacks > 0) {
+      amount += playerRage.stacks;
+    }
+
+    const activeDieBonus = getDie(g.activeDie);
+    if (activeDieBonus.bonus === 'odd_dmg' && g.currentDie && g.currentDie % 2 !== 0) {
+      amount += 2;
+    }
+
+    const playerWeak = g.statuses.player.find(s => s.name === '😵Weak');
+    if (playerWeak && playerWeak.stacks > 0) {
+      amount = Math.floor(amount * 0.75);
+    }
+
+    const enemyVuln = g.statuses.enemy.find(s => s.name === '🫗Vulnerable');
+    if (enemyVuln && enemyVuln.stacks > 0) {
+      amount = Math.floor(amount * 1.5);
+    }
+
+    return Math.max(0, amount);
+  }
+
+  return Math.max(0, amount);
+}
 const FLOOR_ENEMIES = {
   1: [ // Castle Entrance — moves-based personality system
     { name:'Castle Guard', emoji:'⚔️', hp:55, block:0, damage:11, reward:15, souls:2,
@@ -4667,37 +4695,39 @@ function renderHand() {
     if (!canPlay) el.classList.add('unplayable');
 
     // Build dynamic description
-    const rageStatus = G.statuses && G.statuses.player && G.statuses.player.find(s => s.name === '💢Rage');
-    const rageBonus = (c.type === 'Attack' && rageStatus && rageStatus.stacks > 0) ? rageStatus.stacks : 0;
-    const weakStatus2 = G.statuses && G.statuses.player && G.statuses.player.find(s => s.name === '😵Weak');
-    const isWeak2 = c.type === 'Attack' && weakStatus2 && weakStatus2.stacks > 0;
     let displayDesc = c.desc;
-    if (rageBonus > 0 && !isWeak2) {
-      displayDesc = c.desc.replace(/(\d+)\s*(dmg|damage)/g, (match, num, word) => {
-        const boosted = parseInt(num) + rageBonus;
-        return '<span style="color:#e74c3c;font-weight:bold">' + boosted + '</span> ' + word;
-      });
-    } else if (isWeak2 && rageBonus === 0) {
-      displayDesc = c.desc.replace(/(\d+)\s*(dmg|damage)/g, (match, num, word) => {
-        const reduced = Math.floor(parseInt(num) * 0.75);
-        return '<span style="color:#7fb3d3;font-weight:bold">' + reduced + '</span> <span style="text-decoration:line-through;opacity:0.5;font-size:0.85em">' + num + '</span> ' + word;
-      });
-    } else if (isWeak2 && rageBonus > 0) {
-      displayDesc = c.desc.replace(/(\d+)\s*(dmg|damage)/g, (match, num, word) => {
-        const final = Math.floor((parseInt(num) + rageBonus) * 0.75);
-        return '<span style="color:#7fb3d3;font-weight:bold">' + final + '</span> ' + word;
-      });
+
+if (c.type === 'Attack' && typeof c.damage === 'number') {
+  const previewDamage = getPreviewDamage(G, c.damage, 'enemy');
+
+  displayDesc = c.desc.replace(/\b(\d+)\s*(dmg|damage)\b/gi, (match, num, word) => {
+    const original = parseInt(num, 10);
+
+    if (previewDamage === original) {
+      return `${previewDamage} ${word}`;
     }
-    const weakIndicator = isWeak2 ? '<div style="font-size:0.5rem;color:#7fb3d3;text-align:center;margin-top:0.1rem;">😵 WEAK</div>' : '';
-    el.innerHTML = `
-      <div class="card-cost" style="${costStyle}">${actualCost}</div>
-      <span class="card-emoji">${c.emoji}</span>
-      <div class="card-name">${c.name}</div>
-      <div class="card-type">${c.type}</div>
-      <div class="card-desc">${displayDesc}</div>
-      ${weakIndicator}
-      ${c.dice ? `<div class="card-dice-req">🎲 ${affinityActive ? '✨ Bonus Active!' : c.affinityBonus + ' roll'}</div>` : ''}
-    `;
+
+    let color = '#e74c3c';
+    if (previewDamage < original) color = '#7fb3d3';
+
+    return `<span style="color:${color};font-weight:bold">${previewDamage}</span> <span style="text-decoration:line-through;opacity:0.5;font-size:0.85em">${original}</span> ${word}`;
+  });
+}
+
+const weakStatus2 = G.statuses?.player?.find(s => s.name === '😵Weak');
+const weakIndicator = (c.type === 'Attack' && weakStatus2 && weakStatus2.stacks > 0)
+  ? '<div style="font-size:0.5rem;color:#7fb3d3;text-align:center;margin-top:0.1rem;">😵 WEAK</div>'
+  : '';
+
+el.innerHTML = `
+  <div class="card-cost" style="${costStyle}">${actualCost}</div>
+  <span class="card-emoji">${c.emoji}</span>
+  <div class="card-name">${c.name}</div>
+  <div class="card-type">${c.type}</div>
+  <div class="card-desc">${displayDesc}</div>
+  ${weakIndicator}
+  ${c.dice ? `<div class="card-dice-req">🎲 ${affinityActive ? '✨ Bonus Active!' : c.affinityBonus + ' roll'}</div>` : ''}
+`;
     if (G._voidChannelSelecting) {
       // In void channel discard mode — every card is clickable to discard
       el.classList.remove('unplayable');
