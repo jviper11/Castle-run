@@ -4066,6 +4066,19 @@ function dealDamage(g, target, amount) {
       enemyVuln.stacks--;
       if (enemyVuln.stacks <= 0) g.statuses.enemy = g.statuses.enemy.filter(s => s.name !== '🫗Vulnerable');
     }
+
+     // Stone Skin — absorb incoming damage before block/HP
+    if (g.enemy.stoneShield && g.enemy.stoneShield > 0) {
+      const absorbed = Math.min(amount, g.enemy.stoneShield);
+      amount -= absorbed;
+      g.enemy.stoneShield -= absorbed;
+      showMsg(`🪨 Stone Skin absorbs ${absorbed}!`);
+
+      if (g.enemy.stoneShield <= 0) {
+        g.enemy.stoneShield = 0;
+      }
+    }
+
     const pen = Math.max(0, amount - g.enemy.block);
     g.enemy.block = Math.max(0, g.enemy.block - amount);
     g.enemy.hp -= pen;
