@@ -358,8 +358,32 @@ function startBossFight() {
   renderAll();
 }
 
+function applyPlayerIncomingDamageModifiers(g, amount) {
+  let modified = amount;
+  const playerVuln = g.statuses.player.find(s => s.name === '🫗Vulnerable');
+  if (playerVuln && playerVuln.stacks > 0) {
+    modified = Math.floor(modified * 1.25);
+  }
+  return modified;
+}
+
 function startTurn() {
   G.turn++;
+
+  const playerBurn = G.statuses.player.find(s => s.name === '🔥Burn');
+  if (playerBurn) {
+    G.hp -= playerBurn.stacks;
+    floatDamage('player-combatant', playerBurn.stacks, 'dmg');
+    SFX.statusTick();
+    playerBurn.stacks--;
+    if (playerBurn.stacks <= 0) {
+      G.statuses.player = G.statuses.player.filter(s => s.name !== '🔥Burn');
+    }
+    renderAll();
+    checkCombatEnd();
+    if (G.hp <= 0) return;
+  }
+
   G.energy = G.maxEnergy;
   G.block = 0;
   G._manaSurge = false; // reset each turn
@@ -670,6 +694,32 @@ function endTurn() {
   }
 
   // ── STEP 7: Discard hand, check end, start next turn ──
+  const playerPoison = G.statuses.player.find(s => s.name === '☠️Poison');
+  if (playerPoison) {
+    G.hp -= playerPoison.stacks;
+    floatDamage('player-combatant', playerPoison.stacks, 'dmg');
+    SFX.statusTick();
+    playerPoison.stacks--;
+    if (playerPoison.stacks <= 0) {
+      G.statuses.player = G.statuses.player.filter(s => s.name !== '☠️Poison');
+    }
+  }
+
+  // Turn-based player debuffs remain through the player turn, then tick down
+  // at the end of each enemy turn. Newly applied debuffs skip this first tick.
+  for (const debuffName of ['😵Weak', '🫗Vulnerable']) {
+    const debuff = G.statuses.player.find(s => s.name === debuffName);
+    if (!debuff) continue;
+    if (debuff.justApplied) {
+      delete debuff.justApplied;
+      continue;
+    }
+    debuff.stacks--;
+    if (debuff.stacks <= 0) {
+      G.statuses.player = G.statuses.player.filter(s => s.name !== debuffName);
+    }
+  }
+
   G.discardPile.push(...G.hand);
   G.hand = [];
 
@@ -718,8 +768,6 @@ function dealDamage(g, target, amount) {
     const playerWeak = g.statuses.player.find(s => s.name === '😵Weak');
     if (playerWeak && playerWeak.stacks > 0) {
       amount = Math.floor(amount * 0.75);
-      playerWeak.stacks--;
-      if (playerWeak.stacks <= 0) g.statuses.player = g.statuses.player.filter(s => s.name !== '😵Weak');
     }
     // Also apply Vulnerable — enemy takes 50% more damage
     const enemyVuln = g.statuses.enemy.find(s => s.name === '🫗Vulnerable');
@@ -772,6 +820,7 @@ function dealDamage(g, target, amount) {
       try { g.enemy.special.effect(g); } catch(e) {}
     }
   } else if (target === 'player') {
+    amount = applyPlayerIncomingDamageModifiers(g, amount);
     const pen = Math.max(0, amount - g.block);
     g.block = Math.max(0, g.block - amount);
     g.hp -= pen;
@@ -808,8 +857,19 @@ function healPlayer(g, amount) {
 function applyStatus(g, target, name, stacks) {
   const arr = g.statuses[target];
   const ex = arr.find(s => s.name === name);
-  if (ex) ex.stacks += stacks;
-  else arr.push({ name, stacks });
+  const trackTurnTiming = target === 'player' && (name === '😵Weak' || name === '🫗Vulnerable');
+  if (ex) {
+    ex.stacks += stacks;
+    if (trackTurnTiming) {
+      ex.justApplied = true;
+    }
+  } else {
+    const status = { name, stacks };
+    if (trackTurnTiming) {
+      status.justApplied = true;
+    }
+    arr.push(status);
+  }
   renderAll();
 }
 
@@ -901,6 +961,7 @@ function checkCombatEnd() {
 function _emAtk(g, dmg) {
   const rage = g.statuses.enemy.find(s => s.name === '💢Rage');
   if (rage) dmg += rage.stacks;
+  dmg = applyPlayerIncomingDamageModifiers(g, dmg);
   const net = Math.max(0, dmg - g.block);
   g.block = Math.max(0, g.block - dmg);
   if (net > 0) g.hp -= net;
@@ -1320,4 +1381,3 @@ function showBossIntro(boss) {
 // ═══════════════════════════════════════════════════════════════════
 // RENDER
 // ═══════════════════════════════════════════════════════════════════
-
