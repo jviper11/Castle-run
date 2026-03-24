@@ -4708,27 +4708,37 @@ function renderHand() {
     if (!canPlay) el.classList.add('unplayable');
 
     // Build dynamic description
-    let displayDesc = c.desc;
+const rageStatus = G.statuses?.player?.find(s => s.name === '💢Rage');
+const rageBonus = (c.type === 'Attack' && rageStatus && rageStatus.stacks > 0) ? rageStatus.stacks : 0;
 
-if (c.type === 'Attack' && typeof c.damage === 'number') {
-  const previewDamage = getPreviewDamage(G, c.damage, 'enemy');
+const weakStatus2 = G.statuses?.player?.find(s => s.name === '😵Weak');
+const isWeak2 = c.type === 'Attack' && weakStatus2 && weakStatus2.stacks > 0;
 
+let displayDesc = c.desc;
+
+if (c.type === 'Attack') {
   displayDesc = c.desc.replace(/\b(\d+)\s*(dmg|damage)\b/gi, (match, num, word) => {
-    const original = parseInt(num, 10);
+    const base = parseInt(num, 10);
+    let shown = base;
 
-    if (previewDamage === original) {
-      return `${previewDamage} ${word}`;
+    if (rageBonus > 0) {
+      shown += rageBonus;
     }
 
-    let color = '#e74c3c';
-    if (previewDamage < original) color = '#7fb3d3';
+    if (isWeak2) {
+      shown = Math.floor(shown * 0.75);
+    }
 
-    return `<span style="color:${color};font-weight:bold">${previewDamage}</span> <span style="text-decoration:line-through;opacity:0.5;font-size:0.85em">${original}</span> ${word}`;
+    if (shown === base) {
+      return `${shown} ${word}`;
+    }
+
+    const color = shown > base ? '#e74c3c' : '#7fb3d3';
+    return `<span style="color:${color};font-weight:bold">${shown}</span> <span style="text-decoration:line-through;opacity:0.5;font-size:0.85em">${base}</span> ${word}`;
   });
 }
 
-const weakStatus2 = G.statuses?.player?.find(s => s.name === '😵Weak');
-const weakIndicator = (c.type === 'Attack' && weakStatus2 && weakStatus2.stacks > 0)
+const weakIndicator = isWeak2
   ? '<div style="font-size:0.5rem;color:#7fb3d3;text-align:center;margin-top:0.1rem;">😵 WEAK</div>'
   : '';
 
