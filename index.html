@@ -1672,7 +1672,7 @@ body {
   /* ── COMBAT SCREEN ── */
   #combat-screen { min-height: 0; }
 
-  .hud-main-row { padding: 0.15rem 0.55rem; flex-wrap: nowrap; gap: 0.2rem; }
+  .hud-main-row { padding: 0.1rem 0.5rem; flex-wrap: nowrap; gap: 0.15rem; }
   .combat-controls { display: none !important; }
   #dice-corner {
     display: flex;
@@ -1688,8 +1688,8 @@ body {
   #dice-corner .reroll-btn { font-size: 0.5rem; padding: 0.1rem 0.35rem; min-height: unset; height: auto; }
   .hud-floor { font-size: 0.68rem; }
   .hud-room { font-size: 0.62rem; }
-  .hud-map-btn { font-size: 0.62rem; padding: 0.15rem 0.35rem; min-height: unset; height: auto; }
-  .hud-menu-btn { font-size: 0.75rem; padding: 0.15rem 0.35rem; min-height: unset; height: auto; }
+  .hud-map-btn { font-size: 0.55rem; padding: 0.08rem 0.22rem; min-height: unset; height: auto; line-height: 1.2; border-width: 1px; }
+  .hud-menu-btn { font-size: 0.62rem; padding: 0.08rem 0.22rem; min-height: unset; height: auto; line-height: 1.2; border-width: 1px; }
 
   /* Arena — compact fixed height, no dead space */
  .combat-arena {
@@ -2550,72 +2550,81 @@ function getDie(type) { return DICE_TYPES[type] || DICE_TYPES.d6; }
 // Each enemy has: name, emoji, hp, block, damage, reward, souls, special ability
 // special: { name, desc, trigger, effect(g) }
 
+// Aggro profiles drive enemy personality — used in intent switching and defend block amounts
+const AGGRO_PROFILES = {
+  berserker: { defendChance: 0.05, hurtDefendChance: 0.03, defendBlock: 4 },   // rarely pauses, even less when hurt
+  glass:     { defendChance: 0.00, hurtDefendChance: 0.00, defendBlock: 0 },   // never defends — damage race
+  cautious:  { defendChance: 0.35, hurtDefendChance: 0.10, defendBlock: 12 },  // blocks a lot when healthy, less when hurt
+  balanced:  { defendChance: 0.20, hurtDefendChance: 0.20, defendBlock: 8 },   // reads the situation
+  forced:    { defendChance: 0.00, hurtDefendChance: 0.00, defendBlock: 0 },   // intent fully controlled by special ability
+};
+
 const FLOOR_ENEMIES = {
   1: [ // Castle Entrance — easy pool
-    { name:'Castle Guard',   emoji:'⚔️', hp:55, block:0,  damage:13, reward:15, souls:2,
+    { name:'Castle Guard',   emoji:'⚔️', hp:55, block:0,  damage:13, reward:15, souls:2, aggro:'cautious',
       special:{ name:'Shield Up', desc:'Gains 6 Block every other turn',
         trigger:'turn', effect:(g,turn)=>{ if(turn%2===0){ g.enemy.block+=6; showMsg('🛡 Castle Guard raises shield!'); } } } },
-    { name:'Dungeon Rat',    emoji:'🐀', hp:45, block:0,  damage:9,  reward:12,  souls:1,
+    { name:'Dungeon Rat',    emoji:'🐀', hp:45, block:0,  damage:9,  reward:12,  souls:1,  aggro:'glass',
       special:{ name:'Swarm', desc:'Heals 5 HP if alive for 3+ turns',
         trigger:'turn', effect:(g,turn)=>{ if(turn===3){ g.enemy.hp=Math.min(g.enemy.hp+5,g.enemy.maxHp); floatDamage('enemy-combatant',5,'heal'); showMsg('🐀 Rats swarm — enemy healed!'); } } } },
-    { name:'Iron Archer',    emoji:'🏹', hp:50, block:0,  damage:12, reward:14,  souls:2,
+    { name:'Iron Archer',    emoji:'🏹', hp:50, block:0,  damage:12, reward:14,  souls:2,  aggro:'forced',
       special:{ name:'Aim', desc:'Skips a turn then deals double damage',
         trigger:'turn', effect:(g,turn)=>{ if(turn%2===1){ g.enemy.intent='defend'; showMsg('🏹 Archer is aiming...'); } else { g.enemy.damage=24; g.enemy.intent='attack'; } } } },
-    { name:'Skeleton',       emoji:'💀', hp:48, block:0,  damage:9,  reward:13,  souls:2,
+    { name:'Skeleton',       emoji:'💀', hp:48, block:0,  damage:9,  reward:13,  souls:2,  aggro:'berserker',
       special:{ name:'Reassemble', desc:'Heals 8 HP once when first below 10 HP',
         trigger:'hp', effect:(g)=>{ if(!g.enemy._reassembled && g.enemy.hp<10 && g.enemy.hp>0){ g.enemy.hp+=8; g.enemy._reassembled=true; floatDamage('enemy-combatant',8,'heal'); showMsg('💀 Skeleton reassembles!'); } } } },
-    { name:'Cursed Hound',   emoji:'🐺', hp:50, block:0,  damage:12, reward:14,  souls:2,
+    { name:'Cursed Hound',   emoji:'🐺', hp:50, block:0,  damage:12, reward:14,  souls:2,  aggro:'berserker',
       special:{ name:'Rabid', desc:'Applies 1 Vulnerable on each attack',
         trigger:'attack', effect:(g)=>{ applyStatus(g,'player','🫗Vulnerable',1); showMsg('🐺 Rabid bite — Vulnerable!'); } } },
   ],
   2: [ // Catacombs
-    { name:'Shadow Wraith',  emoji:'👻', hp:60, block:0,  damage:10, reward:20, souls:3,
+    { name:'Shadow Wraith',  emoji:'👻', hp:60, block:0,  damage:10, reward:20, souls:3,  aggro:'balanced',
       special:{ name:'Phase', desc:'Immune to damage every other turn',
         trigger:'turn', effect:(g,turn)=>{ g.enemy._phased = turn%2===0; if(g.enemy._phased) showMsg('👻 Wraith phases — immune this turn!'); } } },
-    { name:'Bone Archer',    emoji:'🦴', hp:65, block:0,  damage:12, reward:20, souls:2,
+    { name:'Bone Archer',    emoji:'🦴', hp:65, block:0,  damage:12, reward:20, souls:2,  aggro:'glass',
       special:{ name:'Poison Arrow', desc:'Applies 2 Poison on each hit',
         trigger:'attack', effect:(g)=>{ applyStatus(g,'player','☠️Poison',2); showMsg('🦴 Poison Arrow!'); } } },
-    { name:'Cursed Knight',  emoji:'🗡️', hp:75, block:8,  damage:13, reward:25, souls:4,
+    { name:'Cursed Knight',  emoji:'🗡️', hp:75, block:8,  damage:13, reward:25, souls:4,  aggro:'cautious',
       special:{ name:'Undying', desc:'Revives once with 15 HP',
         trigger:'hp', effect:(g)=>{ if(!g.enemy._revived && g.enemy.hp<=0){ g.enemy.hp=15; g.enemy._revived=true; floatDamage('enemy-combatant',15,'heal'); showMsg('🗡️ Cursed Knight rises again!'); } } } },
-    { name:'Crypt Crawler',  emoji:'🦂', hp:58, block:0,  damage:8,  reward:18,  souls:2,
+    { name:'Crypt Crawler',  emoji:'🦂', hp:58, block:0,  damage:8,  reward:18,  souls:2,  aggro:'balanced',
       special:{ name:'Acid Touch', desc:'Removes 4 Block from player on hit',
         trigger:'attack', effect:(g)=>{ const lost=Math.min(g.block,4); g.block-=lost; showMsg(`🦂 Acid Touch — lost ${lost} Block!`); } } },
-    { name:'Blood Bat',      emoji:'🦇', hp:45, block:0,  damage:8,  reward:16,  souls:2,
+    { name:'Blood Bat',      emoji:'🦇', hp:45, block:0,  damage:8,  reward:16,  souls:2,  aggro:'glass',
       special:{ name:'Drain', desc:'Steals 3 Block from player on hit',
         trigger:'attack', effect:(g)=>{ const s=Math.min(g.block,3); g.block-=s; g.enemy.block+=s; showMsg('🦇 Blood Bat drains your block!'); } } },
   ],
   3: [ // Inner Sanctum
-    { name:'Dark Sorcerer',     emoji:'🧙', hp:75, block:0,  damage:11, reward:28, souls:3,
+    { name:'Dark Sorcerer',     emoji:'🧙', hp:75, block:0,  damage:11, reward:28, souls:3,  aggro:'balanced',
       special:{ name:'Arcane Burn', desc:'Applies 2 Burn each turn',
         trigger:'turn', effect:(g,turn)=>{ applyStatus(g,'player','🔥Burn',2); } } },
-    { name:'Corrupted Priest',  emoji:'🙏', hp:78, block:0,  damage:10, reward:26, souls:3,
+    { name:'Corrupted Priest',  emoji:'🙏', hp:78, block:0,  damage:10, reward:26, souls:3,  aggro:'cautious',
       special:{ name:'Dark Blessing', desc:'Heals 8 HP once below 50%',
         trigger:'hp', effect:(g)=>{ if(!g.enemy._healed && g.enemy.hp<g.enemy.maxHp*0.5){ g.enemy.hp=Math.min(g.enemy.hp+8,g.enemy.maxHp); g.enemy._healed=true; floatDamage('enemy-combatant',8,'heal'); showMsg('🙏 Dark Blessing — enemy healed!'); } } } },
-    { name:'Shadow Wraith+',    emoji:'👻', hp:72, block:0,  damage:14, reward:28, souls:3,
+    { name:'Shadow Wraith+',    emoji:'👻', hp:72, block:0,  damage:14, reward:28, souls:3,  aggro:'balanced',
       special:{ name:'Phase+', desc:'Immune every other turn, attacks twice when not phased',
         trigger:'turn', effect:(g,turn)=>{ g.enemy._phased = turn%2===0; if(g.enemy._phased){ showMsg('👻 Wraith phases — immune!'); } } } },
-    { name:'Stone Gargoyle',    emoji:'🗿', hp:85, block:0,  damage:11, reward:26, souls:3,
+    { name:'Stone Gargoyle',    emoji:'🗿', hp:85, block:0,  damage:11, reward:26, souls:3,  aggro:'cautious',
       special:{ name:'Stone Skin', desc:'Negates first 5 damage each turn',
         trigger:'turn', effect:(g,turn)=>{ g.enemy._stoneShield=5; showMsg('🗿 Stone Skin active — 5 damage absorbed!'); } } },
-    { name:'Void Stalker',      emoji:'🌑', hp:70, block:0,  damage:12, reward:24, souls:3,
+    { name:'Void Stalker',      emoji:'🌑', hp:70, block:0,  damage:12, reward:24, souls:3,  aggro:'berserker',
       special:{ name:'Curse', desc:'Makes a random card cost +2 energy this turn',
         trigger:'turn', effect:(g,turn)=>{ showMsg('🌑 Void Stalker curses a card — check your hand!'); } } },
   ],
   4: [ // Throne Room
-    { name:'Throne Guard',   emoji:'👑', hp:95, block:0,  damage:16, reward:38, souls:4,
+    { name:'Throne Guard',   emoji:'👑', hp:95, block:0,  damage:16, reward:38, souls:4,  aggro:'berserker',
       special:{ name:'Loyal', desc:'Gains 2 Strength every turn',
         trigger:'turn', effect:(g,turn)=>{ applyStatus(g,'enemy','💢Rage',2); } } },
-    { name:'Blood Cultist',  emoji:'🩸', hp:85, block:0,  damage:14, reward:35, souls:4,
+    { name:'Blood Cultist',  emoji:'🩸', hp:85, block:0,  damage:14, reward:35, souls:4,  aggro:'balanced',
       special:{ name:'Ritual', desc:'Deals 20 damage instantly if alive for 4 turns',
         trigger:'turn', effect:(g,turn)=>{ if(turn===4){ dealDamage(g,'player',20); showMsg('🩸 Ritual complete — 20 damage!'); } } } },
-    { name:'Royal Sorcerer', emoji:'🔮', hp:90, block:0,  damage:13, reward:35, souls:4,
+    { name:'Royal Sorcerer', emoji:'🔮', hp:90, block:0,  damage:13, reward:35, souls:4,  aggro:'balanced',
       special:{ name:'Arcane Overload', desc:'Every 3rd turn deals 25 damage',
         trigger:'turn', effect:(g,turn)=>{ if(turn%3===0){ dealDamage(g,'player',25); showMsg('🔮 Arcane Overload — 25 damage!'); } } } },
-    { name:'Void Wraith',    emoji:'🫥', hp:88, block:0,  damage:15, reward:35, souls:4,
+    { name:'Void Wraith',    emoji:'🫥', hp:88, block:0,  damage:15, reward:35, souls:4,  aggro:'balanced',
       special:{ name:'Drain', desc:'Removes 2 Block and heals self for the same',
         trigger:'attack', effect:(g)=>{ const s=Math.min(g.block,2); g.block-=s; g.enemy.hp=Math.min(g.enemy.hp+s,g.enemy.maxHp); showMsg('🫥 Void Wraith drains your Block!'); } } },
-    { name:'Cursed Knight+', emoji:'⚔️', hp:100, block:8, damage:18, reward:40, souls:5,
+    { name:'Cursed Knight+', emoji:'⚔️', hp:100, block:8, damage:18, reward:40, souls:5, aggro:'cautious',
       special:{ name:'Undying+', desc:'Revives twice with 20 HP each time',
         trigger:'hp', effect:(g)=>{ const rev=g.enemy._revivals||0; if(rev<2&&g.enemy.hp<=0){ g.enemy.hp=20; g.enemy._revivals=(rev+1); floatDamage('enemy-combatant',20,'heal'); showMsg(`⚔️ Cursed Knight rises! (${rev+1}/2)`); } } } },
   ],
@@ -2623,9 +2632,9 @@ const FLOOR_ENEMIES = {
 
 // Easy pool for first 2 battles of floor 1
 const EASY_ENEMIES = [
-  { name:'Castle Guard', emoji:'⚔️', hp:45, block:0, damage:10, reward:8, souls:1, special:null },
-  { name:'Dungeon Rat',  emoji:'🐀', hp:35, block:0, damage:8,  reward:5, souls:1, special:null },
-  { name:'Skeleton',     emoji:'💀', hp:40, block:0, damage:9,  reward:6, souls:1, special:null },
+  { name:'Castle Guard', emoji:'⚔️', hp:45, block:0, damage:10, reward:8, souls:1, aggro:'cautious', special:null },
+  { name:'Dungeon Rat',  emoji:'🐀', hp:35, block:0, damage:8,  reward:5, souls:1, aggro:'glass',    special:null },
+  { name:'Skeleton',     emoji:'💀', hp:40, block:0, damage:9,  reward:6, souls:1, aggro:'berserker',special:null },
 ];
 
 // Keep flat ENEMIES for backwards compatibility
@@ -2633,31 +2642,31 @@ const ENEMIES = [...FLOOR_ENEMIES[1], ...FLOOR_ENEMIES[2]];
 
 const ELITES = [
   // Floor 1 elites
-  { name:'Dungeon Warden',  emoji:'🔒', hp:95, block:0,  damage:14, reward:40, souls:5,
+  { name:'Dungeon Warden',  emoji:'🔒', hp:95, block:0,  damage:14, reward:40, souls:5,  aggro:'cautious',
     special:{ name:'Lockdown', desc:'Applies 1 Weak to player every 3 turns',
       trigger:'turn', effect:(g,turn)=>{ if(turn%3===0){ applyStatus(g,'player','😵Weak',1); showMsg('🔒 Lockdown — Weak applied!'); } } } },
-  { name:'Armored Knight',  emoji:'🛡️', hp:110, block:12, damage:12, reward:45, souls:5,
+  { name:'Armored Knight',  emoji:'🛡️', hp:110, block:12, damage:12, reward:45, souls:5, aggro:'cautious',
     special:{ name:'Iron Stance', desc:'Regenerates 6 Block each turn',
       trigger:'turn', effect:(g,turn)=>{ g.enemy.block+=6; } } },
   // Floor 2 elites
-  { name:'Death Knight',    emoji:'⚰️', hp:120, block:5, damage:16, reward:55, souls:6,
+  { name:'Death Knight',    emoji:'⚰️', hp:120, block:5, damage:16, reward:55, souls:6,  aggro:'berserker',
     special:{ name:'Soul Drain', desc:'Steals 1 energy from player on first turn',
       trigger:'turn', effect:(g,turn)=>{ if(turn===1 && g.energy>0){ g.energy--; showMsg('⚰️ Soul Drain — lost 1 energy!'); renderAll(); } } } },
-  { name:'Bone Golem',      emoji:'🦴', hp:130, block:0, damage:13, reward:55, souls:6,
+  { name:'Bone Golem',      emoji:'🦴', hp:130, block:0, damage:13, reward:55, souls:6,  aggro:'balanced',
     special:{ name:'Bone Wall', desc:'Gains 8 Block when player plays a Skill card',
       trigger:'skill', effect:(g)=>{ g.enemy.block+=8; showMsg('🦴 Bone Wall — enemy blocks your skill!'); } } },
   // Floor 3 elites
-  { name:'Sanctum Guardian',emoji:'⛪', hp:140, block:0, damage:17, reward:70, souls:7,
+  { name:'Sanctum Guardian',emoji:'⛪', hp:140, block:0, damage:17, reward:70, souls:7,  aggro:'cautious',
     special:{ name:'Holy Wrath', desc:'Deals double damage if player has 15+ Block',
       trigger:'attack', effect:(g)=>{ if(g.block>=15){ g.enemy.damage*=2; showMsg('⛪ Holy Wrath — punishes your Block!'); } } } },
-  { name:'Dark Arcanist',   emoji:'🌀', hp:130, block:0, damage:15, reward:70, souls:7,
+  { name:'Dark Arcanist',   emoji:'🌀', hp:130, block:0, damage:15, reward:70, souls:7,  aggro:'balanced',
     special:{ name:'Spell Steal', desc:'Copies the last card played against them',
       trigger:'turn', effect:(g,turn)=>{ showMsg('🌀 Dark Arcanist mirrors your power!'); } } },
   // Floor 4 elites
-  { name:"King's Champion", emoji:'👑', hp:160, block:0, damage:20, reward:90, souls:8,
+  { name:"King's Champion", emoji:'👑', hp:160, block:0, damage:20, reward:90, souls:8,  aggro:'berserker',
     special:{ name:'Unbreakable', desc:'Immune to all status effects',
       trigger:'immune', effect:(g)=>{ G.statuses.enemy=[]; } } },
-  { name:'Void Colossus',   emoji:'🌌', hp:170, block:0, damage:18, reward:90, souls:8,
+  { name:'Void Colossus',   emoji:'🌌', hp:170, block:0, damage:18, reward:90, souls:8,  aggro:'berserker',
     special:{ name:'Collapse', desc:'Deals damage equal to player current Block when attacking',
       trigger:'attack', effect:(g)=>{ if(g.block>0){ const bonus=g.block; dealDamage(g,'player',bonus); showMsg(`🌌 Collapse — ${bonus} bonus damage from your Block!`); } } } },
 ];
@@ -3740,7 +3749,8 @@ function endTurn() {
     document.getElementById('player-sprite').classList.add('shake');
     setTimeout(() => document.getElementById('player-sprite').classList.remove('shake'), 300);
   } else if (e.intent === 'defend') {
-    G.enemy.block += 8;
+    const profile = AGGRO_PROFILES[e.aggro] || AGGRO_PROFILES.balanced;
+    G.enemy.block += profile.defendBlock;
   }
 
   // ── STEP 5: Trigger post-attack special abilities ──
@@ -3753,10 +3763,19 @@ function endTurn() {
   }
 
   // ── STEP 6: Alternate enemy intent for next turn ──
-  // Enemies are mostly aggressive — 15% defend chance after attacking, always attack after defending
-  const hpPct = G.enemy.hp / G.enemy.maxHp;
-  const defendChance = hpPct < 0.4 ? 0.25 : 0.15; // slightly more defensive when low HP
-  G.enemy.intent = G.enemy.intent === 'attack' ? (Math.random() < defendChance ? 'defend' : 'attack') : 'attack';
+  // Next intent driven by aggro profile
+  const _profile = AGGRO_PROFILES[G.enemy.aggro] || AGGRO_PROFILES.balanced;
+  if (_profile === AGGRO_PROFILES.forced) {
+    // forced enemies (e.g. Iron Archer) — special ability handles intent, don't override
+  } else if (G.enemy.intent === 'defend') {
+    G.enemy.intent = 'attack'; // always attack after defending
+  } else {
+    const _hurt = G.enemy.hp / G.enemy.maxHp < 0.4;
+    const _playerLow = G.hp / G.maxHp < 0.3;
+    let _defendChance = _hurt ? _profile.hurtDefendChance : _profile.defendChance;
+    if (G.enemy.aggro === 'balanced' && _playerLow) _defendChance = Math.min(_defendChance, 0.05);
+    G.enemy.intent = Math.random() < _defendChance ? 'defend' : 'attack';
+  }
 
   // ── STEP 7: Discard hand, check end, start next turn ──
   G.discardPile.push(...G.hand);

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Castle Run is a single-file roguelike deck-building game. The **entire game lives in `index.html`** (~7000+ lines) — HTML structure, all CSS, and all JavaScript are in one file. There is no build step, no package manager, no framework, and no dependencies beyond Google Fonts. Open `index.html` directly in a browser to run it.
 
-`castle-run.html` is an older/alternate version of the file. `assets/` holds PNG sprites for mage and thief characters (referenced via `GAME_IMAGES`).
+`castle-run.html` is an older/alternate version of the file. `assets/` holds PNG sprites referenced via `GAME_IMAGES`. Currently only `mage_hero.png` and `thief_hero.png` are live files — all other sprite keys (barb, gambler, vampire heroes + all boss sprites) are base64 inline. Extracted originals saved as `assets/*_original.*` for bg-removal work.
 
 ## Architecture
 
@@ -102,14 +102,36 @@ Intentionally minimal — only what's needed per turn:
 - Reroll button (`#reroll-btn`) — exempt from the 42px tap-target min-height via explicit override after the `.btn` rule
 
 ### Enemy Sprites
-Regular enemies use emoji set via `updateCombatSprites(charKey, null)` which sets inline `font-size: 5rem; width: 110px; height: 95px` directly in JS (not via CSS) so it works at any viewport width. Boss sprites use PNG background images. The `⚔️` emoji (Castle Guard) renders as two small glyphs on some Android versions — a known OS-level rendering issue, not a code bug.
+Regular enemies use emoji. `updateCombatSprites(charKey, null)` sets inline styles for emoji enemies — **mobile-aware**: `font-size: 3rem; width: 70px; height: 65px` on mobile (≤1100px), `5rem / 110×95px` on desktop. Boss sprites use PNG background images at `160×200px`. The `⚔️` emoji (Castle Guard) renders as two small glyphs on some Android versions — known OS-level issue, not a code bug.
+
+Desktop `.combatant-sprite` has explicit `width: 160px; height: 200px` so background images render when `font-size: 0` is set. Mobile overrides to `90×110px`.
+
+### Mobile Combat Layout (current state)
+- **No separate dice panel strip** — removed entirely from between arena and hand
+- **`#dice-corner`** — `position: absolute` element, sibling of `.hand-area` inside `#combat-screen`. Contains `#m-current-die` and `#m-reroll-btn`. Positioned bottom-left. Hidden on desktop.
+- **`syncMobileDice()`** — mirrors desktop dice state to mobile elements. Called from `renderAll()` and `checkAffinityHighlight()`. Does NOT copy the `.rolling` class (causes layout shake on mobile).
+- **`combat-controls`** (desktop dice panel) — hidden on mobile via `display: none !important`
+- **`.hand-area`** — `justify-content: center` with `padding: 0.2rem 85px 0.4rem 90px` to leave room for dice corner (left) and END TURN (right)
+- **HUD hero core icons** — only shown when cores are collected (`renderCores()` skips uncollected). Appear one by one as bosses are beaten.
+- **Affinity label** — removed from mobile; card glow indicates active bonus
+- **`#dice-corner` must be a sibling of `.hand-area`**, NOT inside it — putting it inside the `overflow-x: auto` container causes scroll reflow on tap (screen shake bug)
 
 ### Key Mobile Gotchas
-- `.btn { min-height: 42px }` applies to all buttons for tap targets — override it explicitly for any button inside the dice panel, and place the override **after** the `.btn` rule in the media query (same specificity = last rule wins)
-- The `#combat-screen` has two rules in the media query — the `.active` version (higher specificity) sets `height: 100dvh; overflow: hidden`; do not add a second `#combat-screen` rule that sets `height: auto` or `overflow-y: auto`
+- `.btn { min-height: 42px }` applies to all buttons — override with `min-height: unset; height: auto; line-height: 1.2` for HUD buttons and dice corner button
+- `#combat-screen` is `position: absolute` (via `.screen`) so its children can use `position: absolute` referencing the screen bounds
+- The `#combat-screen.active` rule sets `height: 100dvh; overflow: hidden` — do not add a second rule that overrides these
 - `overflow-y: auto` and `-webkit-overflow-scrolling: touch` are set on all non-combat screens so they scroll on mobile
-- The reward screen uses `justify-content: flex-start` (not `center`) on mobile so 4-card layouts + the Skip button don't overflow off the bottom
-- The hand area `max-height` must be large enough to show full card height (~120–135px); adding `padding-bottom` to reserve space for the absolute-positioned END TURN button eats into card visibility — don't do this since the button is `position: absolute`
+- The reward screen uses `justify-content: flex-start` (not `center`) on mobile so 4-card layouts + Skip don't overflow
+
+### Enemy AI System
+Each enemy has an `aggro` field that drives combat behavior via `AGGRO_PROFILES`:
+- `berserker` — 5% defend at full HP, 3% when hurt. Defend block: 4. (Skeleton, Cursed Hound, Throne Guard…)
+- `glass` — never defends. (Dungeon Rat, Bone Archer, Blood Bat) — pure damage race
+- `cautious` — 35% defend when healthy, 10% when hurt. Defend block: 12. (Castle Guard, Cursed Knight…)
+- `balanced` — 20% defend normally, drops to 5% when player is below 30% HP. (most casters/hybrids)
+- `forced` — intent fully controlled by the enemy's special ability, AI does not override. (Iron Archer)
+
+**Bug fixed:** enemies now initialize with `intent: 'attack'` — previously `undefined` caused every fight to open with the enemy defending.
 
 ## Design Document
 
@@ -155,6 +177,6 @@ Floor boss spec: **Sir Crimson** (castle enforcer, not a companion) is Floor 1. 
 ## Adding Content
 
 - **New card**: Add entry to `CARDS` with `{ name, emoji, cost, type, desc, effect(G, roll) }`. Add to a character's `starterDeck` or `CHAR_REWARD_POOLS` / `UNIVERSAL_REWARD_CARDS`.
-- **New enemy**: Add to the appropriate `FLOOR_ENEMIES[n]` array with `{ name, emoji, hp, block, intent(G), action(G) }`.
+- **New enemy**: Add to the appropriate `FLOOR_ENEMIES[n]` array with `{ name, emoji, hp, block, damage, reward, souls, aggro, special }`. Set `aggro` to one of the `AGGRO_PROFILES` keys. `special` is `null` or `{ name, desc, trigger, effect(g, turn) }` where trigger is `'turn'`, `'attack'`, or `'hp'`.
 - **New character**: Add to `CHARACTERS` and add a starter deck of card keys. Add a matching entry to `CHAR_REWARD_POOLS`.
 - **New die**: Add to `DICE_TYPES` with `{ label, sides, bonus(G, roll) }`.
