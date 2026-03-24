@@ -134,7 +134,8 @@ Enemy block is persistent — must be broken through over multiple turns
 Block absorbs damage before HP
 Dice System
 Each character has one active die. At the start of their turn they roll it. If the result matches their affinity, bonus effects trigger on cards played that turn.
-Players get one Reroll per combat (restores at combat start). Some relics grant additional rerolls.
+Players get 1 reroll per turn.
+Reroll resets at the start of each player turn. Some relics grant additional rerolls.
 Character
 Affinity
 Bonus Effect

@@ -2563,6 +2563,14 @@ function getPreviewDamage(g, baseAmount, target = 'enemy') {
   let amount = baseAmount;
 
   if (target === 'enemy' && g.enemy) {
+    if (g.enemy._phased) {
+      showMsg(`${g.enemy.emoji || '👻'} ${g.enemy.name} is phased and ignores the hit!`);
+      floatDamage('enemy-combatant', 'IMMUNE', 'block');
+      setTimeout(() => {
+        renderAll();
+      }, 140);
+      return;
+    }
     const playerRage = g.statuses.player.find(s => s.name === '💢Rage');
     if (playerRage && playerRage.stacks > 0) {
       amount += playerRage.stacks;
@@ -4333,6 +4341,14 @@ function dealDamage(g, target, amount) {
   const enemyEl = document.getElementById('enemy-combatant');
 
   if (target === 'enemy' && g.enemy) {
+    if (g.enemy._phased) {
+      showMsg(`${g.enemy.emoji || '👻'} ${g.enemy.name} is phased and ignores the hit!`);
+      floatDamage('enemy-combatant', 'IMMUNE', 'block');
+      setTimeout(() => {
+        renderAll();
+      }, 140);
+      return;
+    }
     // Apply player Strength/Rage bonus to all attacks
     const playerRage = g.statuses.player.find(s => s.name === '💢Rage');
     if (playerRage && playerRage.stacks > 0) {
@@ -4359,14 +4375,14 @@ function dealDamage(g, target, amount) {
     }
 
      // Stone Skin — absorb incoming damage before block/HP
-    if (g.enemy.stoneShield && g.enemy.stoneShield > 0) {
-      const absorbed = Math.min(amount, g.enemy.stoneShield);
+    if (g.enemy._stoneShield && g.enemy._stoneShield > 0) {
+      const absorbed = Math.min(amount, g.enemy._stoneShield);
       amount -= absorbed;
-      g.enemy.stoneShield -= absorbed;
+      g.enemy._stoneShield -= absorbed;
       showMsg(`🪨 Stone Skin absorbs ${absorbed}!`);
 
-      if (g.enemy.stoneShield <= 0) {
-        g.enemy.stoneShield = 0;
+      if (g.enemy._stoneShield <= 0) {
+        g.enemy._stoneShield = 0;
       }
     }
 
