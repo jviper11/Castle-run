@@ -2560,22 +2560,147 @@ const AGGRO_PROFILES = {
 };
 
 const FLOOR_ENEMIES = {
-  1: [ // Castle Entrance — easy pool
-    { name:'Castle Guard',   emoji:'⚔️', hp:55, block:0,  damage:13, reward:15, souls:2, aggro:'cautious',
-      special:{ name:'Shield Up', desc:'Gains 6 Block every other turn',
-        trigger:'turn', effect:(g,turn)=>{ if(turn%2===0){ g.enemy.block+=6; showMsg('🛡 Castle Guard raises shield!'); } } } },
-    { name:'Dungeon Rat',    emoji:'🐀', hp:45, block:0,  damage:9,  reward:12,  souls:1,  aggro:'glass',
-      special:{ name:'Swarm', desc:'Heals 5 HP if alive for 3+ turns',
-        trigger:'turn', effect:(g,turn)=>{ if(turn===3){ g.enemy.hp=Math.min(g.enemy.hp+5,g.enemy.maxHp); floatDamage('enemy-combatant',5,'heal'); showMsg('🐀 Rats swarm — enemy healed!'); } } } },
-    { name:'Iron Archer',    emoji:'🏹', hp:50, block:0,  damage:12, reward:14,  souls:2,  aggro:'forced',
-      special:{ name:'Aim', desc:'Skips a turn then deals double damage',
-        trigger:'turn', effect:(g,turn)=>{ if(turn%2===1){ g.enemy.intent='defend'; showMsg('🏹 Archer is aiming...'); } else { g.enemy.damage=24; g.enemy.intent='attack'; } } } },
-    { name:'Skeleton',       emoji:'💀', hp:48, block:0,  damage:9,  reward:13,  souls:2,  aggro:'berserker',
-      special:{ name:'Reassemble', desc:'Heals 8 HP once when first below 10 HP',
-        trigger:'hp', effect:(g)=>{ if(!g.enemy._reassembled && g.enemy.hp<10 && g.enemy.hp>0){ g.enemy.hp+=8; g.enemy._reassembled=true; floatDamage('enemy-combatant',8,'heal'); showMsg('💀 Skeleton reassembles!'); } } } },
-    { name:'Cursed Hound',   emoji:'🐺', hp:50, block:0,  damage:12, reward:14,  souls:2,  aggro:'berserker',
-      special:{ name:'Rabid', desc:'Applies 1 Vulnerable on each attack',
-        trigger:'attack', effect:(g)=>{ applyStatus(g,'player','🫗Vulnerable',1); showMsg('🐺 Rabid bite — Vulnerable!'); } } },
+  1: [ // Castle Entrance — moves-based personality system
+    { name:'Castle Guard', emoji:'⚔️', hp:55, block:0, damage:11, reward:15, souls:2,
+      moves:[
+        { name:'Shield Up', isOpener:true, type:'block', desc:'Gain 7 Block',
+          effect(g){ g.enemy.block+=7; floatDamage('enemy-combatant',7,'block'); showMsg('⚔️ Castle Guard raises shield!'); } },
+        { name:'Slash', weight:55, type:'attack', dmg:11, desc:'Deal 11 dmg',
+          effect(g){ _emAtk(g,11); } },
+        { name:'Shield Up', weight:30, type:'block', desc:'Gain 7 Block',
+          effect(g){ g.enemy.block+=7; floatDamage('enemy-combatant',7,'block'); showMsg('⚔️ Guard raises shield!'); } },
+        { name:'Bash', weight:15, type:'debuff', dmg:8, desc:'8 dmg + Vulnerable',
+          effect(g){ _emAtk(g,8); applyStatus(g,'player','🫗Vulnerable',1); showMsg('⚔️ Bash — Vulnerable!'); } },
+      ],
+      constraints:[{move:'Shield Up',maxStreak:2},{move:'Bash',maxStreak:1}] },
+
+    { name:'Dungeon Rat', emoji:'🐀', hp:45, block:0, damage:9, reward:12, souls:1,
+      moves:[
+        { name:'Gnaw', isOpener:true, type:'attack', dmg:9, desc:'Deal 9 dmg',
+          effect(g){ _emAtk(g,9); showMsg('🐀 Gnaw!'); } },
+        { name:'Gnaw', weight:60, type:'attack', dmg:9, desc:'Deal 9 dmg',
+          effect(g){ _emAtk(g,9); } },
+        { name:'Scurry', weight:25, type:'block', desc:'Gain 5 Block',
+          effect(g){ g.enemy.block+=5; floatDamage('enemy-combatant',5,'block'); showMsg('🐀 Scurry — rat dodges!'); } },
+        { name:'Swarm', weight:15, type:'mixed', dmg:6, desc:'6 dmg, heals 5 if turn 3+',
+          effect(g){ _emAtk(g,6); if((g.enemy.turnCount||0)>=3){ g.enemy.hp=Math.min(g.enemy.hp+5,g.enemy.maxHp); floatDamage('enemy-combatant',5,'heal'); showMsg('🐀 Swarm — rats heal!'); } } },
+      ],
+      constraints:[{move:'Gnaw',maxStreak:2},{move:'Scurry',maxStreak:1}] },
+
+    { name:'Iron Archer', emoji:'🏹', hp:50, block:0, damage:12, reward:14, souls:2,
+      _scripted:true,
+      moves:[
+        { name:'Aim', isOpener:true, type:'buff', desc:'Skips turn — next attack doubled',
+          effect(g){ showMsg('🏹 Archer takes aim...'); } },
+        { name:'Aim', type:'buff', desc:'Skips turn — next attack doubled',
+          effect(g){ showMsg('🏹 Archer takes aim...'); } },
+        { name:'Volley', type:'attack', dmg:24, desc:'Deal 24 dmg',
+          effect(g){ _emAtk(g,24); showMsg('🏹 Volley!'); } },
+      ] },
+
+    { name:'Skeleton', emoji:'💀', hp:48, block:0, damage:10, reward:13, souls:2,
+      moves:[
+        { name:'Slash', isOpener:true, type:'attack', dmg:10, desc:'Deal 10 dmg',
+          effect(g){ _emAtk(g,10); showMsg('💀 Slash!'); } },
+        { name:'Slash', weight:50, type:'attack', dmg:10, desc:'Deal 10 dmg',
+          effect(g){ _emAtk(g,10); } },
+        { name:'Bone Shield', weight:30, type:'block', desc:'Gain 6 Block',
+          effect(g){ g.enemy.block+=6; floatDamage('enemy-combatant',6,'block'); showMsg('💀 Bone Shield!'); } },
+        { name:'Death Rattle', weight:20, type:'mixed', dmg:7, desc:'7 dmg; heals 8 if below 25% HP',
+          effect(g){ _emAtk(g,7); if(g.enemy.hp<g.enemy.maxHp*0.25){ g.enemy.hp=Math.min(g.enemy.hp+8,g.enemy.maxHp); floatDamage('enemy-combatant',8,'heal'); showMsg('💀 Death Rattle — skeleton rallies!'); } } },
+      ],
+      constraints:[{move:'Bone Shield',maxStreak:1},{move:'Slash',maxStreak:2}] },
+
+    { name:'Cursed Hound', emoji:'🐺', hp:50, block:0, damage:11, reward:14, souls:2,
+      moves:[
+        { name:'Bite', isOpener:true, type:'debuff', dmg:11, desc:'11 dmg + Vulnerable',
+          effect(g){ _emAtk(g,11); applyStatus(g,'player','🫗Vulnerable',1); showMsg('🐺 Bite — Vulnerable!'); } },
+        { name:'Bite', weight:65, type:'debuff', dmg:11, desc:'11 dmg + Vulnerable',
+          effect(g){ _emAtk(g,11); applyStatus(g,'player','🫗Vulnerable',1); } },
+        { name:'Howl', weight:20, type:'debuff', desc:'Gain 5 Block + Weak on player',
+          effect(g){ g.enemy.block+=5; floatDamage('enemy-combatant',5,'block'); applyStatus(g,'player','😵Weak',1); showMsg('🐺 Howl — Weakened!'); } },
+        { name:'Frenzy', weight:15, type:'attack', dmg:14, desc:'Deal 7 dmg twice',
+          effect(g){ _emAtk(g,7); _emAtk(g,7); showMsg('🐺 Frenzy!'); } },
+      ],
+      constraints:[{move:'Bite',maxStreak:2},{move:'Frenzy',maxStreak:1}] },
+
+    { name:'Dungeon Spider', emoji:'🕷️', hp:42, block:0, damage:9, reward:13, souls:2,
+      moves:[
+        { name:'Web', isOpener:true, type:'debuff', desc:'Remove 6 player Block',
+          effect(g){ const lost=Math.min(g.block,6); g.block=Math.max(0,g.block-6); if(lost>0) showMsg(`🕷️ Web — lost ${lost} Block!`); else showMsg('🕷️ Web — caught in silk!'); } },
+        { name:'Bite', weight:50, type:'attack', dmg:9, desc:'Deal 9 dmg',
+          effect(g){ _emAtk(g,9); } },
+        { name:'Web', weight:30, type:'debuff', desc:'Remove 6 player Block',
+          effect(g){ const lost=Math.min(g.block,6); g.block=Math.max(0,g.block-6); if(lost>0) showMsg(`🕷️ Web — lost ${lost} Block!`); else showMsg('🕷️ Web!'); } },
+        { name:'Cocoon', weight:20, type:'block', desc:'Gain 8 Block',
+          effect(g){ g.enemy.block+=8; floatDamage('enemy-combatant',8,'block'); showMsg('🕷️ Cocoon — spider shields itself!'); } },
+      ],
+      constraints:[{move:'Web',maxStreak:1},{move:'Cocoon',maxStreak:1}] },
+
+    { name:'Torch Imp', emoji:'🔥', hp:38, block:0, damage:8, reward:13, souls:2,
+      moves:[
+        { name:'Ignite', isOpener:true, type:'burn', desc:'Apply 3 Burn',
+          effect(g){ applyStatus(g,'player','🔥Burn',3); showMsg('🔥 Ignite!'); } },
+        { name:'Ignite', weight:55, type:'burn', desc:'Apply 2 Burn',
+          effect(g){ applyStatus(g,'player','🔥Burn',2); showMsg('🔥 Ignite!'); } },
+        { name:'Slash', weight:30, type:'attack', dmg:8, desc:'Deal 8 dmg',
+          effect(g){ _emAtk(g,8); } },
+        { name:'Fireball', weight:15, type:'attack', dmg:12, desc:'12 dmg + 1 Burn',
+          effect(g){ _emAtk(g,12); applyStatus(g,'player','🔥Burn',1); showMsg('🔥 Fireball!'); } },
+      ],
+      constraints:[{move:'Ignite',maxStreak:2},{move:'Fireball',maxStreak:1}] },
+
+    { name:'Rusted Knight', emoji:'🛡️', hp:60, block:0, damage:8, reward:16, souls:2,
+      moves:[
+        { name:'Iron Wall', isOpener:true, type:'block', desc:'Gain 12 Block',
+          effect(g){ g.enemy.block+=12; floatDamage('enemy-combatant',12,'block'); showMsg('🛡️ Iron Wall!'); } },
+        { name:'Rusty Swing', weight:40, type:'attack', dmg:8, desc:'Deal 8 dmg',
+          effect(g){ _emAtk(g,8); } },
+        { name:'Iron Wall', weight:40, type:'block', desc:'Gain 10 Block',
+          effect(g){ g.enemy.block+=10; floatDamage('enemy-combatant',10,'block'); showMsg('🛡️ Iron Wall!'); } },
+        { name:'Shield Bash', weight:20, type:'mixed', dmg:10, desc:'10 dmg + gain 5 Block',
+          effect(g){ _emAtk(g,10); g.enemy.block+=5; floatDamage('enemy-combatant',5,'block'); showMsg('🛡️ Shield Bash!'); } },
+      ],
+      constraints:[{move:'Iron Wall',maxStreak:2},{move:'Rusty Swing',maxStreak:2}] },
+
+    { name:'Banshee', emoji:'👻', hp:45, block:0, damage:10, reward:14, souls:2,
+      moves:[
+        { name:'Wail', isOpener:true, type:'debuff', desc:'Apply 2 Weak',
+          effect(g){ applyStatus(g,'player','😵Weak',2); showMsg('👻 Wail — Weakened!'); } },
+        { name:'Shriek', weight:50, type:'attack', dmg:10, desc:'Deal 10 dmg',
+          effect(g){ _emAtk(g,10); showMsg('👻 Shriek!'); } },
+        { name:'Wail', weight:30, type:'debuff', desc:'Apply 2 Weak',
+          effect(g){ applyStatus(g,'player','😵Weak',2); showMsg('👻 Wail — Weakened!'); } },
+        { name:'Drain', weight:20, type:'heal', dmg:8, desc:'8 dmg, heal self 5',
+          effect(g){ _emAtk(g,8); g.enemy.hp=Math.min(g.enemy.hp+5,g.enemy.maxHp); floatDamage('enemy-combatant',5,'heal'); showMsg('👻 Drain!'); } },
+      ],
+      constraints:[{move:'Wail',maxStreak:1},{move:'Drain',maxStreak:1}] },
+
+    { name:'Prison Warden', emoji:'🔒', hp:58, block:0, damage:12, reward:16, souls:3,
+      moves:[
+        { name:'Lockdown', isOpener:true, type:'debuff', desc:'Apply 1 Weak + 1 Vulnerable',
+          effect(g){ applyStatus(g,'player','😵Weak',1); applyStatus(g,'player','🫗Vulnerable',1); showMsg('🔒 Lockdown — Weak + Vulnerable!'); } },
+        { name:'Chain Strike', weight:45, type:'attack', dmg:12, desc:'Deal 12 dmg',
+          effect(g){ _emAtk(g,12); } },
+        { name:'Suppress', weight:35, type:'debuff', desc:'Apply 2 Weak',
+          effect(g){ applyStatus(g,'player','😵Weak',2); showMsg('🔒 Suppress — Weakened!'); } },
+        { name:'Lockdown', weight:20, type:'debuff', desc:'Apply 1 Weak + 1 Vulnerable',
+          effect(g){ applyStatus(g,'player','😵Weak',1); applyStatus(g,'player','🫗Vulnerable',1); showMsg('🔒 Lockdown!'); } },
+      ],
+      constraints:[{move:'Lockdown',maxStreak:1},{move:'Suppress',maxStreak:2}] },
+
+    { name:'Gargoyle Scout', emoji:'🗿', hp:52, block:0, damage:10, reward:15, souls:2,
+      moves:[
+        { name:'Stone Skin', isOpener:true, type:'buff', desc:'Absorb next 8 damage',
+          effect(g){ g.enemy._stoneShield=8; showMsg('🗿 Stone Skin — absorbs next 8 damage!'); } },
+        { name:'Claw', weight:55, type:'attack', dmg:10, desc:'Deal 10 dmg',
+          effect(g){ _emAtk(g,10); } },
+        { name:'Stone Skin', weight:30, type:'buff', desc:'Absorb next 6 damage',
+          effect(g){ g.enemy._stoneShield=6; showMsg('🗿 Stone Skin — absorbs 6 damage!'); } },
+        { name:'Dive', weight:15, type:'attack', dmg:15, desc:'15 dmg, then rests next turn',
+          effect(g){ _emAtk(g,15); g.enemy._skipNext=true; showMsg('🗿 Dive attack!'); } },
+      ],
+      constraints:[{move:'Stone Skin',maxStreak:1},{move:'Dive',maxStreak:1}] },
   ],
   2: [ // Catacombs
     { name:'Shadow Wraith',  emoji:'👻', hp:60, block:0,  damage:10, reward:20, souls:3,  aggro:'balanced',
@@ -3474,6 +3599,12 @@ function startCombat(isElite) {
 
   const e = { ...rand(pool) };
   G.enemy = { ...e, maxHp: e.hp, turnCount: 0, intent: 'attack' };
+  // Moves-based enemies: set opening move
+  if (e.moves) {
+    const opener = e.moves.find(m => m.isOpener) || e.moves[0];
+    G.enemy.currentMove = opener;
+    G.enemy._moveHistory = [opener.name];
+  }
   G.block = 0;
   G.statuses = { player: [], enemy: [] };
   G.exhaustedPile = [];
@@ -3683,16 +3814,14 @@ function endTurn() {
   const e = G.enemy;
 
   // ── STEP 1: Tick status effects on enemy FIRST ──
-  // Poison, burn, etc. tick before the enemy acts
-  // This means if poison kills the enemy, their attack never fires
-
   const poison = G.statuses.enemy.find(s => s.name === '☠️Poison');
   if (poison) {
     G.enemy.hp -= poison.stacks;
     floatDamage('enemy-combatant', poison.stacks, 'dmg');
     poison.stacks--;
-    if (poison.stacks <= 0) G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '☠️Poison');
-    // damage float already shows — no message needed
+    if (poison.stacks <= 0) {
+      G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '☠️Poison');
+    }
   }
 
   const burn = G.statuses.enemy.find(s => s.name === '🔥Burn');
@@ -3700,13 +3829,14 @@ function endTurn() {
     G.enemy.hp -= burn.stacks * 2;
     floatDamage('enemy-combatant', burn.stacks * 2, 'dmg');
     burn.stacks--;
-    if (burn.stacks <= 0) G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '🔥Burn');
+    if (burn.stacks <= 0) {
+      G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '🔥Burn');
+    }
   }
 
   renderAll();
 
   // ── STEP 2: Check if enemy died from status effects ──
-  // If so, skip their attack entirely
   if (G.enemy.hp <= 0) {
     G.discardPile.push(...G.hand);
     G.hand = [];
@@ -3716,20 +3846,22 @@ function endTurn() {
   }
 
   // ── STEP 3: Trigger turn-start special abilities BEFORE enemy acts ──
-  // e.g. Iron Stance sets block before attacking so player must break through it
   if (G.enemy && G.enemy.special) {
     G.enemy.turnCount = (G.enemy.turnCount || 0) + 1;
     const sp = G.enemy.special;
     try {
       if (sp.trigger === 'turn') {
-        // Reset block-granting abilities to their value each turn
         if (sp.name === 'Iron Stance' || sp.name === 'Shield Up' || sp.name === 'Bone Wall') {
-          G.enemy.block = 0; // reset first so it doesn't stack infinitely
+          G.enemy.block = 0;
         }
         sp.effect(G, G.enemy.turnCount);
       }
       if (sp.trigger === 'immune') sp.effect(G);
-    } catch(err) { console.log('special ability error', err); }
+    } catch (err) {
+      console.log('special ability error', err);
+    }
+  } else {
+    G.enemy.turnCount = (G.enemy.turnCount || 0) + 1;
   }
 
   renderAll();
@@ -3737,44 +3869,79 @@ function endTurn() {
   // ── STEP 4: Enemy acts ──
   if (G.enemy && G.enemy.isAldric) {
     processAldricTurn();
+  } else if (e.moves && e.currentMove && typeof e.currentMove.effect === 'function') {
+    try {
+      e.currentMove.effect(G);
+
+      if (!e._moveHistory) e._moveHistory = [];
+      e._moveHistory.push(e.currentMove.name);
+
+      if (e._moveHistory.length > 6) {
+        e._moveHistory = e._moveHistory.slice(-6);
+      }
+    } catch (err) {
+      console.log('enemy move error', err);
+    }
   } else if (e.intent === 'attack') {
+    // fallback for older enemies not yet converted
     let dmg = e.damage;
     const eStrong = G.statuses.enemy.find(s => s.name === '💢Rage');
     if (eStrong) dmg += eStrong.stacks;
 
-    dmg = Math.max(0, dmg - G.block);
-    G.block = Math.max(0, G.block - e.damage);
-    if (dmg > 0) G.hp -= dmg;
-    floatDamage('player-combatant', dmg, 'dmg');
-    document.getElementById('player-sprite').classList.add('shake');
-    setTimeout(() => document.getElementById('player-sprite').classList.remove('shake'), 300);
+    const net = Math.max(0, dmg - G.block);
+    G.block = Math.max(0, G.block - dmg);
+    if (net > 0) G.hp -= net;
+
+    floatDamage('player-combatant', net, 'dmg');
+    document.getElementById('player-sprite')?.classList.add('shake');
+    setTimeout(() => {
+      document.getElementById('player-sprite')?.classList.remove('shake');
+    }, 300);
   } else if (e.intent === 'defend') {
     const profile = AGGRO_PROFILES[e.aggro] || AGGRO_PROFILES.balanced;
     G.enemy.block += profile.defendBlock;
   }
 
-  // ── STEP 5: Trigger post-attack special abilities ──
+  renderAll();
+
+  // ── STEP 5: Trigger post-action special abilities ──
   if (G.enemy && G.enemy.special) {
     const sp = G.enemy.special;
     try {
-      if (sp.trigger === 'attack' && G.enemy.intent === 'attack') sp.effect(G);
+      if (sp.trigger === 'attack') sp.effect(G);
       if (sp.trigger === 'hp') sp.effect(G);
-    } catch(err) { console.log('special ability error', err); }
+    } catch (err) {
+      console.log('special ability error', err);
+    }
   }
 
-  // ── STEP 6: Alternate enemy intent for next turn ──
-  // Next intent driven by aggro profile
-  const _profile = AGGRO_PROFILES[G.enemy.aggro] || AGGRO_PROFILES.balanced;
-  if (_profile === AGGRO_PROFILES.forced) {
-    // forced enemies (e.g. Iron Archer) — special ability handles intent, don't override
-  } else if (G.enemy.intent === 'defend') {
-    G.enemy.intent = 'attack'; // always attack after defending
-  } else {
-    const _hurt = G.enemy.hp / G.enemy.maxHp < 0.4;
-    const _playerLow = G.hp / G.maxHp < 0.3;
-    let _defendChance = _hurt ? _profile.hurtDefendChance : _profile.defendChance;
-    if (G.enemy.aggro === 'balanced' && _playerLow) _defendChance = Math.min(_defendChance, 0.05);
-    G.enemy.intent = Math.random() < _defendChance ? 'defend' : 'attack';
+  // ── STEP 6: Choose next move / next intent ──
+  if (G.enemy && !G.enemy.isAldric) {
+    if (e.moves && typeof chooseMove === 'function') {
+      const nextMove = chooseMove(e);
+      if (nextMove) {
+        e.currentMove = nextMove;
+      }
+    } else {
+      const _profile = AGGRO_PROFILES[G.enemy.aggro] || AGGRO_PROFILES.balanced;
+      if (_profile === AGGRO_PROFILES.forced) {
+        // forced enemies manage themselves
+      } else if (G.enemy.intent === 'defend') {
+        G.enemy.intent = 'attack';
+      } else {
+        const _hurt = G.enemy.hp / G.enemy.maxHp < 0.4;
+        const _playerLow = G.hp / G.maxHp < 0.3;
+        let _defendChance = _hurt ? _profile.hurtDefendChance : _profile.defendChance;
+        if (G.enemy.aggro === 'balanced' && _playerLow) {
+          _defendChance = Math.min(_defendChance, 0.05);
+        }
+        G.enemy.intent = Math.random() < _defendChance ? 'defend' : 'attack';
+      }
+    }
+  }
+
+  if (typeof updateIntent === 'function') {
+    updateIntent();
   }
 
   // ── STEP 7: Discard hand, check end, start next turn ──
@@ -3784,7 +3951,7 @@ function endTurn() {
   renderAll();
   checkCombatEnd();
 
-  if (G.hp <= 0) return;
+  if (G.hp <= 0 || !G.enemy || G.enemy.hp <= 0) return;
   setTimeout(startTurn, 300);
 }
 function animateSpriteAttack(attackerEl, direction = 'right') {
@@ -4017,11 +4184,73 @@ function checkCombatEnd() {
   }
 }
 
+// ── Enemy move helpers ──
+// Deals damage from enemy to player, handles block + Rage + animations
+function _emAtk(g, dmg) {
+  const rage = g.statuses.enemy.find(s => s.name === '💢Rage');
+  if (rage) dmg += rage.stacks;
+  const net = Math.max(0, dmg - g.block);
+  g.block = Math.max(0, g.block - dmg);
+  if (net > 0) g.hp -= net;
+  floatDamage('player-combatant', net, 'dmg');
+  const ps = document.getElementById('player-sprite');
+  if (ps) { ps.classList.add('shake'); setTimeout(()=>ps.classList.remove('shake'), 300); }
+  animateSpriteAttack(document.getElementById('enemy-combatant'), 'left');
+}
+
+// Picks the next move for a moves-based enemy, respecting constraints
+function chooseMove(enemy) {
+  // Iron Archer — strict scripted alternating pattern
+  if (enemy._scripted) {
+    const tc = enemy.turnCount || 0;
+    return tc % 2 === 0
+      ? enemy.moves.find(m => m.name === 'Aim' && !m.isOpener)
+      : enemy.moves.find(m => m.name === 'Volley');
+  }
+
+  // Gargoyle Dive skip turn
+  if (enemy._skipNext) {
+    enemy._skipNext = false;
+    return { name:'—', type:'skip', desc:'Recovering...', effect(g){ showMsg(`${g.enemy.emoji} ${g.enemy.name} recovers.`); } };
+  }
+
+  const history = enemy._moveHistory || [];
+
+  // Filter: no openers, respect maxStreak constraints
+  const valid = enemy.moves.filter(m => {
+    if (m.isOpener) return false;
+    const c = (enemy.constraints || []).find(x => x.move === m.name);
+    if (c) {
+      let streak = 0;
+      for (let i = history.length - 1; i >= 0; i--) {
+        if (history[i] === m.name) streak++; else break;
+      }
+      if (streak >= c.maxStreak) return false;
+    }
+    return true;
+  });
+
+  const pool = valid.length ? valid : enemy.moves.filter(m => !m.isOpener);
+  const total = pool.reduce((s, m) => s + (m.weight || 1), 0);
+  let r = Math.random() * total;
+  for (const m of pool) { r -= (m.weight || 1); if (r <= 0) return m; }
+  return pool[pool.length - 1];
+}
+
 function updateIntent() {
   if (!G.enemy) return;
   const e = G.enemy;
   const el = document.getElementById('enemy-intent');
-  // Show special ability name as a tappable hint
+
+  // Moves-based enemy — show named move
+  if (e.currentMove) {
+    const m = e.currentMove;
+    const icon = { attack:'⚔️', block:'🛡', debuff:'💀', burn:'🔥', heal:'💚', buff:'✨', mixed:'⚡', skip:'💤' }[m.type] || '⚡';
+    el.innerHTML = `${icon} <strong>${m.name}</strong>: ${m.desc}`;
+    return;
+  }
+
+  // Legacy aggro-based enemy fallback
   const specialHint = e.special
     ? `<div style="font-size:0.65rem;color:var(--purple2);margin-top:0.2rem;">⚡ ${e.special.name} · <span style="color:var(--text3)">tap for info</span></div>`
     : '';
