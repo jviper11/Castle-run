@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc -l C:/Users/JTejada/Documents/castle/Castle-run/index.html C:/Users/JTejada/Documents/castle/Castle-run/css/styles.css C:/Users/JTejada/Documents/castle/Castle-run/js/*.js)"
+    ]
+  }
+}

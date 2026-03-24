@@ -185,6 +185,14 @@ body {
   background: var(--bg);
   /* Vignette corners for atmosphere */
   box-shadow: inset 0 0 120px rgba(0,0,0,0.7);
+  min-height: 0;
+}
+
+#combat-screen.active {
+  display: flex !important;
+  flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 .floor-bg {
@@ -236,24 +244,17 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.6rem 1.2rem;
+  padding: 0.1rem 0.5rem;
   width: 100%;
   box-sizing: border-box;
+  flex-wrap: nowrap;
+  gap: 0.15rem;
 }
-.hud-dice-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  padding: 0.35rem 1rem;
-  border-top: 1px solid var(--border);
-  background: rgba(10,8,9,0.85);
-}
-.hud-floor { font-family: 'Cinzel', serif; font-size: 0.85rem; color: var(--gold); letter-spacing: 0.1em; }
-.hud-room { font-size: 0.8rem; color: var(--text2); font-style: italic; }
-.hud-map-btn { font-size: 0.75rem; padding: 0.3rem 0.8rem; }
-.hud-combat-stats { display: flex; flex-direction: column; gap: 0.1rem; font-size: 0.7rem; }
-.hud-menu-btn { font-size: 0.9rem; padding: 0.3rem 0.6rem; border-color: var(--border2); color: var(--text2); }
+.hud-floor { font-family: 'Cinzel', serif; font-size: 0.68rem; color: var(--gold); letter-spacing: 0.1em; }
+.hud-room { font-size: 0.62rem; color: var(--text2); font-style: italic; }
+.hud-map-btn { font-size: 0.55rem; padding: 0.08rem 0.22rem; min-height: unset; height: auto; line-height: 1.2; border-width: 1px; }
+.hud-combat-stats { display: flex; flex-direction: row; align-items: center; gap: 0.4rem; font-size: 0.62rem; }
+.hud-menu-btn { font-size: 0.62rem; padding: 0.08rem 0.22rem; min-height: unset; height: auto; line-height: 1.2; border-width: 1px; border-color: var(--border2); color: var(--text2); }
 .hud-menu-btn:hover { color: var(--bg); }
 .hud-menu-btn::before { background: var(--text2); }
 
@@ -261,11 +262,15 @@ body {
 .combat-arena {
   position: relative;
   z-index: 5;
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  padding: 0 12% 1rem;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 2%;
+  gap: 0;
+  margin-top: -4px;
   /* Atmospheric floor line */
   background:
     linear-gradient(0deg, rgba(0,0,0,0.5) 0%, transparent 20%),
@@ -300,19 +305,30 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.6rem;
+  justify-content: flex-start;
+  gap: 0.3rem;
   position: relative;
-  min-width: 200px;
+  min-width: 90px;
+  min-height: 0;
 }
 
 .combatant-sprite {
-  font-size: 7rem;
+  font-size: 4.5rem;
   line-height: 1;
   filter: drop-shadow(0 4px 8px rgba(0,0,0,0.8));
   transition: transform 0.1s;
   position: relative;
-  width: 160px;
-  height: 200px;
+  width: 90px;
+  height: 110px;
+  max-width: 90px;
+  max-height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background-size: contain;
+  background-position: center bottom;
+  background-repeat: no-repeat;
 }
 .combatant-sprite.shake {
   animation: shake 0.3s ease;
@@ -334,26 +350,28 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.2rem;
   width: 100%;
+  flex: unset;
+  min-width: 0;
 }
 .combatant-name {
   font-family: 'Cinzel', serif;
-  font-size: 0.9rem;
+  font-size: 0.72rem;
   color: var(--gold);
   letter-spacing: 0.05em;
 }
 
-.hp-bar-wrap { width: 160px; }
-.bar-label { font-size: 0.7rem; color: var(--text2); display: flex; justify-content: space-between; margin-bottom: 2px; }
-.bar-track { height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; }
+.hp-bar-wrap { width: 88px; }
+.bar-label { font-size: 0.62rem; color: var(--text2); display: flex; justify-content: space-between; margin-bottom: 2px; }
+.bar-track { height: 7px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; }
 .bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
 .hp-fill { background: linear-gradient(90deg, var(--hp), #e74c3c); }
 .block-fill { background: linear-gradient(90deg, var(--block), #5dade2); }
 
-.status-icons { display: flex; gap: 0.3rem; flex-wrap: wrap; justify-content: center; min-height: 20px; }
+.status-icons { display: flex; gap: 0.3rem; flex-wrap: wrap; justify-content: flex-start; min-height: 14px; }
 .status-icon {
-  font-size: 0.7rem;
+  font-size: 0.58rem;
   background: rgba(255,255,255,0.08);
   border: 1px solid var(--border);
   padding: 0.1rem 0.3rem;
@@ -364,11 +382,12 @@ body {
 .intent-box {
   background: rgba(26,18,20,0.9);
   border: 1px solid var(--border);
-  padding: 0.4rem 0.7rem;
-  font-size: 0.8rem;
+  padding: 0.18rem 0.3rem;
+  font-size: 0.58rem;
   color: var(--text2);
   text-align: center;
-  max-width: 180px;
+  max-width: 92px;
+  margin-bottom: 2px;
   cursor: pointer;
 }
 .intent-box:hover { border-color: var(--border2); }
@@ -393,20 +412,6 @@ body {
 .eip-ability-name  { font-size: 0.8rem; color: var(--purple2); font-weight: 600; margin-bottom: 0.2rem; }
 .eip-ability-desc  { font-size: 0.75rem; color: var(--text2); line-height: 1.4; font-style: italic; }
 .eip-hint { font-size: 0.65rem; color: var(--text3); margin-top: 0.5rem; text-align: center; }
-
-/* dice panel */
-.dice-panel {
-  position: relative;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1.5rem;
-  padding: 0.5rem 1rem;
-  background: rgba(10,8,9,0.85);
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-}
 
 .dice-display {
   display: flex;
@@ -448,7 +453,24 @@ body {
 .die-affinity-label { font-size: 0.7rem; color: var(--text2); font-style: italic; }
 
 .reroll-btn { font-size: 0.8rem; padding: 0.4rem 1rem; }
-#dice-corner { display: none; }
+
+/* Desktop dice strip always hidden — dice-corner used on all sizes */
+.combat-controls { display: none !important; }
+
+/* Dice corner — always visible, absolutely positioned in hand area */
+#dice-corner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  position: absolute;
+  bottom: 0.45rem;
+  left: 0.5rem;
+  z-index: 20;
+}
+#dice-corner .die { width: 36px; height: 36px; font-size: 1rem; border-width: 1px; min-height: unset; }
+#dice-corner .reroll-btn { font-size: 0.5rem; padding: 0.1rem 0.35rem; min-height: unset; height: auto; }
+
 .reroll-btn:disabled { opacity: 0.3; cursor: not-allowed; border-color: var(--border); color: var(--text3); }
 .reroll-btn:disabled:hover { color: var(--text3); }
 .reroll-btn:disabled::before { display: none; }
@@ -474,17 +496,26 @@ body {
 .hand-area {
   position: relative;
   z-index: 10;
+  flex: 0 0 auto;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 0.6rem 1rem 0.8rem;
+  gap: 0.25rem;
+  padding: 0.2rem 85px 0.4rem 90px;
   background: rgba(10,8,9,0.9);
-  min-height: 160px;
+  min-height: 120px;
+  max-height: 135px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+.hand-area::-webkit-scrollbar { display: none; }
 
 .card {
-  width: 95px;
+  width: 68px;
+  flex: 0 0 auto;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -508,29 +539,29 @@ body {
 .card-cost {
   position: absolute;
   top: 4px; left: 4px;
-  width: 20px; height: 20px;
+  width: 15px; height: 15px;
   border-radius: 50%;
   background: var(--energy);
   color: var(--bg);
   font-family: 'Cinzel', serif;
-  font-size: 0.7rem;
+  font-size: 0.54rem;
   font-weight: 900;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.card-emoji { font-size: 1.4rem; display: block; text-align: center; margin: 0.3rem 0 0.2rem; }
-.card-name { font-family: 'Cinzel', serif; font-size: 0.6rem; font-weight: 600; color: var(--gold); text-align: center; letter-spacing: 0.03em; line-height: 1.2; }
+.card-emoji { font-size: 0.95rem; display: block; text-align: center; margin: 0.3rem 0 0.2rem; }
+.card-name { font-family: 'Cinzel', serif; font-size: 0.5rem; font-weight: 600; color: var(--gold); text-align: center; letter-spacing: 0.03em; line-height: 1.2; }
 .card-type { font-size: 0.55rem; color: var(--text3); text-align: center; margin-top: 0.15rem; text-transform: uppercase; letter-spacing: 0.05em; }
-.card-desc { font-size: 0.6rem; color: var(--text2); text-align: center; margin-top: 0.3rem; line-height: 1.3; }
-.card-dice-req { font-size: 0.55rem; color: var(--gold); text-align: center; margin-top: 0.2rem; font-style: italic; }
+.card-desc { font-size: 0.42rem; color: var(--text2); text-align: center; margin-top: 0.3rem; line-height: 1.3; }
+.card-dice-req { font-size: 0.42rem; color: var(--gold); text-align: center; margin-top: 0.2rem; font-style: italic; }
 
 .end-turn-btn {
   position: absolute;
-  right: 1rem;
-  bottom: 1rem;
-  font-size: 0.8rem;
-  padding: 0.5rem 1.2rem;
+  right: 0.6rem;
+  bottom: 0.6rem;
+  font-size: 0.68rem;
+  padding: 0.4rem 0.85rem;
   border-color: var(--red2);
   color: var(--red2);
 }
@@ -1590,6 +1621,145 @@ body {
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border2); }
 
+@media (min-width: 1101px) {
+  .combat-hud {
+    border-bottom-width: 2px;
+  }
+  .hud-main-row {
+    padding: 0.45rem 1.2rem;
+    gap: 0.8rem;
+  }
+  .hud-floor {
+    font-size: 0.95rem;
+  }
+  .hud-room {
+    font-size: 0.82rem;
+  }
+  .hud-combat-stats {
+    gap: 0.8rem;
+    font-size: 0.86rem;
+  }
+  .hud-map-btn,
+  .hud-menu-btn {
+    font-size: 0.82rem;
+    padding: 0.32rem 0.7rem;
+  }
+
+  .combat-arena {
+    padding: 0 4.5% 0.75rem;
+    gap: 2rem;
+    margin-top: 0;
+  }
+  .combatant {
+    min-width: 180px;
+    gap: 0.55rem;
+  }
+  .combatant-sprite {
+    width: 160px;
+    height: 200px;
+    max-width: 160px;
+    max-height: 200px;
+    font-size: 5rem;
+  }
+  .combatant-info {
+    gap: 0.35rem;
+  }
+  .combatant-name {
+    font-size: 0.95rem;
+  }
+  .hp-bar-wrap {
+    width: 160px;
+  }
+  .bar-label {
+    font-size: 0.8rem;
+    margin-bottom: 4px;
+  }
+  .bar-track {
+    height: 10px;
+  }
+  .intent-box {
+    max-width: 180px;
+    font-size: 0.8rem;
+    padding: 0.35rem 0.6rem;
+    margin-bottom: 4px;
+  }
+  .status-icons {
+    gap: 0.35rem;
+    min-height: 22px;
+    justify-content: center;
+  }
+  .status-icon {
+    font-size: 0.72rem;
+    padding: 0.14rem 0.42rem;
+  }
+
+  #dice-corner {
+    bottom: 0.85rem;
+    left: 0.9rem;
+    gap: 0.35rem;
+  }
+  #dice-corner .die {
+    width: 52px;
+    height: 52px;
+    font-size: 1.4rem;
+    border-width: 2px;
+  }
+  #dice-corner .reroll-btn {
+    font-size: 0.72rem;
+    padding: 0.22rem 0.75rem;
+  }
+
+  .hand-area {
+    min-height: 180px;
+    max-height: 210px;
+    gap: 0.55rem;
+    padding: 0.45rem 150px 0.9rem 130px;
+  }
+  .card {
+    width: 110px;
+    padding: 0.75rem 0.65rem;
+  }
+  .card-cost {
+    width: 24px;
+    height: 24px;
+    font-size: 0.8rem;
+    top: 6px;
+    left: 6px;
+  }
+  .card-emoji {
+    font-size: 1.45rem;
+    margin: 0.45rem 0 0.3rem;
+  }
+  .card-name {
+    font-size: 0.78rem;
+  }
+  .card-type {
+    font-size: 0.7rem;
+    margin-top: 0.22rem;
+  }
+  .card-desc {
+    font-size: 0.62rem;
+    margin-top: 0.45rem;
+  }
+  .card-dice-req {
+    font-size: 0.62rem;
+    margin-top: 0.3rem;
+  }
+  .end-turn-btn {
+    right: 1rem;
+    bottom: 0.95rem;
+    font-size: 0.9rem;
+    padding: 0.75rem 1.35rem;
+  }
+
+  .message-log {
+    bottom: 245px;
+    padding: 0.6rem 1.3rem;
+    font-size: 0.92rem;
+    max-width: min(70vw, 720px);
+  }
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    MOBILE RESPONSIVE — phones and small screens
    ═══════════════════════════════════════════════════════════════════ */
@@ -1639,14 +1809,6 @@ body {
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Combat screen — flex column, no scroll */
-  #combat-screen.active {
-    display: flex !important;
-    flex-direction: column;
-     height: 100dvh; /* 🔥 better than vh on mobile */
-    overflow: hidden;
-  }
-
   /* ── TITLE ── */
   .title-main { font-size: 3rem; }
   .title-btn { font-size: 1rem; padding: 0.9rem 2rem; }
@@ -1656,118 +1818,8 @@ body {
   .char-card { width: 130px; padding: 1rem 0.7rem; }
   .char-title { font-size: 1.3rem; }
 
-  /* ── COMBAT SCREEN ── */
-  #combat-screen { min-height: 0; }
-
-  .hud-main-row { padding: 0.1rem 0.5rem; flex-wrap: nowrap; gap: 0.15rem; }
-  .combat-controls { display: none !important; }
-  #dice-corner {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.2rem;
-    position: absolute;
-    bottom: 0.45rem;
-    left: 0.5rem;
-    z-index: 20;
-  }
-  #dice-corner .die { width: 36px; height: 36px; font-size: 1rem; border-width: 1px; min-height: unset; }
-  #dice-corner .reroll-btn { font-size: 0.5rem; padding: 0.1rem 0.35rem; min-height: unset; height: auto; }
-  .hud-floor { font-size: 0.68rem; }
-  .hud-room { font-size: 0.62rem; }
-  .hud-map-btn { font-size: 0.55rem; padding: 0.08rem 0.22rem; min-height: unset; height: auto; line-height: 1.2; border-width: 1px; }
-  .hud-menu-btn { font-size: 0.62rem; padding: 0.08rem 0.22rem; min-height: unset; height: auto; line-height: 1.2; border-width: 1px; }
-
-  /* Arena — compact fixed height, no dead space */
- .combat-arena {
-  flex: 1 1 auto;
-  min-height: 0;
-
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-around; /*was space-between*/
-  padding: 0 2%;
-  gap: 0;
-  margin-top: -4px;
-  
-}
-
-  
-
-  .combatant {
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 0.3rem;
-    min-width: 90px;
-    width: auto;
-    min-height: 0;
-  }
-  .combatant-info {
-    align-items: center;
-    gap: 0.2rem;
-    flex: unset;
-    min-width: 0;
-    width: 100%;
-  }
-  .combatant-sprite {
-    width: 90px;
-    height: 110px;
-    max-width: 90px;
-    max-height: 110px;
-    font-size: 4.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    line-height: 1;
-    background-size: contain;
-    background-position: center bottom;
-    background-repeat: no-repeat;
-  }
-  .combatant-name { font-size: 0.72rem; }
-    .hp-bar-wrap {
-    width: 88px;
-  }
-  .bar-label { font-size: 0.62rem; }
-  .bar-track { height: 7px; }
+  /* ── COMBAT SCREEN — mobile interaction overrides only ── */
   .block-fill { background: linear-gradient(90deg, #4fc3f7, #5dade2); }
-  .intent-box { font-size: 0.58rem; padding: 0.18rem 0.3rem; max-width: 92px; margin-bottom: 2px; }
-  .status-icons { justify-content: flex-start; min-height: 14px; }
-  .status-icon { font-size: 0.58rem; }
-
-  /* dice panel moved to HUD row on mobile — combat-controls hidden via rule above */
-  .die { width: 34px; height: 34px; font-size: 1rem; border-width: 1px; }
-  .die-affinity-label { font-size: 0.6rem; white-space: nowrap; }
-  .reroll-btn { font-size: 0.6rem; padding: 0.2rem 0.6rem; min-height: unset; }
-  /* HUD combat stats visible on mobile — single row */
-  .hud-combat-stats { display: flex; flex-direction: row; align-items: center; gap: 0.4rem; font-size: 0.62rem; }
-
-  /* Hand area — fills remaining space, cards scroll horizontally */
- .hand-area {
-  flex: 0 0 auto;
-  min-height: 120px;
-  max-height: 135px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  flex-wrap: nowrap;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 0.2rem 85px 0.4rem 90px;
-  gap: 0.25rem;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-
-  .hand-area::-webkit-scrollbar {
-    display: none;
-  }
-
-    .card {
-    width: 68px;
-    flex: 0 0 auto;
-  }
   /* No hover on mobile — active press instead */
   .card:hover { transform: none; border-color: var(--border); box-shadow: none; }
   .card:active:not(.unplayable) {
@@ -1775,21 +1827,6 @@ body {
     border-color: var(--gold);
     box-shadow: 0 0 10px rgba(201,168,76,0.3);
   }
-  .card-emoji { font-size: 0.95rem; }
-  .card-name { font-size: 0.5rem; }
-  .card-desc { font-size: 0.42rem; }
-  .card-dice-req { font-size: 0.42rem; }
-  .card-cost { width: 15px; height: 15px; font-size: 0.54rem; }
-
-  /* End Turn — fixed strip at very bottom, always visible */
-  .end-turn-btn {
-    position: absolute;
-    right: 0.6rem;
-    bottom: 0.6rem;
-    font-size: 0.68rem;
-    padding: 0.4rem 0.85rem;
-  }
-  /* End Turn is position:absolute — no extra padding needed */
 
   /* ── DOORS ── */
   #path-screen {
@@ -1973,13 +2010,4 @@ body {
 
   /* Dice panel reroll — exempt from 42px tap target, lives in compact strip */
   .reroll-btn { min-height: unset; height: 30px; font-size: 0.58rem; padding: 0 0.55rem; }
-}
-
-/* Medium screens (tablets) */
-@media (min-width: 601px) and (max-width: 1100px) {
-  .combat-arena { padding: 0 1rem 0.5rem; }
-  .combatant-sprite { font-size: 4rem; }
-  .hp-bar-wrap { width: 130px; }
-  .card { width: 90px; }
-  .hand-area { gap: 0.4rem; }
 }

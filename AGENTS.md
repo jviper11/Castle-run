@@ -57,3 +57,7 @@ All decisions must align with the Game Design Document (GDD.md).
 - UI layout feels unbalanced
 - Player/enemy alignment needs improvement
 - Important stats are hard to see
+
+## File Editing Rule
+- Prefer editing the correct split file (`css/styles.css`, `js/combat.js`, `js/ui.js`, etc.) instead of putting logic back into `index.html`.
+- Preserve the split architecture unless explicitly asked to refactor it.

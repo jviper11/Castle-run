@@ -4,9 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Castle Run is a single-file roguelike deck-building game. The **entire game lives in `index.html`** (~7000+ lines) — HTML structure, all CSS, and all JavaScript are in one file. There is no build step, no package manager, no framework, and no dependencies beyond Google Fonts. Open `index.html` directly in a browser to run it.
+Castle Run is a browser-based roguelite built with HTML, CSS, and JavaScript.
 
-`castle-run.html` is an older/alternate version of the file. `assets/` holds PNG sprites referenced via `GAME_IMAGES`. Currently only `mage_hero.png` and `thief_hero.png` are live files — all other sprite keys (barb, gambler, vampire heroes + all boss sprites) are base64 inline. Extracted originals saved as `assets/*_original.*` for bg-removal work.
+The project is split into multiple files:
+
+- `index.html` — main HTML structure
+- `css/styles.css` — all styling and responsive layout rules
+- `js/data.js` — characters, cards, enemies, bosses, events, and constants
+- `js/combat.js` — combat flow, turn handling, damage, statuses, and enemy actions
+- `js/game.js` — run flow, path/room progression, rewards, shops, and events
+- `js/ui.js` — rendering, HUD updates, hand rendering, dice/UI sync, and screen updates
+- `js/main.js` — startup, initialization, and wiring
+
+There is no build step, no package manager, and no framework. Open `index.html` directly in a browser to run it.
 
 ## Architecture
 
@@ -135,7 +145,7 @@ Each enemy has an `aggro` field that drives combat behavior via `AGGRO_PROFILES`
 
 ## Design Document
 
-**`GDD.docx`** is the source of truth for story, balance, and design intent (v0.7). Read it before making significant design decisions. Key points:
+**`GDD.md`** is the source of truth for story, balance, and design intent (v0.7). Read it before making significant design decisions. Key points:
 
 ### Story & Tone
 Dark gothic roguelite. Five heroes storm Castle Ashborne. Four are captured and corrupted into floor bosses. You play the fifth. Defeating bosses releases **Cores** — collect all four to fight King Aldric. Two endings: kill him (Normal) or use the four **True Ending Relics** to free him (True Ending / Liberator).
