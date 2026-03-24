@@ -4,6 +4,11 @@
 
 let G = {};
 
+// DEBUG ONLY: temporary Floor 2 start shortcut for testing.
+function shouldDebugStartFloor2() {
+  return window.location.hash === '#debug-floor2';
+}
+
 function newGame(charKey) {
   const ch = CHARACTERS[charKey];
 
@@ -38,6 +43,16 @@ function newGame(charKey) {
   // start with a d6 in pool
   G.activeDie = 'd6'; // start with standard d6
   G.diceMax = 6;
+
+  // DEBUG ONLY: start directly on Floor 2 when the hash is set.
+  if (shouldDebugStartFloor2()) {
+    G.currentFloor = 1;
+    G.map[0].cleared = true;
+    G.map[1].currentPath = 'A';
+    G.map[1].roomIndexA = 0;
+    G.map[1].roomIndexB = 0;
+    G.map[1].roomIndexC = 0;
+  }
 
   renderCores();
   updateHUD();

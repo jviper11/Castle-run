@@ -305,10 +305,17 @@ function startCombat(isElite) {
     pool = indices.map(i => ELITES[i]).filter(Boolean);
     if (!pool.length) pool = ELITES.slice(0,2);
   } else {
-    // First 2 rooms of Floor 1 use easy pool
-    const isEasy = G.currentFloor === 0 &&
-      (G.map[0][`roomIndex${G.map[0].currentPath}`] || 0) < 2;
-    pool = FLOOR_ENEMIES[G.currentFloor + 1] || FLOOR_ENEMIES[1];
+    const floor = G.map[G.currentFloor];
+    const roomIdx = floor[floor.currentPath === 'A' ? 'roomIndexA' : floor.currentPath === 'B' ? 'roomIndexB' : 'roomIndexC'] || 0;
+    const isEasy = G.currentFloor === 0 && roomIdx < 2;
+    const isEarlyFloor2 = G.currentFloor === 1 && roomIdx < 2;
+    if (isEasy) {
+      pool = EASY_ENEMIES;
+    } else if (isEarlyFloor2) {
+      pool = EARLY_FLOOR2_ENEMIES;
+    } else {
+      pool = FLOOR_ENEMIES[G.currentFloor + 1] || FLOOR_ENEMIES[1];
+    }
   }
 
   const e = { ...rand(pool) };
@@ -524,6 +531,9 @@ function playCard(cardKey) {
   G.energy -= actualCost;
   const roll = G.currentDie || 1;
   card.effect(G, roll);
+  if (G.enemy && G.enemy.hp > 0 && card.type === 'Skill' && G.enemy.special && G.enemy.special.trigger === 'skill') {
+    try { G.enemy.special.effect(G); } catch (err) { console.log('skill special ability error', err); }
+  }
 
   // Gambler lucky streak
   if (G.charKey === 'gambler' && roll === G.diceMax && !G.rerollUsed) {

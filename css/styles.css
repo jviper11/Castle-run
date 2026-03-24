@@ -1649,11 +1649,14 @@ body {
     padding: 0 4.5% 0.75rem;
     gap: 1.8rem;
     margin-top: 0;
+    align-items: flex-end;
     justify-content: center;
   }
   .combatant {
     flex: 0 0 240px;
     min-width: 180px;
+    min-height: 310px;
+    justify-content: flex-end;
     gap: 0.55rem;
   }
   .combatant-sprite {

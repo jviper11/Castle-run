@@ -102,7 +102,7 @@ const CARDS = {
 
   // ── MAGE new cards ──
   manasurge:    { name:'Mana Surge',     emoji:'⚡', type:'Skill',  cost:0, desc:'Next card costs 1 less energy this turn.',   dice:false, effect:(g)=>{ g._manaSurge=true; showMsg('⚡ Mana Surge — next card costs 1 less!'); } },
-  arcaneboost:  { name:'Arcane Boost',   emoji:'🔼', type:'Skill',  cost:1, desc:'Discard 1 card — add 1 to dice roll.',       dice:false, effect:(g)=>{ if(g.hand.length>0){ const idx=Math.floor(Math.random()*g.hand.length); g.discardPile.push(g.hand.splice(idx,1)[0]); g.currentDie=(g.currentDie||1)+1; const dieEl=document.getElementById('current-die'); if(dieEl){ dieEl.classList.remove('rolling'); void dieEl.offsetWidth; dieEl.classList.add('rolling'); setTimeout(()=>{ dieEl.textContent=g.currentDie; dieEl.classList.remove('rolling'); checkAffinityHighlight(g,g.currentDie); },200); } showMsg('🔼 Arcane Boost — dice is now '+g.currentDie+'!'); } else { showMsg('No cards to discard!'); } } },
+  arcaneboost:  { name:'Arcane Boost',   emoji:'🔼', type:'Skill',  cost:1, desc:'Discard 1 card — add 1 to dice roll.',       dice:false, effect:(g)=>{ if(g.hand.length>0){ const idx=Math.floor(Math.random()*g.hand.length); g.discardPile.push(g.hand.splice(idx,1)[0]); g.currentDie=Math.max(1, Math.min((g.currentDie||1)+1, g.diceMax)); const dieEl=document.getElementById('current-die'); if(dieEl){ dieEl.classList.remove('rolling'); void dieEl.offsetWidth; dieEl.classList.add('rolling'); setTimeout(()=>{ dieEl.textContent=g.currentDie; dieEl.classList.remove('rolling'); checkAffinityHighlight(g,g.currentDie); },200); } showMsg('🔼 Arcane Boost — dice is now '+g.currentDie+'!'); } else { showMsg('No cards to discard!'); } } },
   voidchannel:  { name:'Void Channel',   emoji:'🌀', type:'Skill',  cost:1, desc:'Choose 2 cards to discard — double dice roll. Requires 2 cards in hand.',
     dice:false, effect:(g)=>{ if(g.hand.length<2){ showMsg('Need at least 2 cards in hand!'); return; } startVoidChannelDiscard(g); } },
   arcanemomentum:{ name:'Arcane Momentum',emoji:'✨',type:'Power',  cost:1, desc:'Each Skill/Power played this turn +1 to dice.',dice:false, effect:(g)=>{ g._arcaneMomentum=true; applyStatus(g,'player','✨Momentum',1); showMsg('✨ Arcane Momentum active!'); } },
@@ -447,6 +447,13 @@ const EASY_ENEMIES = [
   { name:'Castle Guard', emoji:'⚔️', hp:45, block:0, damage:10, reward:8, souls:1, aggro:'cautious', special:null },
   { name:'Dungeon Rat',  emoji:'🐀', hp:35, block:0, damage:8,  reward:5, souls:1, aggro:'glass',    special:null },
   { name:'Skeleton',     emoji:'💀', hp:40, block:0, damage:9,  reward:6, souls:1, aggro:'berserker',special:null },
+];
+
+// Early Floor 2 pool for the first 2 standard fights
+const EARLY_FLOOR2_ENEMIES = [
+  FLOOR_ENEMIES[2][0], // Shadow Wraith
+  FLOOR_ENEMIES[2][3], // Crypt Crawler
+  FLOOR_ENEMIES[2][4], // Blood Bat
 ];
 
 // Keep flat ENEMIES for backwards compatibility

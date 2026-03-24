@@ -361,7 +361,7 @@ function pickVoidChannelCard(g, key, el, needed) {
   if (G._voidChannelPicked.length >= needed) {
     // Done — double the dice
     G._voidChannelSelecting = false;
-    G.currentDie = (G.currentDie || 1) * 2;
+    G.currentDie = Math.max(1, Math.min((G.currentDie || 1) * 2, G.diceMax));
     const dieEl = document.getElementById('current-die');
     if (dieEl) {
       dieEl.classList.remove('rolling');
