@@ -393,12 +393,12 @@ const FLOOR_ENEMIES = {
 
   { name:'Shadow Wraith', emoji:'👻', hp:60, block:0, damage:12, reward:20, souls:3,
     moves:[
-      { name:'Phase', isOpener:true, type:'buff', desc:'Immune this turn',
-        effect(g){ g.enemy._phased=true; showMsg('👻 Wraith phases — immune!'); } },
+      { name:'Phase', isOpener:true, type:'buff', desc:'Immune to your next attack',
+        effect(g){ g.enemy._phased=true; showMsg('👻 Wraith phases — immune to your next attack!'); } },
       { name:'Haunt', weight:60, type:'attack', dmg:12, desc:'Deal 12 dmg',
         effect(g){ _emAtk(g,12); showMsg('👻 Haunt!'); } },
-      { name:'Phase', weight:25, type:'buff', desc:'Immune this turn',
-        effect(g){ g.enemy._phased=true; showMsg('👻 Phases — immune this turn!'); } },
+      { name:'Phase', weight:25, type:'buff', desc:'Immune to your next attack',
+        effect(g){ g.enemy._phased=true; showMsg('👻 Phases — immune to your next attack!'); } },
       { name:'Wail', weight:15, type:'debuff', dmg:8, desc:'8 dmg + 1 Weak',
         effect(g){ _emAtk(g,8); applyStatus(g,'player','😵Weak',1); showMsg('👻 Wail — Weakened!'); } },
     ],
@@ -523,12 +523,10 @@ const EASY_ENEMIES = [
   { name:'Dungeon Rat',  emoji:'🐀', hp:35, block:0, damage:8,  reward:5, souls:1, aggro:'glass',    special:null },
   { name:'Skeleton',     emoji:'💀', hp:40, block:0, damage:9,  reward:6, souls:1, aggro:'berserker',special:null },
 ];
-// Easy pool for first 2 battles of floor 
-const FLOOR2_EARLY_ENEMIES = [
-  "Hellfang Pup",
-  "Bone Priest",
-  "Blackblade Duelist",
-  "Executioner's Guard"
+const EARLY_FLOOR2_ENEMIES = [
+  FLOOR_ENEMIES[2][0],
+  FLOOR_ENEMIES[2][1],
+  FLOOR_ENEMIES[2][2],
 ];
 // Keep flat ENEMIES for backwards compatibility
 const ENEMIES = [...FLOOR_ENEMIES[1], ...FLOOR_ENEMIES[2]];

@@ -570,6 +570,10 @@ function endTurn() {
 
   SFX.endTurn();
 
+  if (G.enemy._phased) {
+    G.enemy._phased = false;
+  }
+
   // ── STEP 1: Tick status effects on enemy FIRST ──
   const poison = G.statuses.enemy.find(s => s.name === '☠️Poison');
   if (poison) {
