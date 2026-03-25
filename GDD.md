@@ -133,26 +133,26 @@ Player block resets to 0 at the start of each enemy turn
 Enemy block is persistent — must be broken through over multiple turns
 Block absorbs damage before HP
 Dice System
-Each character has one active die. At the start of their turn they roll it. If the result matches their affinity, bonus effects trigger on cards played that turn.
+Each character has one active die. At the start of their turn they roll it. If the result matches their affinity, Cards gain enhanced effects when played.
 Players get 1 reroll per turn.
 Reroll resets at the start of each player turn. Some relics grant additional rerolls.
 Character
 Affinity
 Bonus Effect
 Barbarian
-Odd (1, 3, 5)
+Even (2, 4, 6)
 +3 damage on all attacks this turn
 Mage
-High (5 or 6)
+High (5–6)
 Next spell costs 0 Energy
 Thief
-Low (1 or 2)
+Odd (1, 3, 5)
 Apply 1 extra Poison stack on next attack
 Vampire
-Even (2, 4, 6)
+Extreme (1 or max)
 Heal 2 HP on next drain effect
 Gambler
-Any doubles
+Roll-based
 Draw 1 extra card; reroll restored
 Status Effects
 Status
@@ -193,11 +193,11 @@ Barbarian
 Field
 Detail
 Dice Affinity
-Odd rolls (1, 3, 5)
+Even rolls (2, 4, 6)
 Affinity Bonus
-+3 damage on all attacks this turn
+Cards gain stronger damage or defensive values on even rolls
 Playstyle
-Burst damage, high-risk combos, Rage stacking
+Heavy, consistent hits with powerful enhanced effects on strong rolls
 Starter Deck
 2x Strike, 2x Defend, Cleave (3 damage to all enemies, Cost 1), War Cry (gain 2 Rage, Cost 0), Reckless Charge (deal 14 dmg, take 4, Cost 1), Brace (gain 8 Block if HP below 50%, Cost 1)
 Boss Form
@@ -208,9 +208,9 @@ Detail
 Dice Affinity
 High rolls (5 or 6)
 Affinity Bonus
-Next spell costs 0 Energy
+Spells gain enhanced effects (more damage, stronger status, or additional draw)
 Playstyle
-Scaling damage, card synergies, spell chains
+Flexible spellcasting with strong scaling on high rolls
 Starter Deck
 2x Strike, 2x Defend, Arcane Bolt (deal 8 magic dmg, Cost 1), Mana Shield (gain 6 Block + 1 Energy, Cost 1), Surge (next card costs 0, Cost 0), Frost Touch (deal 5 dmg + Weak 2, Cost 1)
 Boss Form
@@ -219,9 +219,9 @@ Thief
 Field
 Detail
 Dice Affinity
-Low rolls (1 or 2)
+Odd (1, 3, 5)
 Affinity Bonus
-+1 Poison stack on next attack
+Cards trigger combo bonuses on odd rolls (extra hits, draw, or poison)
 Playstyle
 Poison DoT, combo chains, evasion
 Starter Deck
@@ -232,9 +232,9 @@ Vampire
 Field
 Detail
 Dice Affinity
-Even rolls (2, 4, 6)
+Extreme (1 or max)
 Affinity Bonus
-Heal 2 HP on next drain effect
+Cards gain lifesteal or enhanced effects on extreme rolls
 Playstyle
 Life steal, self-damage for power, drain mechanics
 Starter Deck
@@ -245,9 +245,9 @@ Gambler
 Field
 Detail
 Dice Affinity
-Doubles on any die face
+Roll-based
 Affinity Bonus
-Draw 1 extra card; reroll restored
+Cards scale based on roll thresholds and manipulation
 Playstyle
 High variance, RNG manipulation, bonus effects
 Starter Deck
@@ -789,7 +789,7 @@ Platform / Technical
 
 ## Dice System Rules
 - Only ONE die is active at a time
-- Dice roll affects affinity bonuses
+- Dice roll determines whether card affinity effects activate when cards are played
 - Reroll is limited per combat
 - No multiple dice selection bugs allowed
 
