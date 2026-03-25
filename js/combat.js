@@ -588,8 +588,8 @@ function endTurn() {
 
   const burn = G.statuses.enemy.find(s => s.name === '🔥Burn');
   if (burn) {
-    G.enemy.hp -= burn.stacks * 2;
-    floatDamage('enemy-combatant', burn.stacks * 2, 'dmg');
+    G.enemy.hp -= burn.stacks;
+    floatDamage('enemy-combatant', burn.stacks, 'dmg');
     SFX.statusTick();
     burn.stacks--;
     if (burn.stacks <= 0) {
@@ -650,6 +650,14 @@ function endTurn() {
     let dmg = e.damage;
     const eStrong = G.statuses.enemy.find(s => s.name === '💢Rage');
     if (eStrong) dmg += eStrong.stacks;
+    const enemyChill = G.statuses.enemy.find(s => s.name === '❄️Chill');
+    if (enemyChill && enemyChill.stacks > 0) {
+      dmg = Math.floor(dmg * 0.75);
+      enemyChill.stacks--;
+      if (enemyChill.stacks <= 0) {
+        G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '❄️Chill');
+      }
+    }
 
     const net = Math.max(0, dmg - G.block);
     G.block = Math.max(0, G.block - dmg);
@@ -975,6 +983,14 @@ function checkCombatEnd() {
 function _emAtk(g, dmg) {
   const rage = g.statuses.enemy.find(s => s.name === '💢Rage');
   if (rage) dmg += rage.stacks;
+  const chill = g.statuses.enemy.find(s => s.name === '❄️Chill');
+  if (chill && chill.stacks > 0) {
+    dmg = Math.floor(dmg * 0.75);
+    chill.stacks--;
+    if (chill.stacks <= 0) {
+      g.statuses.enemy = g.statuses.enemy.filter(s => s.name !== '❄️Chill');
+    }
+  }
   dmg = applyPlayerIncomingDamageModifiers(g, dmg);
   const net = Math.max(0, dmg - g.block);
   g.block = Math.max(0, g.block - dmg);
