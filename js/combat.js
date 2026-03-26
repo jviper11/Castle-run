@@ -374,7 +374,17 @@ function applyPlayerIncomingDamageModifiers(g, amount) {
   return modified;
 }
 
+function clearVoidChannelSelection() {
+  G._voidChannelSelecting = false;
+  G._voidChannelNeeded = 0;
+  G._voidChannelPicked = [];
+}
+
 function startTurn() {
+  if (G._voidChannelSelecting || (G._voidChannelPicked && G._voidChannelPicked.length)) {
+    clearVoidChannelSelection();
+  }
+
   G.turn++;
 
   const playerBurn = G.statuses.player.find(s => s.name === '🔥Burn');
@@ -566,6 +576,10 @@ function playCard(cardKey) {
 
 function endTurn() {
   if (!G.enemy) return;
+  if (G._voidChannelSelecting) {
+    showMsg('🌀 Finish Void Channel discards first!');
+    return;
+  }
   const e = G.enemy;
 
   SFX.endTurn();
@@ -744,6 +758,7 @@ function endTurn() {
 
   G.discardPile.push(...G.hand);
   G.hand = [];
+  clearVoidChannelSelection();
 
   renderAll();
   checkCombatEnd();
