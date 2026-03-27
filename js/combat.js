@@ -1,3 +1,24 @@
+const _PASSIVE_INFO = {
+  even:    { emoji: '⚖️' },
+  odd:     { emoji: '🗡️' },
+  high:    { emoji: '⬆️' },
+  gambler: { emoji: '🎲' },
+  extreme: { emoji: '⚡' },
+};
+
+function updatePassiveBadge() {
+  const el = document.getElementById('player-passive');
+  if (!el || !G.char) return;
+  const p = _PASSIVE_INFO[G.char.diceAffinity];
+  if (!p) { el.textContent = ''; return; }
+  const label = G.char.diceLabel || G.char.diceAffinity || '';
+  const tip = G.char.diceHint || label;
+  el.textContent = `${p.emoji} ${label}`;
+  el.setAttribute('data-tip', tip);
+  el.setAttribute('aria-label', 'Passive: ' + tip);
+  el.onclick = () => showMsg('\u26a1 Passive: ' + tip);
+}
+
 function startAldricFight() {
   const phase = ALDRIC.phases[0];
   G.aldricPhase = 1;
@@ -35,6 +56,7 @@ function startAldricFight() {
   showScreen('combat-screen');
   updateCombatSprites(G.charKey, 'aldric');
   document.getElementById('player-name').textContent = G.char.name.toUpperCase();
+  updatePassiveBadge();
   document.getElementById('enemy-name').textContent = 'KING ALDRIC ASHBORNE';
   document.getElementById('enemy-sprite').classList.remove('dying');
 
@@ -335,6 +357,7 @@ function startCombat(isElite) {
 
   updateCombatSprites(G.charKey, null);
   document.getElementById('player-name').textContent = G.char.name.toUpperCase();
+  updatePassiveBadge();
   document.getElementById('enemy-sprite').textContent = e.emoji;
   document.getElementById('enemy-name').textContent = e.name.toUpperCase();
   document.getElementById('enemy-sprite').classList.remove('dying');
@@ -356,6 +379,7 @@ function startBossFight() {
   showScreen('combat-screen');
   document.getElementById('player-sprite').textContent = G.char.emoji;
   document.getElementById('player-name').textContent = G.char.name.toUpperCase();
+  updatePassiveBadge();
   document.getElementById('enemy-sprite').textContent = e.emoji;
   document.getElementById('enemy-name').textContent = e.name.toUpperCase();
   document.getElementById('enemy-sprite').classList.remove('dying');
@@ -1394,6 +1418,7 @@ function showReward() {
     const el = document.createElement('div');
     el.className = 'reward-card';
     el.innerHTML = `
+      <div class="card-cost">${c.cost}</div>
       <span class="reward-card-emoji">${c.emoji}</span>
       <div class="reward-card-name">${c.name}</div>
       <div class="reward-card-type">${c.type}${isUniversal ? ' · Universal' : ''}</div>

@@ -379,6 +379,53 @@ body {
   color: var(--text2);
 }
 
+/* ── Passive ability badge (player combatant) ── */
+.passive-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  background: rgba(201,168,76,0.1);
+  border: 1px solid rgba(201,168,76,0.3);
+  border-radius: 3px;
+  padding: 0.12rem 0.35rem;
+  font-size: 0.56rem;
+  color: var(--gold);
+  letter-spacing: 0.04em;
+  font-family: 'Cinzel', serif;
+  white-space: nowrap;
+  position: relative;
+  cursor: default;
+  /* mobile tap target: vertical padding makes the hit area ~44px */
+  min-height: 44px;
+  box-sizing: border-box;
+}
+.passive-badge:empty { display: none; }
+/* CSS tooltip — desktop hover only */
+.passive-badge::after {
+  content: attr(data-tip);
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--panel);
+  border: 1px solid var(--border2);
+  color: var(--text2);
+  font-family: 'Crimson Pro', serif;
+  font-size: 0.72rem;
+  letter-spacing: normal;
+  padding: 0.35rem 0.55rem;
+  white-space: normal;
+  width: 160px;
+  text-align: center;
+  line-height: 1.4;
+  z-index: 50;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+}
+.passive-badge:not(:empty):hover::after { display: block; }
+
 .intent-box {
   background: rgba(26,18,20,0.9);
   border: 1px solid var(--border);
@@ -830,6 +877,7 @@ body {
   background: var(--panel);
   border: 1px solid var(--border2);
   border-radius: 4px;
+  position: relative;
   padding: 1rem 0.8rem;
   cursor: pointer;
   transition: all 0.2s;
@@ -1697,6 +1745,12 @@ body {
     font-size: 0.72rem;
     padding: 0.14rem 0.42rem;
   }
+  .passive-badge {
+    font-size: 0.72rem;
+    padding: 0.2rem 0.55rem;
+    min-height: unset;
+    cursor: help;
+  }
 
   #dice-corner {
     bottom: 0.85rem;
@@ -1823,6 +1877,15 @@ body {
   .char-card { width: 130px; padding: 1rem 0.7rem; }
   .char-title { font-size: 1.3rem; }
 
+  /* Passive badge — mobile: hide CSS tooltip, keep tap area */
+  .passive-badge::after { display: none !important; }
+  .passive-badge {
+    cursor: pointer;
+    min-height: 30px;
+    padding: 0.08rem 0.28rem;
+    font-size: 0.52rem;
+  }
+
   /* ── COMBAT SCREEN — mobile interaction overrides only ── */
   .block-fill { background: linear-gradient(90deg, #4fc3f7, #5dade2); }
   .hand-area {
@@ -1854,6 +1917,21 @@ body {
   z-index: 50;
   padding: 1.2rem 0.5rem 2rem;
   overflow-y: auto;
+}
+
+@media (max-width: 900px) {
+  .combat-arena {
+    flex: 1 1 0;
+    min-height: 0;
+  }
+
+  .hand-area {
+    flex: 0 0 136px;
+    height: 136px;
+    min-height: 136px;
+    max-height: 136px;
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 .path-card {
