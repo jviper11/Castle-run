@@ -70,11 +70,30 @@ Dark gothic aesthetic. Inspired by Castlevania and Slay the Spire. Character art
 ## 3. Path & Floor System
 
 ### Floor Structure
-- 4 floors total
-- Each floor has 3 paths — shown at floor start as icons only (no room preview)
-- Pick one path and commit — no switching
-- 6-8 rooms per path, scales with floor depth
-- 1-2 convergence points per floor where paths share a room
+4 floors total
+Each floor has 3 paths, fully visible at floor start (room types only)
+Player selects one path and is committed for the entire floor
+Each floor contains 13–15 rooms, randomly determined per run
+All paths on a floor share the same room count
+Boss room appears at the end of each floor
+
+### Path Identity
+
+Each path follows a predefined structure:
+
+Path A (Combat Heavy)
+High number of battles
+2 Elite fights
+2 Rest sites
+No shop
+Path B (Balanced)
+Mix of battles, events, and rests
+1 Elite fight
+2 Shops
+Path C (Events / Utility)
+Higher number of events
+1 Elite fight
+1 Shop
 
 ### Room Types
 
@@ -87,13 +106,22 @@ Dark gothic aesthetic. Inspired by Castlevania and Slay the Spire. Character art
 | Event | ? | Random event with choices | Hidden on Floor 3-4 |
 | Magic Door | 🪄 | High risk / high reward mystery | Always hidden |
 
-### Magic Door System
-The Magic Door is the only room where a second door appears. It always has a catch. Possible events include:
-- Map Blind Curse — you can't see room icons for the rest of the floor
-- Locked Door — you must pay 30 gold to continue through
-- Burning Door — take 15 damage to pass, gain a powerful relic on the other side
-- Sealed Door — requires a specific relic to open; reward scales with rarity
-- Mirror Door — face a shadowed version of yourself for 1 round
+### (Not yet implemented — future expansion system)
+### 🔮 Special Door Events (Future System)
+
+(Not currently implemented — planned feature)
+
+The Magic Door will evolve into a high-risk decision room where the player must choose between multiple outcomes.
+
+Possible events include:
+
+Map Blind Curse — you can't see room icons for the rest of the floor
+Locked Door — pay gold to proceed
+Burning Door — take damage for a powerful reward
+Sealed Door — requires relic to open, reward scales with rarity
+Mirror Door — fight a shadow version of yourself
+
+These events introduce meaningful risk/reward decisions and will replace or expand the current Magic Door system.
 
 ### Mirror Mechanic
 At approximately 60% through each path, a Mirror Room appears. The castle shows you a reflection of what you've built. The Mirror fight uses a shadow copy of your deck and dice — a skill check on your own build.
