@@ -153,8 +153,8 @@ Each character has one active die (d6 by default). At the start of their turn th
 
 | Status | Type | Effect | Clears |
 |---|---|---|---|
-| 🔥 Burn | DoT | Deals N damage at end of turn | Decreases by 1 stack each turn automatically |
-| ☠️ Poison | DoT | Deals N damage at end of turn | 1 stack removed after dealing damage each turn. Does NOT decay passively |
+| 🔥 Burn | DoT | Deals damage equal to current stacks at the start of player turn | Decreases by 1 stack each turn automatically |
+| ☠️ Poison | DoT | Deals damage equal to current stacks at the end of enemy turn | 1 stack removed after dealing damage each turn. |
 | ❄️ Chill | Debuff | Reduces enemy's next attack by 25%. Flat regardless of stacks | 1 stack consumed per enemy attack |
 | 😵 Weak | Debuff | Target deals 25% less damage. Flat regardless of stacks | 1 stack removed at end of target's turn |
 | 🩸 Vulnerable | Debuff | Target takes 25% more damage. Flat regardless of stacks | 1 stack removed at end of target's turn |

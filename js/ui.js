@@ -43,8 +43,8 @@ function renderHand() {
     if (!canPlay) el.classList.add('unplayable');
 
     // Build dynamic description
-const rageStatus = G.statuses?.player?.find(s => s.name === '💢Rage');
-const rageBonus = (c.type === 'Attack' && rageStatus && rageStatus.stacks > 0) ? rageStatus.stacks : 0;
+const strengthStatus = G.statuses?.player?.find(s => s.name === '💢Strength');
+const rageBonus = (c.type === 'Attack' && strengthStatus && strengthStatus.stacks > 0) ? strengthStatus.stacks : 0;
 
 const weakStatus2 = G.statuses?.player?.find(s => s.name === '😵Weak');
 const isWeak2 = c.type === 'Attack' && weakStatus2 && weakStatus2.stacks > 0;
@@ -248,6 +248,9 @@ function toggleMap() {
 function showPathSelect() {
   const floor = G.map[G.currentFloor];
   showScreen('path-screen');
+  const canGoBackToHeroes = G.currentFloor === 0 && G.turn === 0 && !G.enemy;
+  const backBtn = document.getElementById('path-back-btn');
+  if (backBtn) backBtn.style.display = canGoBackToHeroes ? 'inline-flex' : 'none';
 
   document.getElementById('path-floor-label').textContent = `FLOOR ${G.currentFloor + 1}`;
   document.getElementById('path-subtitle').textContent =
@@ -761,6 +764,14 @@ function showCharSelect() {
     el.onclick = () => { newGame(key); };
     grid.appendChild(el);
   });
+}
+
+function backToCharSelect() {
+  const canGoBackToHeroes = G && G.currentFloor === 0 && G.turn === 0 && !G.enemy;
+  if (!canGoBackToHeroes) return;
+  cancelPathConfirm();
+  G = {};
+  showCharSelect();
 }
 
 function restartGame() { showScreen('title-screen'); }

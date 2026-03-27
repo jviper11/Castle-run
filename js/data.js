@@ -127,7 +127,7 @@ const CARDS = {
   curse_binding:   { name:'Curse of Binding',  emoji:'🔗', type:'Curse', cost:0, desc:'Unplayable. One card permanently costs 2 more.', dice:false, effect:(g)=>{ showMsg('🔗 Curse of Binding!'); } },
 
   // reward cards
-  ragefuel:    { name:'Rage Fuel',   emoji:'💢',  type:'Power',  cost:1, desc:'Gain 1 Strength. All attacks deal +1 damage this combat.',   dice:false, effect:(g)=>{ applyStatus(g,'player','💢Rage',1); showMsg('💢 Rage Fuel — +1 Strength!'); } },
+  ragefuel:    { name:'Rage Fuel',   emoji:'💢',  type:'Power',  cost:1, desc:'Gain 1 Strength. All attacks deal +1 damage this combat.',   dice:false, effect:(g)=>{ applyStatus(g,'player','💢Strength',1); showMsg('💢 Rage Fuel — +1 Strength!'); } },
   blizzard:    { name:'Blizzard',    emoji:'🌨️',  type:'Attack', cost:2, desc:'Deal 5 dmg to enemy 3 times.',             dice:false, effect:(g)=>{ dealDamage(g,'enemy',5); dealDamage(g,'enemy',5); dealDamage(g,'enemy',5); } },
   stealheal:   { name:'Steal & Heal',emoji:'💉',  type:'Attack', cost:2, desc:'Deal 10 dmg, heal 5 HP.',                  dice:false, effect:(g)=>{ dealDamage(g,'enemy',10); healPlayer(g,5); } },
   curseddice:  { name:'Cursed Die',  emoji:'🎴',  type:'Skill',  cost:0, desc:'Reroll the die. Take 3 damage.',           dice:false, effect:(g)=>{ dealDamage(g,'player',3); rollDice(g); } },
@@ -153,7 +153,7 @@ const CARD_UPGRADES = {
   blooddrain:   { name:'Blood Drain+',  emoji:'🩸', type:'Attack', cost:1, desc:'Deal 9 dmg. Extreme: drain 13 HP.',            dice:true,  affinityBonus:'extreme', effect:(g,r)=>{ const roll=r||g.currentDie||1; dealDamage(g,'enemy',9); if(checkAffinity(g,roll,'extreme')){ healPlayer(g,13); showMsg('🩸 Blood Drain+ — lifesteal!'); } } },
   nightshroud:  { name:'Night Shroud+', emoji:'🦇', type:'Skill',  cost:1, desc:'Gain 7 Block. Extreme: gain 15.',              dice:true,  affinityBonus:'extreme', effect:(g,r)=>{ const roll=r||g.currentDie||1; gainBlock(g,'player', checkAffinity(g,roll,'extreme') ? 15 : 7); } },
   lifeleech:    { name:'Life Leech+',   emoji:'💜', type:'Attack', cost:2, desc:'Deal 13 dmg. Extreme: drain 18 Block.',         dice:true,  affinityBonus:'extreme', effect:(g,r)=>{ const roll=r||g.currentDie||1; dealDamage(g,'enemy',13); if(checkAffinity(g,roll,'extreme')){ gainBlock(g,'player',18); showMsg('💜 Life Leech+ — drained their force!'); } } },
-  ragefuel:     { name:'Rage Fuel+',    emoji:'💢', type:'Power',  cost:1, desc:'Gain 2 Strength. All attacks deal +2 damage this combat.',        dice:false, effect:(g)=>{ applyStatus(g,'player','💢Rage',2); showMsg('💢 Rage Fuel+ — +2 Strength!'); } },
+  ragefuel:     { name:'Rage Fuel+',    emoji:'💢', type:'Power',  cost:1, desc:'Gain 2 Strength. All attacks deal +2 damage this combat.',        dice:false, effect:(g)=>{ applyStatus(g,'player','💢Strength',2); showMsg('💢 Rage Fuel+ — +2 Strength!'); } },
   blizzard:     { name:'Blizzard+',     emoji:'🌨️', type:'Attack', cost:2, desc:'Deal 8 dmg to enemy 3 times.',                dice:false, effect:(g)=>{ dealDamage(g,'enemy',8); dealDamage(g,'enemy',8); dealDamage(g,'enemy',8); } },
   stealheal:    { name:'Steal & Heal+', emoji:'💉', type:'Attack', cost:2, desc:'Deal 14 dmg, heal 9 HP.',                     dice:false, effect:(g)=>{ dealDamage(g,'enemy',14); healPlayer(g,9); } },
   ironwall:     { name:'Iron Wall+',    emoji:'🧱', type:'Skill',  cost:2, desc:'Gain 20 Block.',                              dice:false, effect:(g)=>gainBlock(g,'player',20) },
@@ -221,9 +221,9 @@ function getPreviewDamage(g, baseAmount, target = 'enemy') {
       }, 140);
       return;
     }
-    const playerRage = g.statuses.player.find(s => s.name === '💢Rage');
-    if (playerRage && playerRage.stacks > 0) {
-      amount += playerRage.stacks;
+    const playerStrength = g.statuses.player.find(s => s.name === '💢Strength');
+    if (playerStrength && playerStrength.stacks > 0) {
+      amount += playerStrength.stacks;
     }
 
     const activeDieBonus = getDie(g.activeDie);
@@ -238,7 +238,11 @@ function getPreviewDamage(g, baseAmount, target = 'enemy') {
 
     const enemyVuln = g.statuses.enemy.find(s => s.name === '🫗Vulnerable');
     if (enemyVuln && enemyVuln.stacks > 0) {
-      amount = Math.floor(amount * 1.5);
+      amount = Math.floor(amount * 1.25);
+    }
+    const enemyFly = g.statuses.enemy.find(s => s.name === '🦇Fly');
+    if (enemyFly && enemyFly.stacks > 0) {
+      amount = Math.floor(amount * 0.5);
     }
 
     return Math.max(0, amount);
@@ -501,7 +505,7 @@ const FLOOR_ENEMIES = {
   4: [ // Throne Room
     { name:'Throne Guard',   emoji:'👑', hp:95, block:0,  damage:16, reward:38, souls:4,  aggro:'berserker',
       special:{ name:'Loyal', desc:'Gains 2 Strength every turn',
-        trigger:'turn', effect:(g,turn)=>{ applyStatus(g,'enemy','💢Rage',2); } } },
+        trigger:'turn', effect:(g,turn)=>{ applyStatus(g,'enemy','💢Strength',2); } } },
     { name:'Blood Cultist',  emoji:'🩸', hp:85, block:0,  damage:14, reward:35, souls:4,  aggro:'balanced',
       special:{ name:'Ritual', desc:'Deals 20 damage instantly if alive for 4 turns',
         trigger:'turn', effect:(g,turn)=>{ if(turn===4){ dealDamage(g,'player',20); showMsg('🩸 Ritual complete — 20 damage!'); } } } },

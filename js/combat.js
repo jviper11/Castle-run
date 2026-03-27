@@ -126,7 +126,7 @@ function processAldricTurn() {
     const exhaustedCount = Math.min((G.exhaustedPile || []).length, 3);
     if (exhaustedCount > 0) {
       const strGain = exhaustedCount * 2;
-      applyStatus(G, 'enemy', '💢Rage', strGain);
+      applyStatus(G, 'enemy', '💢Strength', strGain);
     }
     return;
   }
@@ -164,7 +164,7 @@ function showAldricRelicTrigger(trigger) {
   // Apply effect
   if (trigger.hp === 100) {
     // Crown — Aldric loses all Strength
-    G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '💢Rage');
+    G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '💢Strength');
     showMsg('👑 ' + trigger.quote);
   } else if (trigger.hp === 75) {
     // Sword — damage halved
@@ -366,10 +366,21 @@ function startBossFight() {
 }
 
 function applyPlayerIncomingDamageModifiers(g, amount) {
+  return getModifiedIncomingDamage(g, amount, true);
+}
+
+function getModifiedIncomingDamage(g, amount, consumeFly = false) {
   let modified = amount;
   const playerVuln = g.statuses.player.find(s => s.name === '🫗Vulnerable');
   if (playerVuln && playerVuln.stacks > 0) {
     modified = Math.floor(modified * 1.25);
+  }
+  const playerFly = g.statuses.player.find(s => s.name === '🦇Fly');
+  if (playerFly && playerFly.stacks > 0) {
+    modified = Math.floor(modified * 0.5);
+    if (consumeFly) {
+      g.statuses.player = g.statuses.player.filter(s => s.name !== '🦇Fly');
+    }
   }
   return modified;
 }
@@ -380,6 +391,72 @@ function clearVoidChannelSelection() {
   G._voidChannelPicked = [];
 }
 
+function removeStatus(g, target, name) {
+  g.statuses[target] = g.statuses[target].filter(s => s.name !== name);
+}
+
+function tickStatusDamage(g, target, name) {
+  const status = g.statuses[target].find(s => s.name === name);
+  if (!status || status.stacks <= 0) return false;
+
+  if (target === 'player') {
+    g.hp -= status.stacks;
+    floatDamage('player-combatant', status.stacks, 'dmg');
+  } else if (g.enemy) {
+    g.enemy.hp -= status.stacks;
+    floatDamage('enemy-combatant', status.stacks, 'dmg');
+  }
+
+  SFX.statusTick();
+  status.stacks--;
+  if (status.stacks <= 0) {
+    removeStatus(g, target, name);
+  }
+  return true;
+}
+
+function tickTimedDebuffs(g, target) {
+  const currentTurn = target === 'player' ? g.turn : ((g.enemy && g.enemy.turnCount) || 0);
+  const turnKey = target === 'player' ? 'appliedOnPlayerTurn' : 'appliedOnEnemyTurn';
+
+  for (const name of ['😵Weak', '🫗Vulnerable']) {
+    const debuff = g.statuses[target].find(s => s.name === name);
+    if (!debuff) continue;
+    if (debuff[turnKey] === currentTurn) continue;
+    debuff.stacks--;
+    if (debuff.stacks <= 0) {
+      removeStatus(g, target, name);
+    }
+  }
+}
+
+function clearExpiredFly(g, target) {
+  const fly = g.statuses[target].find(s => s.name === '🦇Fly');
+  if (!fly) return;
+  const currentTurn = target === 'player' ? g.turn : ((g.enemy && g.enemy.turnCount) || 0);
+  const turnKey = target === 'player' ? 'appliedOnPlayerTurn' : 'appliedOnEnemyTurn';
+  if (fly[turnKey] !== currentTurn) {
+    removeStatus(g, target, '🦇Fly');
+  }
+}
+
+function getModifiedEnemyAttackDamage(g, baseDamage) {
+  let dmg = baseDamage;
+  const strength = g.statuses.enemy.find(s => s.name === '💢Strength');
+  if (strength && strength.stacks > 0) {
+    dmg += strength.stacks;
+  }
+  const weak = g.statuses.enemy.find(s => s.name === '😵Weak');
+  if (weak && weak.stacks > 0) {
+    dmg = Math.floor(dmg * 0.75);
+  }
+  const chill = g.statuses.enemy.find(s => s.name === '❄️Chill');
+  if (chill && chill.stacks > 0) {
+    dmg = Math.floor(dmg * 0.75);
+  }
+  return getModifiedIncomingDamage(g, dmg, false);
+}
+
 function startTurn() {
   if (G._voidChannelSelecting || (G._voidChannelPicked && G._voidChannelPicked.length)) {
     clearVoidChannelSelection();
@@ -387,19 +464,23 @@ function startTurn() {
 
   G.turn++;
 
-  const playerBurn = G.statuses.player.find(s => s.name === '🔥Burn');
-  if (playerBurn) {
-    G.hp -= playerBurn.stacks;
-    floatDamage('player-combatant', playerBurn.stacks, 'dmg');
-    SFX.statusTick();
-    playerBurn.stacks--;
-    if (playerBurn.stacks <= 0) {
-      G.statuses.player = G.statuses.player.filter(s => s.name !== '🔥Burn');
+  tickStatusDamage(G, 'player', '🔥Burn');
+  tickStatusDamage(G, 'enemy', '🔥Burn');
+
+  const regen = G.statuses.player.find(s => s.name === '💚Regen');
+  if (regen && regen.stacks > 0) {
+    healPlayer(G, regen.stacks);
+    regen.stacks--;
+    if (regen.stacks <= 0) {
+      removeStatus(G, 'player', '💚Regen');
     }
-    renderAll();
-    checkCombatEnd();
-    if (G.hp <= 0) return;
   }
+
+  clearExpiredFly(G, 'player');
+
+  renderAll();
+  checkCombatEnd();
+  if (G.hp <= 0 || !G.enemy || G.enemy.hp <= 0) return;
 
   G.energy = G.maxEnergy;
   G.block = 0;
@@ -588,32 +669,12 @@ function endTurn() {
     G.enemy._phased = false;
   }
 
-  // ── STEP 1: Tick status effects on enemy FIRST ──
-  const poison = G.statuses.enemy.find(s => s.name === '☠️Poison');
-  if (poison) {
-    G.enemy.hp -= poison.stacks;
-    floatDamage('enemy-combatant', poison.stacks, 'dmg');
-    SFX.statusTick();
-    poison.stacks--;
-    if (poison.stacks <= 0) {
-      G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '☠️Poison');
-    }
-  }
-
-  const burn = G.statuses.enemy.find(s => s.name === '🔥Burn');
-  if (burn) {
-    G.enemy.hp -= burn.stacks;
-    floatDamage('enemy-combatant', burn.stacks, 'dmg');
-    SFX.statusTick();
-    burn.stacks--;
-    if (burn.stacks <= 0) {
-      G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '🔥Burn');
-    }
-  }
+  // ── STEP 1: Expire player turn-limited statuses at end of player turn ──
+  tickTimedDebuffs(G, 'player');
 
   renderAll();
 
-  // ── STEP 2: Check if enemy died from status effects ──
+  // ── STEP 2: Check if combat already ended ──
   if (G.enemy.hp <= 0) {
     G.discardPile.push(...G.hand);
     G.hand = [];
@@ -661,27 +722,16 @@ function endTurn() {
     }
   } else if (e.intent === 'attack') {
     // fallback for older enemies not yet converted
-    let dmg = e.damage;
-    const eStrong = G.statuses.enemy.find(s => s.name === '💢Rage');
-    if (eStrong) dmg += eStrong.stacks;
+    let dmg = getModifiedEnemyAttackDamage(G, e.damage);
     const enemyChill = G.statuses.enemy.find(s => s.name === '❄️Chill');
     if (enemyChill && enemyChill.stacks > 0) {
-      dmg = Math.floor(dmg * 0.75);
       enemyChill.stacks--;
       if (enemyChill.stacks <= 0) {
-        G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '❄️Chill');
+        removeStatus(G, 'enemy', '❄️Chill');
       }
     }
 
-    const net = Math.max(0, dmg - G.block);
-    G.block = Math.max(0, G.block - dmg);
-    if (net > 0) G.hp -= net;
-
-    floatDamage('player-combatant', net, 'dmg');
-    document.getElementById('player-sprite')?.classList.add('shake');
-    setTimeout(() => {
-      document.getElementById('player-sprite')?.classList.remove('shake');
-    }, 300);
+    dealDamage(G, 'player', dmg);
   } else if (e.intent === 'defend') {
     const profile = AGGRO_PROFILES[e.aggro] || AGGRO_PROFILES.balanced;
     G.enemy.block += profile.defendBlock;
@@ -700,7 +750,17 @@ function endTurn() {
     }
   }
 
-  // ── STEP 6: Choose next move / next intent ──
+  // ── STEP 6: End-of-enemy-turn status resolution ──
+  tickStatusDamage(G, 'enemy', '☠️Poison');
+  tickStatusDamage(G, 'player', '☠️Poison');
+  tickTimedDebuffs(G, 'enemy');
+  clearExpiredFly(G, 'enemy');
+
+  renderAll();
+  checkCombatEnd();
+  if (G.hp <= 0 || !G.enemy || G.enemy.hp <= 0) return;
+
+  // ── STEP 7: Choose next move / next intent ──
   if (G.enemy && !G.enemy.isAldric) {
     if (e.moves && typeof chooseMove === 'function') {
       const nextMove = chooseMove(e);
@@ -729,33 +789,7 @@ function endTurn() {
     updateIntent();
   }
 
-  // ── STEP 7: Discard hand, check end, start next turn ──
-  const playerPoison = G.statuses.player.find(s => s.name === '☠️Poison');
-  if (playerPoison) {
-    G.hp -= playerPoison.stacks;
-    floatDamage('player-combatant', playerPoison.stacks, 'dmg');
-    SFX.statusTick();
-    playerPoison.stacks--;
-    if (playerPoison.stacks <= 0) {
-      G.statuses.player = G.statuses.player.filter(s => s.name !== '☠️Poison');
-    }
-  }
-
-  // Turn-based player debuffs remain through the player turn, then tick down
-  // at the end of each enemy turn. Newly applied debuffs skip this first tick.
-  for (const debuffName of ['😵Weak', '🫗Vulnerable']) {
-    const debuff = G.statuses.player.find(s => s.name === debuffName);
-    if (!debuff) continue;
-    if (debuff.justApplied) {
-      delete debuff.justApplied;
-      continue;
-    }
-    debuff.stacks--;
-    if (debuff.stacks <= 0) {
-      G.statuses.player = G.statuses.player.filter(s => s.name !== debuffName);
-    }
-  }
-
+  // ── STEP 8: Discard hand, check end, start next turn ──
   G.discardPile.push(...G.hand);
   G.hand = [];
   clearVoidChannelSelection();
@@ -791,10 +825,10 @@ function dealDamage(g, target, amount) {
       }, 140);
       return;
     }
-    // Apply player Strength/Rage bonus to all attacks
-    const playerRage = g.statuses.player.find(s => s.name === '💢Rage');
-    if (playerRage && playerRage.stacks > 0) {
-      amount += playerRage.stacks;
+    // Apply player Strength bonus to all attacks
+    const playerStrength = g.statuses.player.find(s => s.name === '💢Strength');
+    if (playerStrength && playerStrength.stacks > 0) {
+      amount += playerStrength.stacks;
     }
     // d8 Hunter's Die: odd rolls deal +2 bonus damage
     const activeDieBonus = getDie(g.activeDie);
@@ -806,12 +840,15 @@ function dealDamage(g, target, amount) {
     if (playerWeak && playerWeak.stacks > 0) {
       amount = Math.floor(amount * 0.75);
     }
-    // Also apply Vulnerable — enemy takes 50% more damage
+    // Vulnerable increases damage taken by 25% until end of target turn
     const enemyVuln = g.statuses.enemy.find(s => s.name === '🫗Vulnerable');
     if (enemyVuln && enemyVuln.stacks > 0) {
-      amount = Math.floor(amount * 1.5);
-      enemyVuln.stacks--;
-      if (enemyVuln.stacks <= 0) g.statuses.enemy = g.statuses.enemy.filter(s => s.name !== '🫗Vulnerable');
+      amount = Math.floor(amount * 1.25);
+    }
+    const enemyFly = g.statuses.enemy.find(s => s.name === '🦇Fly');
+    if (enemyFly && enemyFly.stacks > 0) {
+      amount = Math.floor(amount * 0.5);
+      removeStatus(g, 'enemy', '🦇Fly');
     }
 
      // Stone Skin — absorb incoming damage before block/HP
@@ -892,18 +929,30 @@ function healPlayer(g, amount) {
 }
 
 function applyStatus(g, target, name, stacks) {
+  if (name === '💢Rage') name = '💢Strength';
   const arr = g.statuses[target];
   const ex = arr.find(s => s.name === name);
-  const trackTurnTiming = target === 'player' && (name === '😵Weak' || name === '🫗Vulnerable');
+  const isTimedDebuff = name === '😵Weak' || name === '🫗Vulnerable';
+  const isFly = name === '🦇Fly';
+  const turnKey = target === 'player' ? 'appliedOnPlayerTurn' : 'appliedOnEnemyTurn';
+  const currentTurn = target === 'player' ? g.turn : ((g.enemy && g.enemy.turnCount) || 0);
+
+  if (name === '💚Regen' && target === 'player') {
+    stacks = Math.min(stacks, 10);
+  }
+
   if (ex) {
     ex.stacks += stacks;
-    if (trackTurnTiming) {
-      ex.justApplied = true;
+    if (name === '💚Regen' && target === 'player') {
+      ex.stacks = Math.min(ex.stacks, 10);
+    }
+    if (isTimedDebuff || isFly) {
+      ex[turnKey] = currentTurn;
     }
   } else {
     const status = { name, stacks };
-    if (trackTurnTiming) {
-      status.justApplied = true;
+    if (isTimedDebuff || isFly) {
+      status[turnKey] = currentTurn;
     }
     arr.push(status);
   }
@@ -996,17 +1045,14 @@ function checkCombatEnd() {
 // ── Enemy move helpers ──
 // Deals damage from enemy to player, handles block + Rage + animations
 function _emAtk(g, dmg) {
-  const rage = g.statuses.enemy.find(s => s.name === '💢Rage');
-  if (rage) dmg += rage.stacks;
+  dmg = getModifiedEnemyAttackDamage(g, dmg);
   const chill = g.statuses.enemy.find(s => s.name === '❄️Chill');
   if (chill && chill.stacks > 0) {
-    dmg = Math.floor(dmg * 0.75);
     chill.stacks--;
     if (chill.stacks <= 0) {
-      g.statuses.enemy = g.statuses.enemy.filter(s => s.name !== '❄️Chill');
+      removeStatus(g, 'enemy', '❄️Chill');
     }
   }
-  dmg = applyPlayerIncomingDamageModifiers(g, dmg);
   const net = Math.max(0, dmg - g.block);
   g.block = Math.max(0, g.block - dmg);
   if (net > 0) g.hp -= net;
@@ -1064,7 +1110,12 @@ function updateIntent() {
   if (e.currentMove) {
     const m = e.currentMove;
     const icon = { attack:'⚔️', block:'🛡', debuff:'💀', burn:'🔥', heal:'💚', buff:'✨', mixed:'⚡', skip:'💤' }[m.type] || '⚡';
-    el.innerHTML = `${icon} <strong>${m.name}</strong>: ${m.desc}`;
+    let desc = m.desc;
+    if (typeof m.dmg === 'number') {
+      const previewDmg = getModifiedEnemyAttackDamage(G, m.dmg);
+      desc = desc.replace(/\b\d+\s+dmg\b/gi, `${previewDmg} dmg`);
+    }
+    el.innerHTML = `${icon} <strong>${m.name}</strong>: ${desc}`;
     return;
   }
 
@@ -1073,7 +1124,8 @@ function updateIntent() {
     ? `<div style="font-size:0.65rem;color:var(--purple2);margin-top:0.2rem;">⚡ ${e.special.name} · <span style="color:var(--text3)">tap for info</span></div>`
     : '';
   if (e.intent === 'attack') {
-    el.innerHTML = `Preparing: <strong>Attack ${e.damage}</strong>${specialHint}`;
+    const previewDmg = getModifiedEnemyAttackDamage(G, e.damage);
+    el.innerHTML = `Preparing: <strong>Attack ${previewDmg}</strong>${specialHint}`;
   } else {
     el.innerHTML = `Preparing: <strong>🛡 Defend</strong>${specialHint}`;
   }
