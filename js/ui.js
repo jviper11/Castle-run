@@ -507,6 +507,10 @@ function toggleDeckViewer() {
 }
 
 function renderDeckViewer() {
+  const rewardMode = document.getElementById('reward-screen')?.classList.contains('active');
+  const discardSection = document.getElementById('dv-discard-section');
+  const battleSummary = document.getElementById('dv-battle-summary');
+
   function renderGrid(gridId, cards, countId, label) {
     const grid = document.getElementById(gridId);
     const countEl = document.getElementById(countId);
@@ -541,9 +545,17 @@ function renderDeckViewer() {
   // Full deck (draw + hand + discard combined)
   const fullDeck = [...G.deck];
   renderGrid('dv-deck-grid', fullDeck, 'dv-deck-count', 'DECK');
-  renderGrid('dv-discard-grid', G.discardPile, 'dv-discard-count', 'DISCARD');
-  document.getElementById('dv-draw-count').textContent =
-    `Draw pile: ${G.drawPile.length} · Hand: ${G.hand.length} · Discard: ${G.discardPile.length}`;
+
+  if (rewardMode) {
+    if (discardSection) discardSection.style.display = 'none';
+    if (battleSummary) battleSummary.style.display = 'none';
+  } else {
+    if (discardSection) discardSection.style.display = '';
+    if (battleSummary) battleSummary.style.display = '';
+    renderGrid('dv-discard-grid', G.discardPile, 'dv-discard-count', 'DISCARD');
+    document.getElementById('dv-draw-count').textContent =
+      `Draw pile: ${G.drawPile.length} · Hand: ${G.hand.length} · Discard: ${G.discardPile.length}`;
+  }
 }
 
 function confirmNewRun() {

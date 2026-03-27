@@ -142,7 +142,10 @@
     <h2 class="reward-title">VICTORY</h2>
     <p class="reward-sub">Choose your reward — card or die</p>
     <div class="reward-choices" id="reward-choices"></div>
-    <button class="btn skip-btn" onclick="skipReward()">Skip Reward</button>
+    <div class="reward-actions">
+      <button class="btn skip-btn reward-deck-btn" onclick="toggleDeckViewer()">📋 View Deck</button>
+      <button class="btn skip-btn" onclick="skipReward()">Skip Reward</button>
+    </div>
   </div>
 
   <!-- PATH SELECT — shown at start of each floor -->
@@ -284,7 +287,7 @@
       </div>
 
       <!-- Discard section -->
-      <div style="border-top:1px solid var(--border);padding-top:0.8rem;">
+      <div id="dv-discard-section" style="border-top:1px solid var(--border);padding-top:0.8rem;">
         <div style="font-family:Cinzel,serif;font-size:0.9rem;color:var(--text2);letter-spacing:0.08em;margin-bottom:0.6rem;display:flex;justify-content:space-between;">
           <span>🗑 DISCARD</span><span id="dv-discard-count" style="color:var(--text3);font-size:0.75rem"></span>
         </div>
@@ -292,7 +295,7 @@
       </div>
 
       <!-- Draw pile count -->
-      <div style="border-top:1px solid var(--border);padding-top:0.6rem;margin-top:0.6rem;font-size:0.75rem;color:var(--text3);font-style:italic;text-align:center;">
+      <div id="dv-battle-summary" style="border-top:1px solid var(--border);padding-top:0.6rem;margin-top:0.6rem;font-size:0.75rem;color:var(--text3);font-style:italic;text-align:center;">
         <span id="dv-draw-count"></span>
       </div>
     </div>

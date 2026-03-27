@@ -1178,25 +1178,29 @@ function showRestStop() {
   opts.innerHTML = '';
   const options = [
     {
+      key: 'rest',
       emoji: '❤️', name: 'Rest',
-      desc: atFull ? 'Already at full HP' : `Recover ${healAmt} HP (${Math.min(G.hp + healAmt, G.maxHp)}/${G.maxHp})`,
+      desc: atFull ? 'Already at full HP.' : `Recover ${healAmt} HP. Leave with ${Math.min(G.hp + healAmt, G.maxHp)}/${G.maxHp} HP.`,
       disabled: atFull,
       action: () => { healPlayer(G, healAmt); showMsg(`Recovered ${healAmt} HP.`); setTimeout(proceedDoors, 800); }
     },
     {
+      key: 'upgrade',
       emoji: '⬆️', name: 'Upgrade Card',
-      desc: 'Pick a card from your deck to upgrade',
+      desc: 'Improve 1 card for this run. Maxed cards cannot be upgraded again.',
       action: () => startRestPick('upgrade')
     },
     {
+      key: 'remove',
       emoji: '🗑️', name: 'Remove Card',
-      desc: 'Pick a card from your deck to remove',
+      desc: 'Remove 1 card from your deck to thin future draws.',
       action: () => startRestPick('remove')
     },
   ];
   options.forEach(o => {
     const el = document.createElement('div');
     el.className = 'rest-option' + (o.disabled ? ' rest-disabled' : '');
+    el.dataset.restAction = o.key;
     el.style.opacity = o.disabled ? '0.4' : '1';
     el.style.cursor = o.disabled ? 'not-allowed' : 'pointer';
     el.innerHTML = `<span class="rest-option-emoji">${o.emoji}</span><div class="rest-option-name">${o.name}</div><div class="rest-option-desc">${o.desc}</div>`;
@@ -1289,6 +1293,34 @@ function renderRestDeck(mode) {
 function showShop() {
   showScreen('shop-screen');
 
+  const shopScreen = document.getElementById('shop-screen');
+  if (shopScreen && !document.getElementById('shop-flavor')) {
+    const sub = document.createElement('p');
+    sub.id = 'shop-flavor';
+    sub.className = 'shop-sub';
+    sub.textContent = 'A careful trader watches your wounds, your gold, and the gaps in your deck.';
+    const title = shopScreen.querySelector('.shop-title');
+    if (title) title.insertAdjacentElement('afterend', sub);
+  }
+  if (shopScreen && !document.getElementById('shop-picking-row')) {
+    const deckSection = shopScreen.querySelector('.rest-deck-section');
+    const titleRow = deckSection?.querySelector('.rest-deck-title');
+    if (deckSection && titleRow) {
+      const pickRow = document.createElement('div');
+      pickRow.id = 'shop-picking-row';
+      pickRow.className = 'shop-picking-row';
+      pickRow.style.display = 'none';
+      pickRow.innerHTML = `
+        <div class="rest-picking-label" id="shop-picking-label">🗑️ Click a card below to remove it from your deck</div>
+        <button class="btn rest-cancel-btn" id="shop-cancel-btn" type="button">Cancel</button>
+      `;
+      deckSection.insertBefore(pickRow, titleRow.nextSibling);
+      document.getElementById('shop-cancel-btn').onclick = cancelShopRemovePick;
+    }
+  }
+  G.shopPickMode = null;
+  G.shopPendingRemove = null;
+
   // HP display
   const hpPct = Math.round(G.hp / G.maxHp * 100);
   document.getElementById('shop-hp-text').textContent = `${Math.max(0, G.hp)} / ${G.maxHp}`;
@@ -1296,6 +1328,8 @@ function showShop() {
   const pctEl = document.getElementById('shop-hp-pct');
   pctEl.textContent = hpPct + '%';
   pctEl.className = 'rest-hp-pct ' + (hpPct <= 30 ? 'hp-low' : hpPct <= 60 ? 'hp-mid' : 'hp-full');
+  const hpPanel = document.getElementById('shop-hp-text')?.closest('.rest-hp-panel');
+  if (hpPanel) hpPanel.classList.toggle('shop-hp-danger', hpPct <= 30);
 
   // Gold
   document.getElementById('shop-gold-display').textContent = G.gold;
@@ -1304,24 +1338,46 @@ function showShop() {
   const items = document.getElementById('shop-items');
   items.innerHTML = '';
   const pool = shuffle([...SHOP_ITEMS]).slice(0, 4);
+  const describeShopItem = (item) => {
+    if (item.name === 'Healing Potion') return 'Restore 20 HP to stabilize before the next fight.';
+    if (item.name === 'Card Removal') return 'Remove 1 card from your deck to improve future draws.';
+    if (item.name.includes('Die')) return item.desc + ' Changes your active die immediately.';
+    if (item.desc.startsWith('Add ')) return item.desc + ' Permanent deck addition.';
+    return item.desc;
+  };
   pool.forEach((item, i) => {
     const el = document.createElement('div');
     el.className = 'shop-item';
     el.id = `shop-item-${i}`;
     const canAfford = G.gold >= item.cost;
-    if (!canAfford) el.style.opacity = '0.5';
-    el.innerHTML = `<span class="shop-item-emoji">${item.emoji}</span><div class="shop-item-name">${item.name}</div><div class="shop-item-desc">${item.desc}</div><div class="shop-item-cost" style="color:${canAfford ? 'var(--energy)' : 'var(--red2)'}">🪙 ${item.cost}</div>`;
+    if (!canAfford) el.classList.add('shop-item--locked');
+    el.setAttribute('aria-disabled', canAfford ? 'false' : 'true');
+    const shortfall = Math.max(0, item.cost - G.gold);
+    const stateText = canAfford ? 'Ready to buy' : `Need ${shortfall} more gold`;
+    el.innerHTML = `<span class="shop-item-emoji">${item.emoji}</span><div class="shop-item-name">${item.name}</div><div class="shop-item-desc">${describeShopItem(item)}</div><div class="shop-item-cost">🪙 ${item.cost}</div><div class="shop-item-state">${stateText}</div>`;
     el.onclick = () => {
+      if (el.classList.contains('sold')) return;
       if (G.gold < item.cost) { showMsg('Not enough gold!'); return; }
+      if (item.name === 'Card Removal') {
+        startShopRemovePick(item.cost, i);
+        return;
+      }
       G.gold -= item.cost;
       item.effect(G);
-      document.getElementById(`shop-item-${i}`).classList.add('sold');
+      const boughtEl = document.getElementById(`shop-item-${i}`);
+      boughtEl.classList.add('sold');
+      boughtEl.setAttribute('aria-disabled', 'true');
+      const stateEl = boughtEl.querySelector('.shop-item-state');
+      if (stateEl) stateEl.textContent = 'Sold';
       // refresh gold and HP displays
       document.getElementById('shop-gold-display').textContent = G.gold;
       const newPct = Math.round(G.hp / G.maxHp * 100);
       document.getElementById('shop-hp-text').textContent = `${Math.max(0, G.hp)} / ${G.maxHp}`;
       document.getElementById('shop-hp-bar').style.width = newPct + '%';
-      document.getElementById('shop-hp-pct').textContent = newPct + '%';
+      const shopPctEl = document.getElementById('shop-hp-pct');
+      shopPctEl.textContent = newPct + '%';
+      shopPctEl.className = 'rest-hp-pct ' + (newPct <= 30 ? 'hp-low' : newPct <= 60 ? 'hp-mid' : 'hp-full');
+      if (hpPanel) hpPanel.classList.toggle('shop-hp-danger', newPct <= 30);
       renderShopDeck();
       updateHUD();
     };
@@ -1335,7 +1391,33 @@ function renderShopDeck() {
   const grid = document.getElementById('shop-deck-grid');
   if (!grid) return;
   grid.innerHTML = '';
-  document.getElementById('shop-deck-count').textContent = `${G.deck.length} cards`;
+  const mode = G.shopPickMode || null;
+  const countEl = document.getElementById('shop-deck-count');
+  const pickRow = document.getElementById('shop-picking-row');
+  if (pickRow) pickRow.style.display = mode === 'remove' ? 'flex' : 'none';
+  countEl.textContent = mode === 'remove' ? `${G.deck.length} cards · Select one` : `${G.deck.length} cards`;
+
+  if (mode === 'remove') {
+    G.deck.forEach((key, idx) => {
+      const c = CARDS[key];
+      if (!c) return;
+      const isUpgraded = key.endsWith('+');
+      const el = document.createElement('div');
+      el.className = 'rest-deck-card selectable danger';
+      if (isUpgraded) el.style.borderColor = 'var(--gold)';
+      el.innerHTML = `
+        <span class="rest-deck-card-emoji">${c.emoji}</span>
+        <div>
+          <div class="rest-deck-card-name" style="color:${isUpgraded ? 'var(--gold2)' : ''}">${c.name}</div>
+          <div class="rest-deck-card-type">${c.type} · ⚡${c.cost}${isUpgraded ? ' · ✨' : ''}</div>
+        </div>
+      `;
+      el.onclick = () => confirmShopRemovePick(idx, key);
+      grid.appendChild(el);
+    });
+    return;
+  }
+
   const counts = {};
   G.deck.forEach(k => counts[k] = (counts[k] || 0) + 1);
   [...new Set(G.deck)].forEach(key => {
@@ -1347,7 +1429,7 @@ function renderShopDeck() {
     el.innerHTML = `
       <span class="rest-deck-card-emoji">${c.emoji}</span>
       <div>
-        <div class="rest-deck-card-name" style="color:${isUpgraded ? 'var(--gold2)' : ''}">${c.name}${counts[key] > 1 ? ` x${counts[key]}` : ''}${isUpgraded ? '' : ''}</div>
+        <div class="rest-deck-card-name" style="color:${isUpgraded ? 'var(--gold2)' : ''}">${c.name}${counts[key] > 1 ? ` x${counts[key]}` : ''}</div>
         <div class="rest-deck-card-type">${c.type} · Cost ${c.cost}${isUpgraded ? ' · <span style="color:var(--gold)">✨ Upgraded</span>' : ''}</div>
       </div>
     `;
@@ -1356,6 +1438,55 @@ function renderShopDeck() {
 }
 
 function leavShop() { proceedDoors(); }
+
+function startShopRemovePick(cost, itemIndex) {
+  if (G.deck.length <= 3) { showMsg('Deck too small to remove cards!'); return; }
+  G.shopPickMode = 'remove';
+  G.shopPendingRemove = { cost, itemIndex };
+  document.querySelectorAll('.shop-item').forEach((el, idx) => {
+    const isPending = idx === itemIndex && !el.classList.contains('sold');
+    el.style.pointerEvents = isPending ? '' : 'none';
+    el.style.opacity = isPending ? '1' : '0.35';
+  });
+  showMsg('🗑️ Choose a card from your deck to remove.');
+  renderShopDeck();
+}
+
+function cancelShopRemovePick() {
+  G.shopPickMode = null;
+  G.shopPendingRemove = null;
+  document.querySelectorAll('.shop-item').forEach(el => {
+    el.style.pointerEvents = '';
+    el.style.opacity = '';
+  });
+  renderShopDeck();
+}
+
+function confirmShopRemovePick(deckIdx, key) {
+  if (G.shopPickMode !== 'remove' || !G.shopPendingRemove) return;
+  const { cost, itemIndex } = G.shopPendingRemove;
+  if (G.gold < cost) {
+    cancelShopRemovePick();
+    showMsg('Not enough gold!');
+    return;
+  }
+  G.gold -= cost;
+  G.deck.splice(deckIdx, 1);
+  const boughtEl = document.getElementById(`shop-item-${itemIndex}`);
+  if (boughtEl) {
+    boughtEl.classList.add('sold');
+    boughtEl.setAttribute('aria-disabled', 'true');
+    const stateEl = boughtEl.querySelector('.shop-item-state');
+    if (stateEl) stateEl.textContent = 'Sold';
+    boughtEl.style.pointerEvents = 'none';
+    boughtEl.style.opacity = '';
+  }
+  cancelShopRemovePick();
+  document.getElementById('shop-gold-display').textContent = G.gold;
+  showMsg(`${(CARDS[key] && CARDS[key].name) ? CARDS[key].name : key} removed from deck.`);
+  renderShopDeck();
+  updateHUD();
+}
 
 function showEvent() {
   const ev = rand(EVENTS);
@@ -1375,7 +1506,7 @@ function showEvent() {
 }
 
 function removeCardFromDeck(g) {
-  // called from shop — removes a random non-essential card (shop has no card picker UI)
+  // Legacy fallback: random removal when no picker UI is available.
   if (g.deck.length <= 3) { showMsg('Deck too small to remove cards!'); return; }
   const removable = g.deck.filter(k => k !== 'strike' && k !== 'defend');
   if (removable.length === 0) { showMsg('No cards to remove!'); return; }
