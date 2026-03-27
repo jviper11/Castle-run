@@ -464,6 +464,12 @@ function clearExpiredFly(g, target) {
   }
 }
 
+function setEndTurnLocked(locked) {
+  G.endTurnLocked = locked;
+  const btn = document.querySelector('.end-turn-btn');
+  if (btn) btn.disabled = locked;
+}
+
 function getModifiedEnemyAttackDamage(g, baseDamage) {
   let dmg = baseDamage;
   const strength = g.statuses.enemy.find(s => s.name === '💢Strength');
@@ -482,6 +488,8 @@ function getModifiedEnemyAttackDamage(g, baseDamage) {
 }
 
 function startTurn() {
+  setEndTurnLocked(false);
+
   if (G._voidChannelSelecting || (G._voidChannelPicked && G._voidChannelPicked.length)) {
     clearVoidChannelSelection();
   }
@@ -685,6 +693,8 @@ function endTurn() {
     showMsg('🌀 Finish Void Channel discards first!');
     return;
   }
+  if (G.endTurnLocked) return;
+  setEndTurnLocked(true);
   const e = G.enemy;
 
   SFX.endTurn();

@@ -38,6 +38,7 @@ function newGame(charKey) {
     inBoss: false,
     turn: 0,
     runSouls: 0,
+    endTurnLocked: false,
   };
 
   // start with a d6 in pool
