@@ -354,14 +354,49 @@ body {
 .hp-fill { background: linear-gradient(90deg, var(--hp), #e74c3c); }
 .block-fill { background: linear-gradient(90deg, var(--block), #5dade2); }
 
-.status-icons { display: flex; gap: 0.3rem; flex-wrap: wrap; justify-content: center; min-height: 20px; }
+.combat-stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+  flex-wrap: wrap;
+  width: 100%;
+}
+.status-icons {
+  display: flex;
+  gap: 0.28rem;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: center;
+  min-height: 14px;
+}
 .status-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  padding: 0.14rem 0.42rem;
+  border-radius: 999px;
+  border: 1px solid rgba(201, 168, 76, 0.32);
+  background: linear-gradient(180deg, rgba(201,168,76,0.14), rgba(28,22,12,0.64));
+  color: var(--text);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+}
+.status-icon-glyph {
+  font-size: 0.68rem;
+  line-height: 1;
+}
+.status-icon-value {
+  font-family: 'Cinzel', serif;
   font-size: 0.7rem;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid var(--border);
-  padding: 0.1rem 0.3rem;
-  border-radius: 3px;
-  color: var(--text2);
+  font-weight: 700;
+  line-height: 1;
+  min-width: 1ch;
+}
+
+#player-combatant .hp-bar-wrap:has(#player-status),
+#enemy-combatant .hp-bar-wrap:has(#enemy-block-bar),
+#enemy-combatant .combatant-info > .status-icons#enemy-status {
+  display: none;
 }
 
 .intent-box {
@@ -1765,8 +1800,11 @@ body {
   .bar-label { font-size: 0.62rem; }
   .bar-track { height: 6px; }
   .intent-box { font-size: 0.68rem; padding: 0.25rem 0.4rem; max-width: 100%; }
-  .status-icons { justify-content: flex-start; min-height: 14px; }
-  .status-icon { font-size: 0.58rem; }
+  .combat-stat-row { gap: 0.22rem; }
+  .status-icons { justify-content: flex-start; min-height: 14px; gap: 0.22rem; }
+  .status-icon { padding: 0.12rem 0.34rem; gap: 0.16rem; }
+  .status-icon-glyph { font-size: 0.58rem; }
+  .status-icon-value { font-size: 0.62rem; }
 
   /* Dice panel compact */
   .dice-panel { gap: 0.8rem; padding: 0.5rem 0.8rem; flex-wrap: wrap; justify-content: space-between; }
@@ -2450,11 +2488,21 @@ body {
             <div class="bar-label"><span>HP</span><span id="player-hp-text">80/80</span></div>
             <div class="bar-track"><div class="bar-fill hp-fill" id="player-hp-bar" style="width:100%"></div></div>
           </div>
+          <div class="combat-stat-row">
+            <div class="block-display is-empty" id="player-block-display" aria-label="Block 0">
+              <span class="block-display-icon">🛡</span>
+              <span class="block-display-value" id="player-block-text">0</span>
+            </div>
+            <div class="status-icons" id="player-status"></div>
+          </div>
           <div class="hp-bar-wrap">
             <div class="bar-label"><span>🛡</span><span id="player-block-text">0</span></div>
-            <div class="bar-track"><div class="bar-fill block-fill" id="player-block-bar" style="width:0%"></div></div>
+            <div class="block-display is-empty" id="player-block-display" aria-label="Block 0">
+              <span class="block-display-icon">ðŸ›¡</span>
+              <span class="block-display-value" id="player-block-text">0</span>
+            </div>
+            <div class="status-icons" id="player-status"></div>
           </div>
-          <div class="status-icons" id="player-status"></div>
         </div>
       </div>
 
@@ -2470,6 +2518,13 @@ body {
           <div class="hp-bar-wrap">
             <div class="bar-label"><span>HP</span><span id="enemy-hp-text">40/40</span></div>
             <div class="bar-track"><div class="bar-fill hp-fill" id="enemy-hp-bar" style="width:100%"></div></div>
+          </div>
+          <div class="combat-stat-row">
+            <div class="block-display is-empty" id="enemy-block-display" aria-label="Block 0" hidden>
+              <span class="block-display-icon">🛡</span>
+              <span class="block-display-value" id="enemy-block-text">0</span>
+            </div>
+            <div class="status-icons" id="enemy-status"></div>
           </div>
           <div class="hp-bar-wrap">
             <div class="bar-label"><span>🛡</span><span id="enemy-block-text">0</span></div>
@@ -4775,16 +4830,28 @@ function renderAll() {
 
 function renderHP() {
   const pct = v => Math.max(0, Math.min(100, v)) + '%';
+  const playerBlockValue = document.querySelector('#player-block-display .block-display-value') || document.getElementById('player-block-text');
+  const enemyBlockValue = document.querySelector('#enemy-block-display .block-display-value') || document.getElementById('enemy-block-text');
   document.getElementById('player-hp-text').textContent = `${Math.max(0,G.hp)}/${G.maxHp}`;
   document.getElementById('player-hp-bar').style.width = pct(G.hp / G.maxHp * 100);
-  document.getElementById('player-block-text').textContent = G.block;
-  document.getElementById('player-block-bar').style.width = pct(G.block / 20 * 100);
+  if (playerBlockValue) playerBlockValue.textContent = G.block;
+  const playerBlockDisplay = document.getElementById('player-block-display');
+  if (playerBlockDisplay) {
+    playerBlockDisplay.classList.toggle('is-empty', G.block <= 0);
+    playerBlockDisplay.setAttribute('aria-label', `Block ${G.block}`);
+  }
 
   if (G.enemy) {
     document.getElementById('enemy-hp-text').textContent = `${Math.max(0,G.enemy.hp)}/${G.enemy.maxHp}`;
     document.getElementById('enemy-hp-bar').style.width = pct(G.enemy.hp / G.enemy.maxHp * 100);
-    document.getElementById('enemy-block-text').textContent = G.enemy.block;
-    document.getElementById('enemy-block-bar').style.width = pct(G.enemy.block / 20 * 100);
+    if (enemyBlockValue) enemyBlockValue.textContent = G.enemy.block;
+    const enemyBlockDisplay = document.getElementById('enemy-block-display');
+    if (enemyBlockDisplay) {
+      const hasBlock = G.enemy.block > 0;
+      enemyBlockDisplay.hidden = !hasBlock;
+      enemyBlockDisplay.classList.toggle('is-empty', !hasBlock);
+      enemyBlockDisplay.setAttribute('aria-label', `Block ${G.enemy.block}`);
+    }
   }
 }
 
@@ -5033,9 +5100,24 @@ function renderDicePool() {
 }
 
 function renderStatuses() {
+  const STATUS_ICONS = {
+    '☠️Poison': '☠',
+    '🔥Burn': '🔥',
+    '❄️Chill': '❄',
+    '😵Weak': '😵',
+    '🫗Vulnerable': '🫗',
+    '💢Strength': '💢',
+    '💚Regen': '💚',
+    '🦇Fly': '🦇'
+  };
   ['player','enemy'].forEach(t => {
     const el = document.getElementById(`${t}-status`);
-    el.innerHTML = G.statuses[t].map(s => `<span class="status-icon">${s.name} ${s.stacks}</span>`).join('');
+    if (!el) return;
+    el.innerHTML = G.statuses[t].map(s => {
+      const glyph = STATUS_ICONS[s.name] || (s.name ? s.name.split(/[\sA-Z]/)[0] : '?');
+      const label = `${s.name.replace(/^[^\p{L}\p{N}]+/u, '').trim()} ${s.stacks}`.trim();
+      return `<span class="status-icon" aria-label="${label}" title="${label}"><span class="status-icon-glyph">${glyph}</span><span class="status-icon-value">${s.stacks}</span></span>`;
+    }).join('');
   });
 }
 

@@ -84,11 +84,13 @@
             <div class="bar-label"><span>HP</span><span id="player-hp-text">80/80</span></div>
             <div class="bar-track"><div class="bar-fill hp-fill" id="player-hp-bar" style="width:100%"></div></div>
           </div>
-          <div class="block-display is-empty" id="player-block-display" aria-label="Block 0">
-            <span class="block-display-icon">🛡</span>
-            <span class="block-display-value" id="player-block-text">0</span>
+          <div class="combat-stat-row">
+            <div class="block-display is-empty" id="player-block-display" aria-label="Block 0">
+              <span class="block-display-icon">🛡</span>
+              <span class="block-display-value" id="player-block-text">0</span>
+            </div>
+            <div class="status-icons" id="player-status"></div>
           </div>
-          <div class="status-icons" id="player-status"></div>
         </div>
       </div>
 
@@ -105,11 +107,13 @@
             <div class="bar-label"><span>HP</span><span id="enemy-hp-text">40/40</span></div>
             <div class="bar-track"><div class="bar-fill hp-fill" id="enemy-hp-bar" style="width:100%"></div></div>
           </div>
-          <div class="block-display is-empty" id="enemy-block-display" aria-label="Block 0" hidden>
-            <span class="block-display-icon">🛡</span>
-            <span class="block-display-value" id="enemy-block-text">0</span>
+          <div class="combat-stat-row">
+            <div class="block-display is-empty" id="enemy-block-display" aria-label="Block 0" hidden>
+              <span class="block-display-icon">🛡</span>
+              <span class="block-display-value" id="enemy-block-text">0</span>
+            </div>
+            <div class="status-icons" id="enemy-status"></div>
           </div>
-          <div class="status-icons" id="enemy-status"></div>
         </div>
       </div>
     </div>

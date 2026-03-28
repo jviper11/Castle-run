@@ -10,10 +10,12 @@ function renderAll() {
 
 function renderHP() {
   const pct = v => Math.max(0, Math.min(100, v)) + '%';
+  const playerBlockValue = document.querySelector('#player-block-display .block-display-value') || document.getElementById('player-block-text');
+  const enemyBlockValue = document.querySelector('#enemy-block-display .block-display-value') || document.getElementById('enemy-block-text');
   document.getElementById('player-hp-text').textContent = `${Math.max(0,G.hp)}/${G.maxHp}`;
   document.getElementById('player-hp-bar').style.width = pct(G.hp / G.maxHp * 100);
   const playerBlockDisplay = document.getElementById('player-block-display');
-  document.getElementById('player-block-text').textContent = G.block;
+  if (playerBlockValue) playerBlockValue.textContent = G.block;
   if (playerBlockDisplay) {
     playerBlockDisplay.classList.toggle('is-empty', G.block <= 0);
     playerBlockDisplay.setAttribute('aria-label', `Block ${G.block}`);
@@ -23,7 +25,7 @@ function renderHP() {
     document.getElementById('enemy-hp-text').textContent = `${Math.max(0,G.enemy.hp)}/${G.enemy.maxHp}`;
     document.getElementById('enemy-hp-bar').style.width = pct(G.enemy.hp / G.enemy.maxHp * 100);
     const enemyBlockDisplay = document.getElementById('enemy-block-display');
-    document.getElementById('enemy-block-text').textContent = G.enemy.block;
+    if (enemyBlockValue) enemyBlockValue.textContent = G.enemy.block;
     if (enemyBlockDisplay) {
       const hasBlock = G.enemy.block > 0;
       enemyBlockDisplay.hidden = !hasBlock;
@@ -311,9 +313,24 @@ function renderDicePool() {
 }
 
 function renderStatuses() {
+  const STATUS_ICONS = {
+    '☠️Poison': '☠',
+    '🔥Burn': '🔥',
+    '❄️Chill': '❄',
+    '😵Weak': '😵',
+    '🫗Vulnerable': '🫗',
+    '💢Strength': '💢',
+    '💚Regen': '💚',
+    '🦇Fly': '🦇'
+  };
   ['player','enemy'].forEach(t => {
     const el = document.getElementById(`${t}-status`);
-    el.innerHTML = G.statuses[t].map(s => `<span class="status-icon">${s.name} ${s.stacks}</span>`).join('');
+    if (!el) return;
+    el.innerHTML = G.statuses[t].map(s => {
+      const glyph = STATUS_ICONS[s.name] || (s.name ? s.name.split(/[\sA-Z]/)[0] : '?');
+      const label = `${s.name.replace(/^[^\p{L}\p{N}]+/u, '').trim()} ${s.stacks}`.trim();
+      return `<span class="status-icon" aria-label="${label}" title="${label}"><span class="status-icon-glyph">${glyph}</span><span class="status-icon-value">${s.stacks}</span></span>`;
+    }).join('');
   });
 }
 
