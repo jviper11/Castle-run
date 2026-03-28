@@ -38,6 +38,12 @@ function newGame(charKey) {
     inBoss: false,
     turn: 0,
     runSouls: 0,
+    runStats: {
+      cardsPlayed: 0,
+      totalDamageDealt: 0,
+      highestBlock: 0,
+      finalBlowDamage: null,
+    },
     endTurnLocked: false,
   };
 

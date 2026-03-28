@@ -426,9 +426,11 @@ function tickStatusDamage(g, target, name) {
 
   if (target === 'player') {
     g.hp -= status.stacks;
+    noteRunFinalBlow(g, status.stacks);
     floatDamage('player-combatant', status.stacks, 'dmg');
   } else if (g.enemy) {
     g.enemy.hp -= status.stacks;
+    noteRunDamageDealt(g, status.stacks);
     floatDamage('enemy-combatant', status.stacks, 'dmg');
   }
 
@@ -672,6 +674,23 @@ function doubleDown(g) {
   renderHand();
 }
 
+function noteRunDamageDealt(g, amount) {
+  if (!g.runStats || amount <= 0) return;
+  g.runStats.totalDamageDealt += amount;
+}
+
+function noteRunHighestBlock(g) {
+  if (!g.runStats) return;
+  g.runStats.highestBlock = Math.max(g.runStats.highestBlock || 0, g.block || 0);
+}
+
+function noteRunFinalBlow(g, amount) {
+  if (!g.runStats || amount <= 0) return;
+  if (g.hp <= 0) {
+    g.runStats.finalBlowDamage = amount;
+  }
+}
+
 function playCard(cardKey) {
   const card = CARDS[cardKey];
   if (!card) return;
@@ -689,6 +708,7 @@ function playCard(cardKey) {
   SFX.cardPlay();
 
   G.energy -= actualCost;
+  if (G.runStats) G.runStats.cardsPlayed++;
   const roll = G.currentDie || 1;
   card.effect(G, roll);
   if (G.enemy && G.enemy.hp > 0 && card.type === 'Skill' && G.enemy.special && G.enemy.special.trigger === 'skill') {
@@ -913,6 +933,7 @@ function dealDamage(g, target, amount) {
     const pen = Math.max(0, amount - g.enemy.block);
     g.enemy.block = Math.max(0, g.enemy.block - amount);
     g.enemy.hp -= pen;
+    noteRunDamageDealt(g, pen);
     SFX.attack();
     playAttackAnimation({
       attackerEl: playerEl,
@@ -945,6 +966,7 @@ function dealDamage(g, target, amount) {
     const pen = Math.max(0, amount - g.block);
     g.block = Math.max(0, g.block - amount);
     g.hp -= pen;
+    noteRunFinalBlow(g, pen);
     if (pen > 0) SFX.playerHurt();
     playAttackAnimation({
       attackerEl: enemyEl,
@@ -962,6 +984,7 @@ function dealDamage(g, target, amount) {
 function gainBlock(g, target, amount) {
   if (target === 'player') {
     g.block += amount;
+    noteRunHighestBlock(g);
     floatDamage('player-combatant', amount, 'block');
     SFX.block();
   }
@@ -1103,6 +1126,7 @@ function _emAtk(g, dmg) {
   const net = Math.max(0, dmg - g.block);
   g.block = Math.max(0, g.block - dmg);
   if (net > 0) g.hp -= net;
+  noteRunFinalBlow(g, net);
   floatDamage('player-combatant', net, 'dmg');
   const ps = document.getElementById('player-sprite');
   if (ps) { ps.classList.add('shake'); setTimeout(()=>ps.classList.remove('shake'), 300); }

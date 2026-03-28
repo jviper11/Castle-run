@@ -658,9 +658,36 @@ function showAldricEnding() {
   }
 }
 
+function getRunLossSummary() {
+  const floor = G.map ? G.map[G.currentFloor] : null;
+  const path = floor && floor.currentPath ? floor.currentPath : 'A';
+  const roomIdx = floor ? (path === 'A' ? floor.roomIndexA : path === 'B' ? floor.roomIndexB : (floor.roomIndexC || 0)) : 0;
+  const roomLabel = G.inBoss ? `Boss Room · Path ${path}` : `Room ${roomIdx + 1} · Path ${path}`;
+
+  return [
+    { label: 'Hero', value: G.char ? G.char.name : 'Unknown' },
+    { label: 'Reached', value: `Floor ${G.currentFloor + 1} · ${roomLabel}` },
+    { label: 'Enemy', value: G.enemy ? G.enemy.name : 'Unknown' },
+    { label: 'Turns', value: String(G.turn || 0) },
+    { label: 'Final Blow', value: G.runStats && G.runStats.finalBlowDamage != null ? `${G.runStats.finalBlowDamage}` : '—' },
+    { label: 'Damage Dealt', value: String((G.runStats && G.runStats.totalDamageDealt) || 0) },
+    { label: 'Peak Block', value: String((G.runStats && G.runStats.highestBlock) || 0) },
+    { label: 'Cards Played', value: String((G.runStats && G.runStats.cardsPlayed) || 0) },
+  ];
+}
+
 function showGameOver() {
   showScreen('gameover-screen');
   document.getElementById('gameover-souls').textContent = G.runSouls;
+  const summary = document.getElementById('gameover-summary');
+  if (summary) {
+    summary.innerHTML = getRunLossSummary().map(item => (
+      `<div class="gameover-stat">
+        <span class="gameover-stat-label">${item.label}</span>
+        <span class="gameover-stat-value">${item.value}</span>
+      </div>`
+    )).join('');
+  }
 }
 
 function showMsg(txt) {

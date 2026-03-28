@@ -593,7 +593,7 @@ Some cards are Exhausted on use — removed from combat for the rest of the figh
 
 | Key | Name | Type | Cost | Base Effect | Even Roll Effect |
 |---|---|---|---|---|---|
-| `berserkersoath` | Berserker's Oath | Power | 2 | Exhausted. Each time you take damage, gain 3 Block | Each time you take damage, gain 5 Block |
+| `berserkersoath` | Berserker's Oath | Power | 2 | Exhausted. Each time you lose HP for any reason, gain 3 Block | Each time you lose HP for any reason, gain 5 Block |
 | `warlordspresence` | Warlord's Presence | Power | 2 | Exhausted. All attacks +2 dmg this combat | All attacks +4 dmg this combat |
 | `ragefuel` | Rage Fuel | Power | 1 | Exhausted. Gain 1 Strength this combat | Gain 2 Strength this combat |
 | `deathrattle` | Death Rattle | Attack | 2 | Deal 16 dmg. Only playable below 50% HP | Deal 24 dmg. Only playable below 50% HP |
@@ -621,7 +621,7 @@ Some cards are Exhausted on use — removed from combat for the rest of the figh
 | `arcanebarrier` | Arcane Shield | Skill | 1 | Gain 4 Block | Gain 9 Block |
 | `manasurge` | Mana Surge | Skill | 0 | Next card costs 1 less | — |
 | `arcaneboost` | Arcane Boost | Skill | 1 | Discard 1 → +1 to die roll | — |
-| `voidchannel` | Void Channel | Skill | 1 | Discard 2 → double die roll. Exhaust | — |
+| `voidchannel` | Void Channel | Skill | 1 | Discard 2 → set die to 5. Exhaust | — |
 | `spark` | Spark | Attack | 1 | Deal 4 dmg | Deal 7 dmg + 1 🔥Burn |
 | `flamtouch` | Flame Touch | Attack | 1 | Deal 5 dmg + 1 🔥Burn | Deal 5 dmg + 3 🔥Burn |
 | `meditate` | Meditate | Skill | 1 | Draw 2 | Draw 3 + 1 die |
@@ -648,9 +648,9 @@ Some cards are Exhausted on use — removed from combat for the rest of the figh
 |---|---|---|---|---|---|
 | `frozeninferno` | Frozen Inferno | Attack | 3 | Deal 18 dmg. Consumes all 🔥Burn + ❄️Chill stacks | Deal 26 dmg. Consumes all stacks |
 | `inferno` | Inferno | Attack | 2 | Apply 6 🔥Burn | Apply 10 🔥Burn |
-| `timewarp` | Time Warp | Skill | 2 | Gain 2 Energy + draw 2 | Gain 2 Energy + draw 3 |
+| `timewarp` | Time Warp | Skill | 2 | Gain 2 Energy + draw 1 | Gain 2 Energy + draw 2 |
 | `spellecho` | Spell Echo | Skill | 1 | Exhaust. Next Attack card you play this turn triggers twice | Exhaust. Next 2 Attack cards you play this turn each trigger twice |
-| `coldmastery` | Cold Mastery | Power | 2 | Exhausted. ❄️Chill reduces enemy damage by 2 per stack | ❄️Chill reduces enemy damage by 3 per stack |
+| `coldmastery` | Cold Mastery | Power | 2 | Exhausted. ❄️Chill reduces enemy attack by 35% instead of 25% | 
 | `burningsoul` | Burning Soul | Power | 2 | Exhausted. 🔥Burn deals +1 per stack | 🔥Burn deals +2 per stack |
 
 ---
@@ -821,6 +821,16 @@ Some cards are Exhausted on use — removed from combat for the rest of the figh
 | `bettingitall` | Betting It All | Attack | 3 | Deal dmg equal to Gold ÷ 5 (max 30). Exhaust | Deal dmg equal to Gold ÷ 4 (max 40). Exhaust |
 | `loadedhouse` | Loaded House | Skill | 1 | Exhaust. Next 2 dice rolls are automatically max | Exhaust. Next 3 dice rolls are automatically max |
 | `devilsdeal` | Devil's Deal | Skill | 1 | Gain 3 Energy. Lose Gold equal to roll × 10. Min cost 1 | Gain 3 Energy. Lose Gold equal to roll × 5. Min cost 1 |
+
+### Shared Pool
+| Key | Name | Type | Cost | Base Effect | Max Roll Effect |
+|---|---|---|---|---|---|
+| `ragefuel` | Rage Fuel | Power | 1 | Gain Strength. All attacks +1 dmg this combat |
+| `blizzard` | Blizzard | Attack | 2 | Deal 5 dmg 3 times |
+| `stealheal` | Steal & Heal | Attack | 2 |Deal 10 dmg, heal 5 HP |
+| `curseddice` | Cursed Die | Skill | 0 | Reroll the die. Take 3 damage |
+| `ironwall` | Iron Wall | Skill | 2 | Gain 14 Block |
+| `soulsteal` | Soul Steal | Attack | 1 | Deal 7 dmg. Gain 1 Soul |
 
 ---
 
