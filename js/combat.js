@@ -499,6 +499,14 @@ function getModifiedEnemyAttackDamage(g, baseDamage) {
   return getModifiedIncomingDamage(g, dmg, false);
 }
 
+function formatEnemyIntentDamageDesc(g, desc) {
+  if (!desc) return desc;
+  return desc.replace(/\b(\d+)\s+dmg\b/gi, (match, num) => {
+    const previewDmg = getModifiedEnemyAttackDamage(g, parseInt(num, 10));
+    return `${previewDmg} dmg`;
+  });
+}
+
 function getModifiedPlayerAttackDamage(g, baseDamage, consumeEnemyFly = false) {
   if (!g.enemy) return baseDamage;
   if (g.enemy._phased) return 0;
@@ -1199,11 +1207,7 @@ function updateIntent() {
   if (e.currentMove) {
     const m = e.currentMove;
     const icon = { attack:'⚔️', block:'🛡', debuff:'💀', burn:'🔥', heal:'💚', buff:'✨', mixed:'⚡', skip:'💤' }[m.type] || '⚡';
-    let desc = m.desc;
-    if (typeof m.dmg === 'number') {
-      const previewDmg = getModifiedEnemyAttackDamage(G, m.dmg);
-      desc = desc.replace(/\b\d+\s+dmg\b/gi, `${previewDmg} dmg`);
-    }
+    const desc = formatEnemyIntentDamageDesc(G, m.desc);
     el.innerHTML = `${icon} <strong>${m.name}</strong>: ${desc}`;
     return;
   }

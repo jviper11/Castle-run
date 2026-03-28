@@ -2132,6 +2132,188 @@ body {
   }
 
   /* ── DOORS ── */
+  @media (max-width: 700px) and (orientation: portrait) {
+    .combat-arena {
+      padding: 0 2.5% 0.1rem;
+      gap: 0.25rem;
+    }
+    .combatant {
+      gap: 0.2rem;
+    }
+    .combatant-info {
+      flex: 0 0 116px;
+      height: 116px;
+    }
+    .hand-area {
+      justify-content: flex-start;
+      gap: 0.22rem;
+      min-height: 102px;
+      max-height: 112px;
+      padding: 0.18rem 76px calc(0.34rem + env(safe-area-inset-bottom, 0px)) 62px;
+      scroll-padding-left: 62px;
+      scroll-padding-right: 76px;
+      scroll-snap-type: x proximity;
+    }
+    .card {
+      width: 64px;
+      padding: 0.42rem 0.38rem;
+      scroll-snap-align: center;
+    }
+    .card-cost {
+      top: 3px;
+      left: 3px;
+      width: 14px;
+      height: 14px;
+      font-size: 0.5rem;
+    }
+    .card-emoji {
+      font-size: 0.88rem;
+      margin: 0.22rem 0 0.14rem;
+    }
+    .card-name {
+      font-size: 0.47rem;
+      line-height: 1.15;
+    }
+    .card-type {
+      font-size: 0.5rem;
+      margin-top: 0.08rem;
+    }
+    .card-desc {
+      font-size: 0.4rem;
+      margin-top: 0.2rem;
+      line-height: 1.22;
+    }
+    .card-dice-req {
+      font-size: 0.39rem;
+      margin-top: 0.14rem;
+      line-height: 1.15;
+    }
+    #dice-corner {
+      left: 0.3rem;
+      bottom: calc(0.34rem + env(safe-area-inset-bottom, 0px));
+      gap: 0.16rem;
+    }
+    #dice-corner .die {
+      width: 33px;
+      height: 33px;
+      font-size: 0.92rem;
+    }
+    #dice-corner .reroll-btn {
+      font-size: 0.46rem;
+      padding: 0.08rem 0.26rem;
+    }
+    .end-turn-btn {
+      right: 0.35rem;
+      bottom: calc(0.34rem + env(safe-area-inset-bottom, 0px));
+      font-size: 0.6rem;
+      padding: 0.32rem 0.68rem;
+    }
+  }
+
+  @media (max-height: 520px) and (orientation: landscape) {
+    .combat-arena {
+      padding: 0 3% 0;
+      gap: 0.2rem;
+    }
+    .combatant {
+      gap: 0.16rem;
+    }
+    .combatant-sprite {
+      flex: 0 0 96px;
+      width: 80px;
+      height: 96px;
+      max-width: 80px;
+      max-height: 96px;
+    }
+    .combatant-info {
+      flex: 0 0 106px;
+      height: 106px;
+      gap: 0.2rem;
+    }
+    .combatant-name {
+      font-size: 0.72rem;
+    }
+    .hp-bar-wrap {
+      gap: 0.12rem;
+    }
+    .bar-label {
+      font-size: 0.48rem;
+    }
+    .intent-box {
+      font-size: 0.5rem;
+      padding: 0.18rem 0.34rem;
+      margin-bottom: 0.08rem;
+    }
+    .status-icons {
+      gap: 0.14rem;
+    }
+    .status-icon {
+      font-size: 0.56rem;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 0.2rem;
+    }
+    .hand-area {
+      min-height: 92px;
+      max-height: 100px;
+      gap: 0.2rem;
+      padding: 0.12rem 72px calc(0.22rem + env(safe-area-inset-bottom, 0px)) 74px;
+    }
+    .card {
+      width: 62px;
+      padding: 0.34rem 0.32rem;
+    }
+    .card-cost {
+      top: 3px;
+      left: 3px;
+      width: 13px;
+      height: 13px;
+      font-size: 0.48rem;
+    }
+    .card-emoji {
+      font-size: 0.8rem;
+      margin: 0.16rem 0 0.1rem;
+    }
+    .card-name {
+      font-size: 0.44rem;
+      line-height: 1.12;
+    }
+    .card-type {
+      font-size: 0.46rem;
+      margin-top: 0.05rem;
+    }
+    .card-desc {
+      font-size: 0.38rem;
+      margin-top: 0.16rem;
+      line-height: 1.18;
+    }
+    .card-dice-req {
+      font-size: 0.37rem;
+      margin-top: 0.1rem;
+      line-height: 1.1;
+    }
+    #dice-corner {
+      left: 0.35rem;
+      bottom: calc(0.2rem + env(safe-area-inset-bottom, 0px));
+      gap: 0.12rem;
+    }
+    #dice-corner .die {
+      width: 30px;
+      height: 30px;
+      font-size: 0.86rem;
+    }
+    #dice-corner .reroll-btn {
+      font-size: 0.42rem;
+      padding: 0.06rem 0.22rem;
+    }
+    .end-turn-btn {
+      right: 0.4rem;
+      bottom: calc(0.2rem + env(safe-area-inset-bottom, 0px));
+      font-size: 0.56rem;
+      padding: 0.26rem 0.62rem;
+    }
+  }
+
   #path-screen {
   flex-direction: column;
   align-items: center;
