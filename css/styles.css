@@ -193,7 +193,7 @@ body {
 /* ── COMBAT ── */
 #combat-screen {
   flex-direction: column;
-  background: var(--bg);
+  background: transparent;
   /* Vignette corners for atmosphere */
   box-shadow: inset 0 0 120px rgba(0,0,0,0.7);
   min-height: 0;
@@ -211,8 +211,15 @@ body {
   inset: 0;
   transition: background 1.2s ease;
   pointer-events: none;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
-.floor-1-bg { background: linear-gradient(180deg, #0e0a08 0%, #0a0806 100%); }
+.floor-1-bg {
+  background-image:
+    linear-gradient(180deg, rgba(0,0,0,0.58) 0%, rgba(0,0,0,0.82) 100%),
+    url('../assets/floor1.png');
+}
 .floor-2-bg { background: linear-gradient(180deg, #080a0e 0%, #06080a 100%); }
 .floor-3-bg { background: linear-gradient(180deg, #09060f 0%, #070510 100%); }
 .floor-4-bg { background: linear-gradient(180deg, #100806 0%, #0a0504 100%); }
@@ -2568,76 +2575,78 @@ body {
 
 @media (max-width: 1100px) and (orientation: landscape) {
   #path-screen {
-    gap: 0.7rem;
-    padding: 0.7rem 0.6rem 1rem;
-    justify-content: center;
+    gap: 0.45rem;
+    padding: 0.4rem 0.45rem 0.55rem;
+    justify-content: flex-start;
+    overflow: hidden;
   }
 
   #path-floor-label {
-    font-size: 1.6rem !important;
+    font-size: 1.32rem !important;
     letter-spacing: 0.12em !important;
   }
 
   #path-subtitle {
-    max-width: 620px !important;
-    font-size: 0.94rem !important;
-    line-height: 1.35;
+    max-width: 540px !important;
+    font-size: 0.8rem !important;
+    line-height: 1.25;
     margin: 0 auto;
   }
 
   #path-choices {
     display: grid !important;
-    grid-template-columns: repeat(3, minmax(112px, 1fr));
-    gap: 0.7rem !important;
+    grid-template-columns: repeat(3, minmax(100px, 1fr));
+    gap: 0.45rem !important;
     align-items: stretch !important;
-    width: min(100%, 760px) !important;
-    padding: 0.2rem 0.25rem 0.45rem !important;
-    overflow: visible !important;
+    width: min(100%, 680px) !important;
+    padding: 0.08rem 0.12rem 0.18rem !important;
+    overflow: hidden !important;
   }
 
   .path-card {
     width: auto;
     min-width: 0;
-    padding: 0.95rem 0.7rem;
+    padding: 0.64rem 0.5rem;
   }
 
   .path-card-header {
-    font-size: 0.9rem;
-    padding-bottom: 0.45rem;
-    margin-bottom: 0.34rem;
+    font-size: 0.78rem;
+    padding-bottom: 0.32rem;
+    margin-bottom: 0.24rem;
   }
 
   .path-room-icon {
-    width: 50px;
-    height: 34px;
-    font-size: 0.96rem;
+    width: 42px;
+    height: 28px;
+    font-size: 0.82rem;
   }
 
   .path-room-arrow {
-    font-size: 0.62rem;
-    padding: 2px 0;
+    font-size: 0.5rem;
+    padding: 1px 0;
   }
 
   .path-card-stats {
-    font-size: 0.64rem;
-    margin-top: 0.45rem;
-    padding-top: 0.34rem;
+    font-size: 0.54rem;
+    line-height: 1.24;
+    margin-top: 0.28rem;
+    padding-top: 0.24rem;
   }
 
   .path-card-boss {
-    font-size: 0.72rem;
-    padding-top: 0.34rem;
-    margin-top: 0.34rem;
+    font-size: 0.6rem;
+    padding-top: 0.24rem;
+    margin-top: 0.24rem;
   }
 
   #path-screen > div:last-child {
-    margin-top: 0.05rem !important;
+    margin-top: 0 !important;
   }
 
   #path-screen > div:last-child p {
-    font-size: 0.8rem !important;
+    font-size: 0.66rem !important;
     text-align: center;
-    max-width: 620px;
+    max-width: 520px;
   }
 
   #path-back-btn {
@@ -2647,52 +2656,53 @@ body {
 
 @media (max-height: 520px) and (orientation: landscape) {
   #path-screen {
-    gap: 0.55rem;
-    padding: 0.5rem 0.55rem 0.8rem;
+    gap: 0.35rem;
+    padding: 0.3rem 0.42rem 0.45rem;
+    overflow: hidden;
   }
 
   #path-floor-label {
-    font-size: 1.4rem !important;
+    font-size: 1.16rem !important;
   }
 
   #path-subtitle {
-    font-size: 0.86rem !important;
-    max-width: 560px !important;
+    font-size: 0.74rem !important;
+    max-width: 500px !important;
   }
 
   #path-choices {
-    gap: 0.58rem !important;
-    width: min(100%, 700px) !important;
-    padding: 0.12rem 0.2rem 0.3rem !important;
+    gap: 0.36rem !important;
+    width: min(100%, 640px) !important;
+    padding: 0.04rem 0.08rem 0.1rem !important;
   }
 
   .path-card {
-    padding: 0.78rem 0.58rem;
+    padding: 0.5rem 0.42rem;
   }
 
   .path-card-header {
-    font-size: 0.82rem;
-    padding-bottom: 0.36rem;
-    margin-bottom: 0.28rem;
+    font-size: 0.7rem;
+    padding-bottom: 0.26rem;
+    margin-bottom: 0.2rem;
   }
 
   .path-room-icon {
-    width: 46px;
-    height: 31px;
-    font-size: 0.88rem;
+    width: 38px;
+    height: 24px;
+    font-size: 0.76rem;
   }
 
   .path-card-stats {
-    font-size: 0.6rem;
-    line-height: 1.32;
+    font-size: 0.5rem;
+    line-height: 1.18;
   }
 
   .path-card-boss {
-    font-size: 0.68rem;
+    font-size: 0.56rem;
   }
 
   #path-screen > div:last-child p {
-    font-size: 0.72rem !important;
+    font-size: 0.62rem !important;
   }
 }
 
