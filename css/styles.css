@@ -611,6 +611,32 @@ body {
 .card.unplayable:hover { transform: none; border-color: var(--border); box-shadow: none; }
 .card.dice-card { border-color: var(--border2); }
 .card.dice-card.affinity-active { border-color: var(--gold); box-shadow: 0 0 8px rgba(201,168,76,0.3); }
+.card.discard-select {
+  border-color: var(--red2);
+  box-shadow: 0 0 10px rgba(192,57,43,0.22);
+}
+.card.discard-select:hover {
+  border-color: var(--red3);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.6), 0 0 12px rgba(231,76,60,0.28);
+}
+
+.hand-choice-indicator {
+  position: absolute;
+  top: 0.18rem;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 170px);
+  padding: 0.12rem 0.5rem;
+  border: 1px solid rgba(192,57,43,0.55);
+  background: rgba(26,18,20,0.92);
+  color: var(--red3);
+  font-family: 'Cinzel', serif;
+  font-size: 0.5rem;
+  letter-spacing: 0.04em;
+  text-align: center;
+  pointer-events: none;
+  z-index: 14;
+}
 
 .card-cost {
   position: absolute;

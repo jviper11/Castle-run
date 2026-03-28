@@ -102,7 +102,7 @@ const CARDS = {
 
   // ── MAGE new cards ──
   manasurge:    { name:'Mana Surge',     emoji:'⚡', type:'Skill',  cost:0, desc:'Next card costs 1 less energy this turn.',   dice:false, effect:(g)=>{ g._manaSurge=true; showMsg('⚡ Mana Surge — next card costs 1 less!'); } },
-  arcaneboost:  { name:'Arcane Boost',   emoji:'🔼', type:'Skill',  cost:1, desc:'Discard 1 card — add 1 to dice roll.',       dice:false, effect:(g)=>{ if(g.hand.length>0){ const idx=Math.floor(Math.random()*g.hand.length); g.discardPile.push(g.hand.splice(idx,1)[0]); g.currentDie=Math.max(1, Math.min((g.currentDie||1)+1, g.diceMax)); const dieEl=document.getElementById('current-die'); if(dieEl){ dieEl.classList.remove('rolling'); void dieEl.offsetWidth; dieEl.classList.add('rolling'); setTimeout(()=>{ dieEl.textContent=g.currentDie; dieEl.classList.remove('rolling'); checkAffinityHighlight(g,g.currentDie); },200); } showMsg('🔼 Arcane Boost — dice is now '+g.currentDie+'!'); } else { showMsg('No cards to discard!'); } } },
+  arcaneboost:  { name:'Arcane Boost',   emoji:'🔼', type:'Skill',  cost:1, desc:'Discard 1 card — add 1 to dice roll.',       dice:false, effect:(g,_r,onComplete)=>{ beginDiscardChoice(g,{ amount:1, prompt:'Choose a card to discard for Arcane Boost.', onComplete:(discarded)=>{ if(discarded && discarded.length){ g.currentDie=Math.max(1, Math.min((g.currentDie||1)+1, g.diceMax)); const dieEl=document.getElementById('current-die'); if(dieEl){ dieEl.classList.remove('rolling'); void dieEl.offsetWidth; dieEl.classList.add('rolling'); setTimeout(()=>{ dieEl.textContent=g.currentDie; dieEl.classList.remove('rolling'); checkAffinityHighlight(g,g.currentDie); },200); } showMsg('🔼 Arcane Boost — dice is now '+g.currentDie+'!'); } else { showMsg('No cards to discard!'); } if(typeof onComplete==='function') onComplete(); } }); } },
   voidchannel:  { name:'Void Channel',   emoji:'🌀', type:'Skill',  cost:1, desc:'Choose 2 cards to discard — double dice roll. Requires 2 cards in hand.',
     dice:false, effect:(g)=>{ if(g.hand.length<2){ showMsg('Need at least 2 cards in hand!'); return; } startVoidChannelDiscard(g); } },
   arcanemomentum:{ name:'Arcane Momentum',emoji:'✨',type:'Power',  cost:1, desc:'Each Skill/Power played this turn +1 to dice.',dice:false, effect:(g)=>{ g._arcaneMomentum=true; applyStatus(g,'player','✨Momentum',1); showMsg('✨ Arcane Momentum active!'); } },
@@ -351,7 +351,7 @@ const STRUCTURED_CARD_DEFS = [
     tags: ['block', 'draw', 'discard'],
     actions: [
       { type: 'block', amount: 6 },
-      { type: 'discardRandom', amount: 1 },
+      { type: 'discardChoice', amount: 1, prompt: 'Choose a card to discard for Smoke Screen.' },
       { type: 'draw', amount: 1 },
     ],
     upgrade: {
@@ -359,7 +359,7 @@ const STRUCTURED_CARD_DEFS = [
       desc: 'Gain 9 Block. Discard 1 draw 1.',
       actions: [
         { type: 'block', amount: 9 },
-        { type: 'discardRandom', amount: 1 },
+        { type: 'discardChoice', amount: 1, prompt: 'Choose a card to discard for Smoke Screen.' },
         { type: 'draw', amount: 1 },
       ],
     },
@@ -521,7 +521,7 @@ const STRUCTURED_CARD_DEFS = [
         then: [{ type: 'draw', amount: 3 }],
         else: [{ type: 'draw', amount: 2 }],
       },
-      { type: 'discardRandom', amount: 1 },
+      { type: 'discardChoice', amount: 1, prompt: 'Choose a card to discard for Nimble Pace.' },
     ],
     upgrade: {
       name: 'Nimble Pace+',
@@ -533,7 +533,7 @@ const STRUCTURED_CARD_DEFS = [
           then: [{ type: 'draw', amount: 4 }],
           else: [{ type: 'draw', amount: 3 }],
         },
-        { type: 'discardRandom', amount: 1 },
+        { type: 'discardChoice', amount: 1, prompt: 'Choose a card to discard for Nimble Pace.' },
       ],
     },
   },
@@ -757,60 +757,101 @@ function setCombatDieValue(g, value) {
   return true;
 }
 
-function runCardActions(g, ctx, actions) {
-  if (!actions || !actions.length) return;
-  actions.forEach(action => runCardAction(g, ctx, action));
+function runCardActions(g, ctx, actions, onComplete) {
+  if (!actions || !actions.length) {
+    if (typeof onComplete === 'function') onComplete();
+    return;
+  }
+
+  let index = 0;
+  const next = () => {
+    if (index >= actions.length) {
+      if (typeof onComplete === 'function') onComplete();
+      return;
+    }
+    runCardAction(g, ctx, actions[index++], next);
+  };
+
+  next();
 }
 
-function runCardAction(g, ctx, action) {
-  if (!action) return;
-  if (action.type !== 'branch' && action.when && !cardConditionMatches(g, ctx, action.when)) return;
+function runCardAction(g, ctx, action, next) {
+  if (!action) {
+    if (typeof next === 'function') next();
+    return;
+  }
+  if (action.type !== 'branch' && action.when && !cardConditionMatches(g, ctx, action.when)) {
+    if (typeof next === 'function') next();
+    return;
+  }
 
   switch (action.type) {
     case 'branch':
-      runCardActions(g, ctx, cardConditionMatches(g, ctx, action.when) ? action.then : action.else);
+      runCardActions(g, ctx, cardConditionMatches(g, ctx, action.when) ? action.then : action.else, next);
       return;
     case 'damage':
       dealDamage(g, action.target || 'enemy', resolveCardValue(g, ctx, action.amount));
+      if (typeof next === 'function') next();
       return;
     case 'block':
       gainBlock(g, action.target || 'player', resolveCardValue(g, ctx, action.amount));
+      if (typeof next === 'function') next();
       return;
-      case 'draw':
-        drawCards(g, resolveCardValue(g, ctx, action.amount));
-        return;
-      case 'discardRandom': {
-        const discardCount = resolveCardValue(g, ctx, action.amount);
-        for (let i = 0; i < discardCount; i++) {
-          if (!g.hand || !g.hand.length) break;
-          const randomIndex = Math.floor(Math.random() * g.hand.length);
-          const [discarded] = g.hand.splice(randomIndex, 1);
-          if (discarded != null) {
-            g.discardPile.push(discarded);
-          }
+    case 'draw':
+      drawCards(g, resolveCardValue(g, ctx, action.amount));
+      if (typeof next === 'function') next();
+      return;
+    case 'discardRandom': {
+      const discardCount = resolveCardValue(g, ctx, action.amount);
+      for (let i = 0; i < discardCount; i++) {
+        if (!g.hand || !g.hand.length) break;
+        const randomIndex = Math.floor(Math.random() * g.hand.length);
+        const [discarded] = g.hand.splice(randomIndex, 1);
+        if (discarded != null) {
+          g.discardPile.push(discarded);
         }
-        return;
       }
-      case 'applyStatus':
-        applyStatus(g, action.target || 'enemy', action.status, resolveCardValue(g, ctx, action.amount));
-        return;
+      if (typeof next === 'function') next();
+      return;
+    }
+    case 'discardChoice': {
+      const discardCount = resolveCardValue(g, ctx, action.amount);
+      const prompt = action.prompt || (discardCount === 1 ? 'Choose a card to discard.' : `Choose ${discardCount} cards to discard.`);
+      beginDiscardChoice(g, {
+        amount: discardCount,
+        prompt,
+        onComplete: () => {
+          if (typeof next === 'function') next();
+        }
+      });
+      return;
+    }
+    case 'applyStatus':
+      applyStatus(g, action.target || 'enemy', action.status, resolveCardValue(g, ctx, action.amount));
+      if (typeof next === 'function') next();
+      return;
     case 'heal':
       healPlayer(g, resolveCardValue(g, ctx, action.amount));
+      if (typeof next === 'function') next();
       return;
     case 'gainGold':
       g.gold += resolveCardValue(g, ctx, action.amount);
       updateHUD();
+      if (typeof next === 'function') next();
       return;
     case 'gainEnergy':
       g.energy += resolveCardValue(g, ctx, action.amount);
+      if (typeof next === 'function') next();
       return;
     case 'rerollDie':
       rollDice(g);
       syncCardEvalContext(g, ctx);
+      if (typeof next === 'function') next();
       return;
     case 'setDie':
       setCombatDieValue(g, resolveCardValue(g, ctx, action.amount));
       syncCardEvalContext(g, ctx);
+      if (typeof next === 'function') next();
       return;
     case 'selfDamage':
       {
@@ -821,6 +862,7 @@ function runCardAction(g, ctx, action) {
         floatDamage('player-combatant', selfDamage, 'dmg');
       }
       renderAll();
+      if (typeof next === 'function') next();
       return;
     case 'multiplyStatus': {
       const arr = action.target === 'player' ? g.statuses.player : g.statuses.enemy;
@@ -828,12 +870,15 @@ function runCardAction(g, ctx, action) {
       if (status && status.stacks > 0) {
         status.stacks *= action.multiplier || 1;
       }
+      if (typeof next === 'function') next();
       return;
     }
     case 'forceMaxRolls':
       g._forcedMaxRolls = (g._forcedMaxRolls || 0) + resolveCardValue(g, ctx, action.amount);
+      if (typeof next === 'function') next();
       return;
     default:
+      if (typeof next === 'function') next();
       return;
   }
 }
@@ -856,9 +901,9 @@ function buildStructuredCard(def, upgraded) {
     tags: (tier.tags || def.tags || []).slice(),
     exhaust: tier.exhaust == null ? !!def.exhaust : !!tier.exhaust,
     upgradeData: def.upgrade || null,
-    effect(g, roll) {
+    effect(g, roll, onComplete) {
       const ctx = getCardEvalContext(g, roll, runtime);
-      runCardActions(g, ctx, tier.actions || def.actions || []);
+      runCardActions(g, ctx, tier.actions || def.actions || [], onComplete);
     },
   };
   return runtime;
@@ -869,6 +914,7 @@ const STRUCTURED_ACTION_TYPES = new Set([
   'damage',
   'block',
   'draw',
+  'discardChoice',
   'discardRandom',
   'applyStatus',
   'heal',

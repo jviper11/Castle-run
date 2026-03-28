@@ -36,9 +36,16 @@ function renderHP() {
 function renderHand() {
   const area = document.getElementById('hand-area');
   // remove old cards
-  area.querySelectorAll('.card').forEach(c => c.remove());
+  area.querySelectorAll('.card, .hand-choice-indicator').forEach(c => c.remove());
 
   const roll = G.currentDie || 1;
+  const pendingDiscard = G.pendingCombatChoice && G.pendingCombatChoice.type === 'discard';
+  if (pendingDiscard) {
+    const indicator = document.createElement('div');
+    indicator.className = 'hand-choice-indicator';
+    indicator.textContent = G.pendingCombatChoice.prompt || 'Choose a card to discard.';
+    area.insertBefore(indicator, area.querySelector('.end-turn-btn'));
+  }
   G.hand.forEach(key => {
     const c = CARDS[key];
     if (!c) return;
@@ -85,7 +92,12 @@ el.innerHTML = `
   ${weakIndicator}
   ${c.dice ? `<div class="card-dice-req">🎲 ${affinityActive ? '✨ Bonus Active!' : c.affinityBonus + ' roll'}</div>` : ''}
 `;
-    if (G._voidChannelSelecting) {
+    if (pendingDiscard) {
+      el.classList.remove('unplayable');
+      el.classList.add('discard-select');
+      el.style.cursor = 'pointer';
+      el.onclick = () => choosePendingCombatCard(key);
+    } else if (G._voidChannelSelecting) {
       // In void channel discard mode — every card is clickable to discard
       el.classList.remove('unplayable');
       el.style.borderColor = '#8b0000';
@@ -239,6 +251,10 @@ function floatDamage(parentId, amount, type) {
 // ═══════════════════════════════════════════════════════════════════
 
 function toggleMap() {
+  if (G.pendingCombatChoice) {
+    showMsg('Choose a card to discard first!');
+    return;
+  }
   const overlay = document.getElementById('map-overlay');
   overlay.classList.toggle('active');
   if (overlay.classList.contains('active')) renderMap();
@@ -443,6 +459,10 @@ function updateCombatSprites(charKey, enemyKey) {
 }
 
 function toggleMenu() {
+  if (G.pendingCombatChoice) {
+    showMsg('Choose a card to discard first!');
+    return;
+  }
   const menu = document.getElementById('menu-overlay');
   menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
 }
@@ -499,6 +519,10 @@ document.addEventListener('click', (e) => {
 });
 
 function toggleDeckViewer() {
+  if (G.pendingCombatChoice) {
+    showMsg('Choose a card to discard first!');
+    return;
+  }
   const overlay = document.getElementById('deck-overlay');
   const isOpen = overlay.style.display === 'flex';
   overlay.style.display = isOpen ? 'none' : 'flex';

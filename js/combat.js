@@ -425,6 +425,67 @@ function clearVoidChannelSelection() {
   G._voidChannelPicked = [];
 }
 
+function hasPendingCombatChoice() {
+  return !!(G && G.pendingCombatChoice);
+}
+
+function clearPendingCombatChoice() {
+  G.pendingCombatChoice = null;
+  if (!G._voidChannelSelecting) {
+    setEndTurnLocked(false);
+  }
+}
+
+function beginDiscardChoice(g, options = {}) {
+  const availableCards = Array.isArray(g.hand) ? g.hand.slice() : [];
+  const requestedAmount = Math.max(0, options.amount || 1);
+  const discardAmount = Math.min(requestedAmount, availableCards.length);
+
+  if (discardAmount <= 0) {
+    if (typeof options.onComplete === 'function') options.onComplete([]);
+    return false;
+  }
+
+  g.pendingCombatChoice = {
+    type: 'discard',
+    amount: discardAmount,
+    chosen: [],
+    prompt: options.prompt || (discardAmount === 1 ? 'Choose a card to discard.' : `Choose ${discardAmount} cards to discard.`),
+    onComplete: options.onComplete,
+  };
+
+  setEndTurnLocked(true);
+  showMsg(g.pendingCombatChoice.prompt);
+  renderAll();
+  return true;
+}
+
+function choosePendingCombatCard(cardKey) {
+  const pending = G.pendingCombatChoice;
+  if (!pending || pending.type !== 'discard') return;
+
+  const idx = G.hand.indexOf(cardKey);
+  if (idx < 0) return;
+
+  const [discarded] = G.hand.splice(idx, 1);
+  if (discarded == null) return;
+
+  G.discardPile.push(discarded);
+  pending.chosen.push(discarded);
+
+  if (pending.chosen.length >= pending.amount) {
+    const chosen = pending.chosen.slice();
+    const onComplete = pending.onComplete;
+    clearPendingCombatChoice();
+    if (typeof onComplete === 'function') onComplete(chosen);
+    return;
+  }
+
+  const remaining = pending.amount - pending.chosen.length;
+  showMsg(remaining === 1 ? 'Choose 1 more card to discard.' : `Choose ${remaining} more cards to discard.`);
+  renderAll();
+}
+
 function removeStatus(g, target, name) {
   g.statuses[target] = g.statuses[target].filter(s => s.name !== name);
 }
@@ -545,6 +606,7 @@ function getModifiedPlayerAttackDamage(g, baseDamage, consumeEnemyFly = false) {
 
 function startTurn() {
   setEndTurnLocked(false);
+  clearPendingCombatChoice();
 
   if (G._voidChannelSelecting || (G._voidChannelPicked && G._voidChannelPicked.length)) {
     clearVoidChannelSelection();
@@ -670,6 +732,10 @@ function checkAffinity(g, roll, affinity) {
 }
 
 function useReroll() {
+  if (hasPendingCombatChoice()) {
+    showMsg('Choose a card to discard first!');
+    return;
+  }
   if (G.rerollUsed && !G.aldricInfiniteReroll) return;
   SFX.reroll();
   if (!G.aldricInfiniteReroll) {
@@ -719,6 +785,8 @@ function noteRunFinalBlow(g, amount) {
 function playCard(cardKey) {
   const card = CARDS[cardKey];
   if (!card) return;
+  if (hasPendingCombatChoice()) { showMsg('Choose a card to discard first!'); return; }
+  if (G._voidChannelSelecting) { showMsg('Finish Void Channel discards first!'); return; }
 
   // Apply Mana Surge cost reduction if active (only on the NEXT card after Mana Surge)
   var actualCost = card.cost;
@@ -735,13 +803,52 @@ function playCard(cardKey) {
   G.energy -= actualCost;
   if (G.runStats) G.runStats.cardsPlayed++;
   const roll = G.currentDie || 1;
-  card.effect(G, roll);
-  G.turnCardsPlayed = (G.turnCardsPlayed || 0) + 1;
-  if (G.enemy && G.enemy.hp > 0 && card.type === 'Skill' && G.enemy.special && G.enemy.special.trigger === 'skill') {
-    try { G.enemy.special.effect(G); } catch (err) { console.log('skill special ability error', err); }
+  const idx = G.hand.indexOf(cardKey);
+  if (idx >= 0) {
+    G.hand.splice(idx, 1);
   }
 
-  // Gambler lucky streak
+  let resolved = false;
+  const finishResolution = () => {
+    if (resolved) return;
+    resolved = true;
+
+    if (card.type === 'Power' || card.exhaust) {
+      if (!G.exhaustedPile) G.exhaustedPile = [];
+      G.exhaustedPile.push(cardKey);
+    } else {
+      G.discardPile.push(cardKey);
+    }
+
+    G.turnCardsPlayed = (G.turnCardsPlayed || 0) + 1;
+    if (G.enemy && G.enemy.hp > 0 && card.type === 'Skill' && G.enemy.special && G.enemy.special.trigger === 'skill') {
+      try { G.enemy.special.effect(G); } catch (err) { console.log('skill special ability error', err); }
+    }
+
+    if (G.charKey === 'gambler' && roll === G.diceMax && !G.rerollUsed) {
+      showMsg('Lucky Streak! Bonus reroll!');
+      G.rerollUsed = false;
+      setTimeout(() => {
+        const btn = document.getElementById('reroll-btn');
+        btn.disabled = false;
+        btn.innerHTML = 'REROLL <span style="font-size:0.7em;opacity:0.8">(1)</span>';
+      }, 100);
+    }
+
+    renderAll();
+    checkCombatEnd();
+  };
+
+  card.effect(G, roll, finishResolution);
+  if (!resolved && !hasPendingCombatChoice()) {
+    finishResolution();
+  } else if (hasPendingCombatChoice()) {
+    renderAll();
+  }
+  return;
+  /*
+  card.effect(G, roll);
+
   if (G.charKey === 'gambler' && roll === G.diceMax && !G.rerollUsed) {
     showMsg('Lucky Streak! Bonus reroll!');
     G.rerollUsed = false;
@@ -768,10 +875,15 @@ function playCard(cardKey) {
 
   renderAll();
   checkCombatEnd();
+  */
 }
 
 function endTurn() {
   if (!G.enemy) return;
+  if (hasPendingCombatChoice()) {
+    showMsg('Choose a card to discard first!');
+    return;
+  }
   if (G._voidChannelSelecting) {
     showMsg('🌀 Finish Void Channel discards first!');
     return;
