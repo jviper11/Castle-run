@@ -705,20 +705,21 @@ body {
 
 .hand-choice-indicator {
   position: absolute;
-  top: 0.18rem;
+  top: -0.72rem;
   left: 50%;
   transform: translateX(-50%);
   max-width: calc(100% - 170px);
-  padding: 0.12rem 0.5rem;
+  padding: 0.16rem 0.58rem;
   border: 1px solid rgba(192,57,43,0.55);
-  background: rgba(26,18,20,0.92);
+  background: rgba(18,12,14,0.96);
   color: var(--red3);
   font-family: 'Cinzel', serif;
   font-size: 0.5rem;
   letter-spacing: 0.04em;
   text-align: center;
   pointer-events: none;
-  z-index: 14;
+  box-shadow: 0 8px 18px rgba(0,0,0,0.28);
+  z-index: 120;
 }
 
 .mobile-card-preview {
@@ -2303,7 +2304,7 @@ body {
   }
   .combat-arena {
     align-items: flex-end;
-    padding-bottom: 0.35rem;
+    padding-bottom: 0.62rem;
   }
   .combatant {
     flex: 1 1 0;
@@ -2347,7 +2348,6 @@ body {
   #player-combatant .combatant-name,
   #player-combatant .hp-bar-wrap,
   #player-combatant .combat-stat-row,
-  #player-combatant .block-display,
   #player-combatant .passive-badge {
     width: 88px;
     max-width: 100%;
@@ -2372,7 +2372,6 @@ body {
   }
   #player-combatant .status-icons {
     justify-content: center;
-    width: 88px;
   }
   #dice-corner .reroll-btn {
     border-color: rgba(201,168,76,0.26);
@@ -2522,7 +2521,7 @@ body {
       font-size: 0.56rem;
     }
     .combat-arena {
-      padding: 0 2.5% 0.18rem;
+      padding: 0 2.5% 0.38rem;
       gap: 0.2rem;
     }
     .combatant {
@@ -2563,7 +2562,6 @@ body {
     #player-combatant .combatant-name,
     #player-combatant .hp-bar-wrap,
     #player-combatant .combat-stat-row,
-    #player-combatant .block-display,
     #player-combatant .passive-badge,
     #player-combatant .status-icons {
       width: 82px;
@@ -2778,9 +2776,9 @@ body {
   }
   #player-combatant .combatant-name,
   #player-combatant .hp-bar-wrap,
-  #player-combatant .block-display,
   #player-combatant .passive-badge,
-  #player-combatant .status-icons {
+  #player-combatant .status-icons,
+  #player-combatant .combat-stat-row {
     width: 84px;
   }
   #player-combatant .passive-badge {
