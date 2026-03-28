@@ -38,6 +38,17 @@ function renderHand() {
   // remove old cards
   area.querySelectorAll('.card, .hand-choice-indicator').forEach(c => c.remove());
 
+  const mobileLandscape = !!(window.matchMedia && window.matchMedia('(max-width: 1100px) and (orientation: landscape)').matches);
+  const selectedStillValid =
+    Number.isInteger(G.selectedHandIndex) &&
+    G.selectedHandIndex >= 0 &&
+    G.selectedHandIndex < G.hand.length &&
+    G.hand[G.selectedHandIndex] === G.selectedHandKey;
+  if (!selectedStillValid) {
+    G.selectedHandIndex = null;
+    G.selectedHandKey = null;
+  }
+
   const roll = G.currentDie || 1;
   const pendingDiscard = G.pendingCombatChoice && G.pendingCombatChoice.type === 'discard';
   if (pendingDiscard) {
@@ -46,12 +57,15 @@ function renderHand() {
     indicator.textContent = G.pendingCombatChoice.prompt || 'Choose a card to discard.';
     area.insertBefore(indicator, area.querySelector('.end-turn-btn'));
   }
-  G.hand.forEach(key => {
+  let selectedEl = null;
+  G.hand.forEach((key, index) => {
     const c = CARDS[key];
     if (!c) return;
     const el = document.createElement('div');
     const affinityActive = c.dice && checkAffinity(G, roll, c.affinityBonus);
-    el.className = `card${c.dice ? ' dice-card' : ''}${affinityActive ? ' affinity-active' : ''}`;
+    const isSelected = mobileLandscape && G.selectedHandIndex === index && G.selectedHandKey === key;
+    el.className = `card${c.dice ? ' dice-card' : ''}${affinityActive ? ' affinity-active' : ''}${mobileLandscape ? ' mobile-compressed' : ''}${isSelected ? ' selected' : ''}`;
+    el.style.setProperty('--card-index', index);
     // Calculate actual cost accounting for Mana Surge
     const actualCost = (G._manaSurge && key !== 'manasurge') ? Math.max(0, c.cost - 1) : c.cost;
     const costStyle = (G._manaSurge && key !== 'manasurge' && c.cost > 0) ? 'background:#2980b9' : '';
@@ -96,6 +110,8 @@ el.innerHTML = `
       el.classList.remove('unplayable');
       el.classList.add('discard-select');
       el.style.cursor = 'pointer';
+      G.selectedHandIndex = null;
+      G.selectedHandKey = null;
       el.onclick = () => choosePendingCombatCard(key);
     } else if (G._voidChannelSelecting) {
       // In void channel discard mode — every card is clickable to discard
@@ -103,12 +119,34 @@ el.innerHTML = `
       el.style.borderColor = '#8b0000';
       el.style.opacity = '0.75';
       el.style.cursor = 'pointer';
+      G.selectedHandIndex = null;
+      G.selectedHandKey = null;
       el.onclick = () => pickVoidChannelCard(G, key, el, G._voidChannelNeeded);
+    } else if (mobileLandscape) {
+      el.onclick = () => {
+        const alreadySelected = G.selectedHandIndex === index && G.selectedHandKey === key;
+        if (alreadySelected && canPlay) {
+          G.selectedHandIndex = null;
+          G.selectedHandKey = null;
+          playCard(key);
+          return;
+        }
+        G.selectedHandIndex = index;
+        G.selectedHandKey = key;
+        renderHand();
+      };
     } else if (canPlay) {
       el.onclick = () => playCard(key);
     }
+    if (isSelected) selectedEl = el;
     area.insertBefore(el, area.querySelector('.end-turn-btn'));
   });
+
+  if (selectedEl) {
+    requestAnimationFrame(() => {
+      selectedEl.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+    });
+  }
 }
 
 function renderEnergy() {

@@ -607,6 +607,8 @@ function getModifiedPlayerAttackDamage(g, baseDamage, consumeEnemyFly = false) {
 function startTurn() {
   setEndTurnLocked(false);
   clearPendingCombatChoice();
+  G.selectedHandIndex = null;
+  G.selectedHandKey = null;
 
   if (G._voidChannelSelecting || (G._voidChannelPicked && G._voidChannelPicked.length)) {
     clearVoidChannelSelection();

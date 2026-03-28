@@ -44,6 +44,8 @@ function newGame(charKey) {
       highestBlock: 0,
       finalBlowDamage: null,
     },
+    selectedHandIndex: null,
+    selectedHandKey: null,
     endTurnLocked: false,
   };
 
