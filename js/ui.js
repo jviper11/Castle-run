@@ -35,62 +35,86 @@ function renderHP() {
   }
 }
 
+function formatCompactClause(clause) {
+  if (!clause) return '';
+  const clean = clause.replace(/\.$/, '').replace(/\s+/g, ' ').trim();
+  let match = clean.match(/^Deal (\d+) dmg twice$/i);
+  if (match) return `${match[1]} dmg x2`;
+
+  match = clean.match(/^Deal (\d+) dmg to enemy (\d+) times$/i);
+  if (match) return `${match[1]} dmg x${match[2]}`;
+
+  match = clean.match(/^Deal (\d+) dmg, heal (\d+) HP$/i);
+  if (match) return `${match[1]} dmg + ${match[2]} heal`;
+
+  match = clean.match(/^Deal (\d+) damage?$/i) || clean.match(/^Deal (\d+) dmg$/i);
+  if (match) return `Deal ${match[1]} dmg`;
+
+  match = clean.match(/^Gain (\d+) Block$/i);
+  if (match) return `Gain ${match[1]} Block`;
+
+  match = clean.match(/^Draw (\d+) cards?$/i);
+  if (match) return `Draw ${match[1]}`;
+
+  match = clean.match(/^Gain (\d+) Block, discard 1, draw 1$/i);
+  if (match) return `${match[1]} Block, disc 1, draw 1`;
+
+  match = clean.match(/^Gain (\d+) Gold$/i);
+  if (match) return `+${match[1]} Gold`;
+
+  match = clean.match(/^Gain (\d+) Souls$/i);
+  if (match) return `+${match[1]} Souls`;
+
+  match = clean.match(/^Apply (\d+) Poison$/i);
+  if (match) return `+${match[1]} Poison`;
+
+  match = clean.match(/^Apply (\d+) Burn$/i);
+  if (match) return `+${match[1]} Burn`;
+
+  match = clean.match(/^Apply (\d+) Chill$/i);
+  if (match) return `+${match[1]} Chill`;
+
+  match = clean.match(/^Apply (\d+) Vulnerable$/i);
+  if (match) return `+${match[1]} Vulnerable`;
+
+  match = clean.match(/^Drain (\d+) HP$/i);
+  if (match) return `+${match[1]} heal`;
+
+  match = clean.match(/^Drain (\d+) Block$/i);
+  if (match) return `+${match[1]} Block`;
+
+  match = clean.match(/^Gain (\d+) \+ draw (\d+)$/i);
+  if (match) return `${match[1]} Block +${match[2]} Draw`;
+
+  match = clean.match(/^Deal (\d+) \+ burn$/i);
+  if (match) return `${match[1]} dmg + Burn`;
+
+  match = clean.match(/^Deal (\d+) \+ chill$/i);
+  if (match) return `${match[1]} dmg + Chill`;
+
+  match = clean.match(/^Roll 4-6: deal (\d+)\. Roll 2-3: deal (\d+)$/i);
+  if (match) return `${match[2]}-${match[1]} gamble`;
+
+  return clean
+    .replace(/damage/ig, 'dmg')
+    .replace(/cards?/ig, 'Draw')
+    .replace(/HP/ig, 'heal');
+}
+
 function getCompactCardSummary(card) {
   if (!card || !card.desc) return '';
   const desc = card.desc.replace(/\s+/g, ' ').trim();
+  const parts = desc.split(/\.\s+/).map(part => part.replace(/\.$/, '').trim()).filter(Boolean);
+  const base = formatCompactClause(parts[0] || desc);
+  if (!card.dice || !card.affinityBonus) return base;
 
-  let match = desc.match(/^Deal (\d+) dmg twice\./i);
-  if (match) return `${match[1]} dmg x2`;
+  const bonusPrefix = `${card.affinityBonus}:`;
+  const bonusClause = parts.find(part => part.toLowerCase().startsWith(bonusPrefix));
+  if (!bonusClause) return base;
 
-  match = desc.match(/^Deal (\d+) damage?\./i);
-  if (match) return `Deal ${match[1]} dmg`;
-
-  match = desc.match(/^Deal (\d+) dmg\./i);
-  if (match) return `Deal ${match[1]} dmg`;
-
-  match = desc.match(/^Deal (\d+) dmg to enemy (\d+) times\./i);
-  if (match) return `${match[1]} dmg x${match[2]}`;
-
-  match = desc.match(/^Deal (\d+) dmg, heal (\d+) HP\./i);
-  if (match) return `${match[1]} dmg + ${match[2]} heal`;
-
-  match = desc.match(/^Deal (\d+) dmg\..*apply (\d+) Poison\./i);
-  if (match) return `${match[1]} dmg + ${match[2]} Poison`;
-
-  match = desc.match(/^Deal (\d+) dmg\..*apply (\d+) Burn\./i);
-  if (match) return `${match[1]} dmg + ${match[2]} Burn`;
-
-  match = desc.match(/^Deal (\d+) dmg\..*apply (\d+) Chill\./i);
-  if (match) return `${match[1]} dmg + ${match[2]} Chill`;
-
-  match = desc.match(/^Deal (\d+) dmg\..*Gain (\d+) Souls\./i);
-  if (match) return `${match[1]} dmg + ${match[2]} Souls`;
-
-  match = desc.match(/^Gain (\d+) Block\./i);
-  if (match) return `Gain ${match[1]} Block`;
-
-  match = desc.match(/^Draw (\d+) cards?\./i);
-  if (match) return `Draw ${match[1]}`;
-
-  match = desc.match(/^Draw (\d+) card\..*discard 1\./i);
-  if (match) return `Draw ${match[1]} then discard`;
-
-  match = desc.match(/^Flip: triple roll or keep current\./i);
-  if (match) return 'Triple roll flip';
-
-  match = desc.match(/^Roll 4-6: deal (\d+)\. Roll 2-3: deal (\d+)\./i);
-  if (match) return `${match[2]}-${match[1]} gamble`;
-
-  const firstClause = desc.split('. ')[0]
-    .replace(/^Deal /i, '')
-    .replace(/^Gain /i, 'Gain ')
-    .replace(/^Draw /i, 'Draw ')
-    .replace(/ damage/ig, ' dmg')
-    .replace(/ dmg/ig, ' dmg')
-    .replace(/ cards?/ig, '')
-    .replace(/ HP/ig, ' heal')
-    .replace(/\.+$/g, '');
-  return firstClause;
+  const bonusText = formatCompactClause(bonusClause.slice(bonusPrefix.length).trim());
+  const bonusLabel = String(card.affinityBonus).charAt(0).toUpperCase() + String(card.affinityBonus).slice(1);
+  return `${base}<span class="card-compact-bonus">${bonusText} ${bonusLabel}</span>`;
 }
 
 function ensureMobileCardPreview() {
