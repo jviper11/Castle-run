@@ -2087,17 +2087,25 @@ body {
     font-size: 0.52rem;
   }
 
-  /* ── COMBAT SCREEN — mobile interaction overrides only ── */
+ /* ── COMBAT SCREEN — mobile interaction overrides only ── */
   .block-fill { background: linear-gradient(90deg, #4fc3f7, #5dade2); }
+  .combat-hud {
+    border-bottom-color: rgba(90, 58, 60, 0.75);
+  }
+  .hud-main-row {
+    padding: 0.08rem 0.42rem;
+    gap: 0.12rem;
+  }
   .combat-arena {
     align-items: flex-end;
+    padding-bottom: 0.05rem;
   }
   .combatant {
     flex: 1 1 0;
     min-width: 0;
     max-width: 46%;
     justify-content: flex-start;
-    gap: 0.35rem;
+    gap: 0.28rem;
   }
   .combatant-sprite {
     flex: 0 0 110px;
@@ -2108,20 +2116,46 @@ body {
     align-self: center;
   }
   .combatant-info {
-    flex: 0 0 122px;
-    height: 122px;
+    flex: 0 0 114px;
+    height: 114px;
     justify-content: flex-start;
+    gap: 0.16rem;
   }
   .hand-area {
-    min-height: 108px;
-    max-height: 120px;
-    padding-bottom: calc(0.4rem + env(safe-area-inset-bottom, 0px));
+    min-height: 100px;
+    max-height: 110px;
+    margin-top: -6px;
+    padding: 0.14rem 76px calc(0.28rem + env(safe-area-inset-bottom, 0px)) 78px;
+    scroll-padding-left: 78px;
+    scroll-padding-right: 76px;
+    border-top: 1px solid rgba(90, 58, 60, 0.55);
+    box-shadow: inset 0 8px 16px rgba(0,0,0,0.2);
+  }
+  .card {
+    padding: 0.44rem 0.4rem;
+  }
+  .card-emoji {
+    margin: 0.24rem 0 0.16rem;
+  }
+  .card-desc {
+    margin-top: 0.24rem;
+    line-height: 1.24;
+  }
+  .card-dice-req {
+    margin-top: 0.14rem;
   }
   #dice-corner {
-    bottom: calc(0.45rem + env(safe-area-inset-bottom, 0px));
+    top: calc(50% - (env(safe-area-inset-bottom, 0px) * 0.2));
+    bottom: auto;
+    left: 0.38rem;
+    transform: translateY(-50%);
   }
   .end-turn-btn {
-    bottom: calc(0.6rem + env(safe-area-inset-bottom, 0px));
+    top: calc(50% - (env(safe-area-inset-bottom, 0px) * 0.2));
+    bottom: auto;
+    right: 0.42rem;
+    transform: translateY(-50%);
+    padding: 0.34rem 0.72rem;
   }
   /* No hover on mobile — active press instead */
   .card:hover { transform: none; border-color: var(--border); box-shadow: none; }
@@ -2211,27 +2245,38 @@ body {
   }
 
   @media (max-height: 520px) and (orientation: landscape) {
+    .hud-main-row {
+      padding: 0.04rem 0.34rem;
+      gap: 0.1rem;
+    }
+    .hud-floor {
+      font-size: 0.62rem;
+    }
+    .hud-room,
+    .hud-combat-stats {
+      font-size: 0.56rem;
+    }
     .combat-arena {
-      padding: 0 3% 0;
+      padding: 0 2.5% 0;
       gap: 0.2rem;
     }
     .combatant {
-      gap: 0.16rem;
+      gap: 0.12rem;
     }
     .combatant-sprite {
-      flex: 0 0 96px;
-      width: 80px;
-      height: 96px;
-      max-width: 80px;
-      max-height: 96px;
+      flex: 0 0 90px;
+      width: 76px;
+      height: 90px;
+      max-width: 76px;
+      max-height: 90px;
     }
     .combatant-info {
-      flex: 0 0 106px;
-      height: 106px;
-      gap: 0.2rem;
+      flex: 0 0 92px;
+      height: 92px;
+      gap: 0.14rem;
     }
     .combatant-name {
-      font-size: 0.72rem;
+      font-size: 0.66rem;
     }
     .hp-bar-wrap {
       gap: 0.12rem;
@@ -2254,14 +2299,17 @@ body {
       padding: 0 0.2rem;
     }
     .hand-area {
-      min-height: 92px;
-      max-height: 100px;
-      gap: 0.2rem;
-      padding: 0.12rem 72px calc(0.22rem + env(safe-area-inset-bottom, 0px)) 74px;
+      min-height: 82px;
+      max-height: 86px;
+      gap: 0.16rem;
+      margin-top: -10px;
+      padding: 0.06rem 64px calc(0.14rem + env(safe-area-inset-bottom, 0px)) 66px;
+      scroll-padding-left: 66px;
+      scroll-padding-right: 64px;
     }
     .card {
       width: 62px;
-      padding: 0.34rem 0.32rem;
+      padding: 0.28rem 0.28rem;
     }
     .card-cost {
       top: 3px;
@@ -2272,7 +2320,7 @@ body {
     }
     .card-emoji {
       font-size: 0.8rem;
-      margin: 0.16rem 0 0.1rem;
+      margin: 0.12rem 0 0.08rem;
     }
     .card-name {
       font-size: 0.44rem;
@@ -2284,17 +2332,18 @@ body {
     }
     .card-desc {
       font-size: 0.38rem;
-      margin-top: 0.16rem;
+      margin-top: 0.12rem;
       line-height: 1.18;
     }
     .card-dice-req {
       font-size: 0.37rem;
-      margin-top: 0.1rem;
+      margin-top: 0.08rem;
       line-height: 1.1;
     }
     #dice-corner {
       left: 0.35rem;
-      bottom: calc(0.2rem + env(safe-area-inset-bottom, 0px));
+      top: calc(50% - (env(safe-area-inset-bottom, 0px) * 0.2));
+      bottom: auto;
       gap: 0.12rem;
     }
     #dice-corner .die {
@@ -2307,10 +2356,11 @@ body {
       padding: 0.06rem 0.22rem;
     }
     .end-turn-btn {
-      right: 0.4rem;
-      bottom: calc(0.2rem + env(safe-area-inset-bottom, 0px));
+      right: 0.3rem;
+      top: calc(50% - (env(safe-area-inset-bottom, 0px) * 0.2));
+      bottom: auto;
       font-size: 0.56rem;
-      padding: 0.26rem 0.62rem;
+      padding: 0.22rem 0.54rem;
     }
   }
 
@@ -2337,6 +2387,59 @@ body {
     min-height: 136px;
     max-height: 136px;
     padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (max-width: 900px) and (orientation: landscape) {
+  .combat-arena {
+    padding: 0 2.5% 0.02rem;
+    gap: 0.16rem;
+  }
+
+  .combatant {
+    gap: 0.14rem;
+  }
+
+  .combatant-sprite {
+    flex: 0 0 94px;
+    width: 78px;
+    height: 94px;
+    max-width: 78px;
+    max-height: 94px;
+  }
+
+  .combatant-info {
+    flex: 0 0 96px;
+    height: 96px;
+    gap: 0.14rem;
+  }
+
+  .intent-box {
+    padding: 0.16rem 0.3rem;
+    margin-bottom: 0;
+  }
+
+  .hand-area {
+    flex: 0 0 88px;
+    height: 88px;
+    min-height: 88px;
+    max-height: 88px;
+    margin-top: -9px;
+    padding: 0.08rem 66px calc(0.18rem + env(safe-area-inset-bottom, 0px)) 68px;
+    scroll-padding-left: 68px;
+    scroll-padding-right: 66px;
+  }
+
+  .card {
+    padding: 0.3rem 0.3rem;
+  }
+
+  #dice-corner {
+    left: 0.3rem;
+  }
+
+  .end-turn-btn {
+    right: 0.3rem;
   }
 }
 
