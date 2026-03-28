@@ -556,49 +556,49 @@ Some cards are Exhausted on use — removed from combat for the rest of the figh
 
 #### 🟢 Common (15 cards — 10 starters + 5 reward)
 
-| Key | Name | Type | Cost | Base Effect | Even Roll Effect |
-|---|---|---|---|---|---|
-| `strike` | Strike | Attack | 1 | Deal 6 dmg | — |
-| `strike` | Strike | Attack | 1 | Deal 6 dmg | — |
-| `strike` | Strike | Attack | 1 | Deal 6 dmg | — |
-| `defend` | Defend | Skill | 1 | Gain 5 Block | — |
-| `defend` | Defend | Skill | 1 | Gain 5 Block | — |
-| `heavyblow` | Heavy Blow | Attack | 2 | Deal 10 dmg | Deal 16 dmg |
-| `heavyblow` | Heavy Blow | Attack | 2 | Deal 10 dmg | Deal 16 dmg |
-| `warshout` | War Shout | Skill | 1 | Gain 6 Block | Gain 10 Block |
-| `warshout` | War Shout | Skill | 1 | Gain 6 Block | Gain 10 Block |
-| `ironbash` | Iron Bash | Attack | 1 | Deal 7 dmg | Deal 7 dmg + Vulnerable 1 |
-| `brutalswing` | Brutal Swing | Attack | 1 | Deal 5 dmg twice | Deal 7 dmg twice |
-| `shieldbreaker` | Shield Breaker | Attack | 1 | Deal 6 dmg | Deal 6 dmg + remove 5 enemy Block |
-| `warcry` | War Cry | Skill | 0 | Gain 3 Block | Gain 3 Block + draw 1 |
-| `toughhide` | Tough Hide | Skill | 1 | Gain 7 Block | Gain 11 Block |
-| `bloodprice` | Blood Price | Skill | 0 | Lose 5 HP. Draw 2 cards | Lose 3 HP. Draw 2 cards |
+| Key | Name | Type | Cost | Base Effect | Even Roll Effect | Upgrade Effect |
+|---|---|---|---|---|---|---|
+| `strike` | Strike | Attack | 1 | Deal 6 dmg | — | Deal 9 dmg |
+| `strike` | Strike | Attack | 1 | Deal 6 dmg | — | Deal 9 dmg |
+| `strike` | Strike | Attack | 1 | Deal 6 dmg | — | Deal 9 dmg |
+| `defend` | Defend | Skill | 1 | Gain 5 Block | — | Gain 8 Block |
+| `defend` | Defend | Skill | 1 | Gain 5 Block | — | Gain 8 Block |
+| `heavyblow` | Heavy Blow | Attack | 2 | Deal 10 dmg | Deal 16 dmg | Deal 13 dmg. Even: Deal 19 dmg |
+| `heavyblow` | Heavy Blow | Attack | 2 | Deal 10 dmg | Deal 16 dmg | Deal 13 dmg. Even: Deal 19 dmg |
+| `warshout` | War Shout | Skill | 1 | Gain 6 Block | Gain 10 Block | Gain 8 Block. Even: Gain 14 Block |
+| `warshout` | War Shout | Skill | 1 | Gain 6 Block | Gain 10 Block | Gain 8 Block. Even: Gain 14 Block |
+| `ironbash` | Iron Bash | Attack | 1 | Deal 7 dmg | Deal 7 dmg + Vulnerable 1 | Deal 10 dmg. Even: Deal 10 dmg + Vulnerable 2 |
+| `brutalswing` | Brutal Swing | Attack | 1 | Deal 5 dmg twice | Deal 7 dmg twice | Deal 7 dmg twice. Even: Deal 8 dmg twice |
+| `shieldbreaker` | Shield Breaker | Attack | 1 | Deal 6 dmg | Deal 6 dmg + remove 5 enemy Block | Deal 9 dmg. Even: Deal 9 dmg + remove 8 enemy Block |
+| `warcry` | War Cry | Skill | 0 | Gain 3 Block | Gain 3 Block + draw 1 | Gain 5 Block. Even: Gain 5 Block + draw 1 |
+| `toughhide` | Tough Hide | Skill | 1 | Gain 7 Block | Gain 11 Block | Gain 9 Block. Even: Gain 13 Block |
+| `bloodprice` | Blood Price | Skill | 0 | Lose 5 HP. Draw 2 cards | Lose 3 HP. Draw 2 cards | Lose 3 HP. Draw 2. Even: Lose 1 HP. Draw 2 |
 
 #### 🔵 Uncommon (10 cards)
 
-| Key | Name | Type | Cost | Base Effect | Even Roll Effect |
-|---|---|---|---|---|---|
-| `haymaker` | Haymaker | Attack | 2 | Deal 14 dmg | Deal 20 dmg |
-| `skullcrack` | Skull Crack | Attack | 1 | Deal 8 dmg + Weak 1 | Deal 8 dmg + Weak 2 |
-| `recklesslunge` | Reckless Lunge | Attack | 1 | Deal 10 dmg, take 3 | Deal 16 dmg, take 3 |
-| `battlecry` | Battle Cry | Skill | 1 | Gain 6 Block | Gain 6 Block + draw 2 |
-| `ironroar` | Iron Roar | Skill | 0 | Apply Weak 1 to enemy | Apply Weak 2 to enemy |
-| `bloodlust` | Blood Lust | Skill | 1 | Heal 4 HP | Heal 8 HP |
-| `entrench` | Entrench | Skill | 1 | Gain 8 Block, doesn't reset this turn | Gain 13 Block, doesn't reset this turn |
-| `overpowerattack` | Overpower | Attack | 1 | Deal 8 dmg | Deal 8 dmg + Vulnerable 2 |
-| `crushingblow` | Crushing Blow | Attack | 2 | Deal 12 dmg + remove 8 enemy Block | Deal 18 dmg + remove 8 enemy Block |
-| `warcallecho` | War Call | Skill | 0 | Draw 1 card | Draw 1 + apply Weak 1 to enemy |
+| Key | Name | Type | Cost | Base Effect | Even Roll Effect | Upgrade Effect |
+|---|---|---|---|---|---|---|
+| `haymaker` | Haymaker | Attack | 2 | Deal 14 dmg | Deal 20 dmg | Deal 17 dmg. Even: Deal 24 dmg |
+| `skullcrack` | Skull Crack | Attack | 1 | Deal 8 dmg + Weak 1 | Deal 8 dmg + Weak 2 | Deal 11 dmg + Weak 1. Even: Deal 11 dmg + Weak 3 |
+| `recklesslunge` | Reckless Lunge | Attack | 1 | Deal 10 dmg, take 3 | Deal 16 dmg, take 3 | Deal 13 dmg, take 2. Even: Deal 19 dmg, take 2 |
+| `battlecry` | Battle Cry | Skill | 1 | Gain 6 Block | Gain 6 Block + draw 2 | Gain 8 Block. Even: Gain 8 Block + draw 2 |
+| `ironroar` | Iron Roar | Skill | 0 | Apply Weak 1 to enemy | Apply Weak 2 to enemy | Apply Weak 2 to enemy. Even: Apply Weak 3 to enemy |
+| `bloodlust` | Blood Lust | Skill | 1 | Heal 4 HP | Heal 8 HP | Heal 6 HP. Even: Heal 11 HP |
+| `entrench` | Entrench | Skill | 1 | Gain 8 Block, doesn't reset this turn | Gain 13 Block, doesn't reset this turn | Gain 11 Block, doesn't reset. Even: Gain 17 Block, doesn't reset |
+| `overpowerattack` | Overpower | Attack | 1 | Deal 8 dmg | Deal 8 dmg + Vulnerable 2 | Deal 11 dmg. Even: Deal 11 dmg + Vulnerable 3 |
+| `crushingblow` | Crushing Blow | Attack | 2 | Deal 12 dmg + remove 8 enemy Block | Deal 18 dmg + remove 8 enemy Block | Deal 15 dmg + remove 12 Block. Even: Deal 21 dmg + remove 12 Block |
+| `warcallecho` | War Call | Skill | 0 | Draw 1 card | Draw 1 + apply Weak 1 to enemy | Draw 2 cards. Even: Draw 2 + Weak 1 to enemy |
 
 #### 🟣 Rare (6 cards)
 
-| Key | Name | Type | Cost | Base Effect | Even Roll Effect |
-|---|---|---|---|---|---|
-| `berserkersoath` | Berserker's Oath | Power | 2 | Exhausted. Each time you lose HP for any reason, gain 3 Block | Each time you lose HP for any reason, gain 5 Block |
-| `warlordspresence` | Warlord's Presence | Power | 2 | Exhausted. All attacks +2 dmg this combat | All attacks +4 dmg this combat |
-| `ragefuel` | Rage Fuel | Power | 1 | Exhausted. Gain 1 Strength this combat | Gain 2 Strength this combat |
-| `deathrattle` | Death Rattle | Attack | 2 | Deal 16 dmg. Only playable below 50% HP | Deal 24 dmg. Only playable below 50% HP |
-| `laststand` | Last Stand | Skill | 1 | Gain 10 Block. Below 30% HP: gain 20 | Gain 14 Block. Below 30% HP: gain 28 |
-| `battletrance` | Battle Trance | Skill | 1 | Gain 2 Energy. Lose 6 HP | Gain 2 Energy. Lose 4 HP |
+| Key | Name | Type | Cost | Base Effect | Even Roll Effect | Upgrade Effect |
+|---|---|---|---|---|---|---|
+| `berserkersoath` | Berserker's Oath | Power | 2 | Exhausted. Each time you lose HP for any reason, gain 3 Block | Each time you lose HP for any reason, gain 5 Block | Each time you lose HP for any reason, gain 4 Block. Even: gain 7 Block |
+| `warlordspresence` | Warlord's Presence | Power | 2 | Exhausted. All attacks +2 dmg this combat | All attacks +4 dmg this combat | All attacks +3 dmg. Even: All attacks +6 dmg |
+| `ragefuel` | Rage Fuel | Skill | 1 | Exhausted. Gain 1 Strength this combat | Gain 2 Strength this combat | Gain 2 Strength. Even: Gain 3 Strength |
+| `deathrattle` | Death Rattle | Attack | 2 | Deal 16 dmg. Only playable below 50% HP | Deal 24 dmg. Only playable below 50% HP | Deal 20 dmg. Even: Deal 26 dmg (below 50% HP) |
+| `laststand` | Last Stand | Skill | 1 | Gain 10 Block. Below 30% HP: gain 20 | Gain 14 Block. Below 30% HP: gain 28 | Gain 12 Block. Below 30%: gain 24. Even: Gain 16 Block. Below 30%: gain 32 |
+| `battletrance` | Battle Trance | Skill | 1 | Gain 2 Energy. Lose 6 HP | Gain 2 Energy. Lose 4 HP | Gain 2 Energy. Lose 4 HP. Even: Gain 2 Energy. Lose 3 HP |
 
 ---
 
@@ -610,48 +610,48 @@ Some cards are Exhausted on use — removed from combat for the rest of the figh
 
 #### 🟢 Common (14 cards — 10 starters + 4 reward)
 
-| Key | Name | Type | Cost | Base Effect | High Roll Effect |
-|---|---|---|---|---|---|
-| `strike` | Strike | Attack | 1 | Deal 6 dmg | — |
-| `strike` | Strike | Attack | 1 | Deal 6 dmg | — |
-| `defend` | Defend | Skill | 1 | Gain 5 Block | — |
-| `defend` | Defend | Skill | 1 | Gain 5 Block | — |
-| `frostbolt` | Frost Bolt | Attack | 1 | Deal 5 dmg + 1 ❄️Chill | Deal 9 dmg + 2 ❄️Chill |
-| `frostbolt` | Frost Bolt | Attack | 1 | Deal 5 dmg + 1 ❄️Chill | Deal 9 dmg + 2 ❄️Chill |
-| `arcanebarrier` | Arcane Shield | Skill | 1 | Gain 4 Block | Gain 9 Block |
-| `manasurge` | Mana Surge | Skill | 0 | Next card costs 1 less | — |
-| `arcaneboost` | Arcane Boost | Skill | 1 | Discard 1 → +1 to die roll | — |
-| `voidchannel` | Void Channel | Skill | 1 | Discard 2 → set die to 5. Exhaust | — |
-| `spark` | Spark | Attack | 1 | Deal 4 dmg | Deal 7 dmg + 1 🔥Burn |
-| `flamtouch` | Flame Touch | Attack | 1 | Deal 5 dmg + 1 🔥Burn | Deal 5 dmg + 3 🔥Burn |
-| `meditate` | Meditate | Skill | 1 | Draw 2 | Draw 3 + 1 die |
-| `channelfocus` | Channel Focus | Skill | 0 | Gain 1 Energy | — |
+| Key | Name | Type | Cost | Base Effect | High Roll Effect | Upgrade Effect |
+|---|---|---|---|---|---|---|
+| `strike` | Strike | Attack | 1 | Deal 6 dmg | — | Deal 9 dmg |
+| `strike` | Strike | Attack | 1 | Deal 6 dmg | — | Deal 9 dmg |
+| `defend` | Defend | Skill | 1 | Gain 5 Block | — | Gain 8 Block |
+| `defend` | Defend | Skill | 1 | Gain 5 Block | — | Gain 8 Block |
+| `frostbolt` | Frost Bolt | Attack | 1 | Deal 5 dmg + 1 ❄️Chill | Deal 9 dmg + 2 ❄️Chill | Deal 7 dmg. High: Deal 13 dmg + 2 Chill |
+| `frostbolt` | Frost Bolt | Attack | 1 | Deal 5 dmg + 1 ❄️Chill | Deal 9 dmg + 2 ❄️Chill | Deal 7 dmg. High: Deal 13 dmg + 2 Chill |
+| `arcanebarrier` | Arcane Shield | Skill | 1 | Gain 4 Block | Gain 9 Block | Gain 6 Block. High: Gain 13 Block |
+| `manasurge` | Mana Surge | Skill | 0 | Next card costs 1 less | — | Next 2 cards cost 1 less |
+| `arcaneboost` | Arcane Boost | Skill | 1 | Discard 1 → +1 to die roll | — | Discard 1 → +2 die roll |
+| `voidchannel` | Void Channel | Skill | 1 | Discard 2 → set die to 5. Exhaust | — | Discard 1 → set die to 5. Exhaust |
+| `spark` | Spark | Attack | 1 | Deal 4 dmg | Deal 7 dmg + 1 🔥Burn | Deal 6 dmg. High: Deal 9 dmg + 2 Burn |
+| `flamtouch` | Flame Touch | Attack | 1 | Deal 5 dmg + 1 🔥Burn | Deal 5 dmg + 3 🔥Burn | Deal 7 dmg + 1 Burn. High: Deal 7 dmg + 4 Burn |
+| `meditate` | Meditate | Skill | 1 | Draw 2 | Draw 3 + 1 die | Draw 3. High: Draw 4 |
+| `channelfocus` | Channel Focus | Skill | 0 | Gain 1 Energy | — | Gain 1 Energy. Draw 1 |
 
 #### 🔵 Uncommon (10 cards)
 
-| Key | Name | Type | Cost | Base Effect | High Roll Effect |
-|---|---|---|---|---|---|
-| `icelance` | Ice Lance | Attack | 1 | Deal 7 dmg | Deal 13 dmg if enemy has ❄️Chill |
-| `fireball` | Fireball | Attack | 2 | Deal 9 dmg + 2 🔥Burn | Deal 15 dmg + 4 🔥Burn |
-| `combustion` | Combustion | Attack | 1 | Deal 3 dmg + 1 per 🔥Burn stack | Deal 5 dmg + 2 per 🔥Burn stack |
-| `chainbolt` | Chain Bolt | Attack | 1 | Deal 5 dmg | Deal 5 dmg, hit twice |
-| `ignite` | Ignite | Skill | 1 | Apply 3 🔥Burn | Apply 5 🔥Burn |
-| `arcanerecall` | Arcane Recall | Skill | 1 | Return 1 card from discard to hand | Return 2 cards from discard |
-| `manaweave` | Mana Weave | Skill | 1 | Next card costs 1 less | Next 2 cards cost 1 less |
-| `frostfire` | Frost Fire | Attack | 2 | Deal 10 dmg. Has 🔥Burn: add 2 ❄️Chill. Has ❄️Chill: add 2 🔥Burn | Deal 14 dmg. Apply both effects regardless |
-| `arcanebarrage` | Arcane Barrage | Attack | 1 | Deal 3 dmg + 1 per spell played this turn | Deal 5 dmg + 1 per spell played this turn |
-| `arcanesight` | Arcane Sight | Skill | 1 | Draw 2 | Draw 3 |
+| Key | Name | Type | Cost | Base Effect | High Roll Effect | Upgrade Effect |
+|---|---|---|---|---|---|---|
+| `icelance` | Ice Lance | Attack | 1 | Deal 7 dmg | Deal 13 dmg if enemy has ❄️Chill | Deal 9 dmg. High: Deal 16 dmg if enemy has Chill |
+| `fireball` | Fireball | Attack | 2 | Deal 9 dmg + 2 🔥Burn | Deal 15 dmg + 4 🔥Burn | Deal 9 dmg + 2 Burn. High: Deal 15 dmg + 4 Burn |
+| `combustion` | Combustion | Attack | 1 | Deal 3 dmg + 1 per 🔥Burn stack | Deal 5 dmg + 2 per 🔥Burn stack | Deal 4 dmg + 1 per Burn stack. High: Deal 6 dmg + 3 per Burn stack |
+| `chainbolt` | Chain Bolt | Attack | 1 | Deal 5 dmg | Deal 5 dmg, hit twice | Deal 7 dmg. High: Deal 7 dmg hit twice |
+| `ignite` | Ignite | Skill | 1 | Apply 3 🔥Burn | Apply 5 🔥Burn | Apply 4 Burn. High: Apply 7 Burn |
+| `arcanerecall` | Arcane Recall | Skill | 1 | Return 1 card from discard to hand | Return 2 cards from discard | Return 2 cards from discard. High: Return 3 cards |
+| `manaweave` | Mana Weave | Skill | 1 | Next card costs 1 less | Next 2 cards cost 1 less | Next 2 cards cost 1 less. High: Next 3 cards cost 1 less |
+| `frostfire` | Frost Fire | Attack | 2 | Deal 10 dmg. Has 🔥Burn: add 2 ❄️Chill. Has ❄️Chill: add 2 🔥Burn | Deal 14 dmg. Apply both effects regardless | Deal 12 dmg. High: Deal 17 dmg. Apply both Burn and Chill effects regardless |
+| `arcanebarrage` | Arcane Barrage | Attack | 1 | Deal 3 dmg + 1 per spell played this turn | Deal 5 dmg + 1 per spell played this turn | Deal 4 dmg + 2 per spell this turn. High: Deal 6 dmg + 2 per spell |
+| `arcanesight` | Arcane Sight | Skill | 1 | Draw 2 | Draw 3 | Draw 3. High: Draw 4 |
 
 #### 🟣 Rare (6 cards)
 
-| Key | Name | Type | Cost | Base Effect | High Roll Effect |
-|---|---|---|---|---|---|
-| `frozeninferno` | Frozen Inferno | Attack | 3 | Deal 18 dmg. Consumes all 🔥Burn + ❄️Chill stacks | Deal 26 dmg. Consumes all stacks |
-| `inferno` | Inferno | Attack | 2 | Apply 6 🔥Burn | Apply 10 🔥Burn |
-| `timewarp` | Time Warp | Skill | 2 | Gain 2 Energy + draw 1 | Gain 2 Energy + draw 2 |
-| `spellecho` | Spell Echo | Skill | 1 | Exhaust. Next Attack card you play this turn triggers twice | Exhaust. Next 2 Attack cards you play this turn each trigger twice |
-| `coldmastery` | Cold Mastery | Power | 2 | Exhausted. ❄️Chill reduces enemy attack by 35% instead of 25% | 
-| `burningsoul` | Burning Soul | Power | 2 | Exhausted. 🔥Burn deals +1 per stack | 🔥Burn deals +2 per stack |
+| Key | Name | Type | Cost | Base Effect | High Roll Effect | Upgrade Effect |
+|---|---|---|---|---|---|---|
+| `frozeninferno` | Frozen Inferno | Attack | 3 | Deal 18 dmg. Consumes all 🔥Burn + ❄️Chill stacks | Deal 26 dmg. Consumes all stacks | Deal 22 dmg. High: Deal 30 dmg. Consumes all Burn and Chill stacks |
+| `inferno` | Inferno | Attack | 2 | Apply 6 🔥Burn | Apply 10 🔥Burn | Apply 8 Burn. High: Apply 13 Burn |
+| `timewarp` | Time Warp | Skill | 2 | Gain 2 Energy + draw 1 | Gain 2 Energy + draw 2 | Gain 2 Energy. Draw 2. High: Gain 2 Energy. Draw 3 |
+| `spellecho` | Spell Echo | Skill | 1 | Exhaust. Next Attack card you play this turn triggers twice | Exhaust. Next 2 Attack cards you play this turn each trigger twice | Next 2 Attacks trigger twice. High: Next 3 Attacks trigger twice. Exhaust |
+| `coldmastery` | Cold Mastery | Power | 2 | Exhausted. ❄️Chill reduces enemy attack by 35% instead of 25% | — | Chill reduces enemy attack by 45% instead of 25% |
+| `burningsoul` | Burning Soul | Power | 2 | Exhausted. 🔥Burn deals +1 per stack | 🔥Burn deals +2 per stack | Burn deals +3 per stack |
 
 ---
 
@@ -665,49 +665,49 @@ Some cards are Exhausted on use — removed from combat for the rest of the figh
 
 #### 🟢 Common (15 cards — 10 starters + 5 reward)
 
-| Key | Name | Type | Cost | Base Effect | Odd Roll Effect |
-|---|---|---|---|---|---|
-| `strike` | Strike | Attack | 1 | Deal 6 dmg | — |
-| `strike` | Strike | Attack | 1 | Deal 6 dmg | — |
-| `defend` | Defend | Skill | 1 | Gain 5 Block | — |
-| `defend` | Defend | Skill | 1 | Gain 5 Block | — |
-| `quickstrike` | Quick Strike | Attack | 1 | Deal 4 dmg twice | Deal 5 dmg twice |
-| `quickstrike` | Quick Strike | Attack | 1 | Deal 4 dmg twice | Deal 5 dmg twice |
-| `shadowstep` | Shadow Step | Skill | 1 | Gain 4 Block | Gain 7 Block + draw 1 |
-| `poisonblade` | Poison Blade | Attack | 2 | Deal 6 dmg | Deal 6 dmg + apply 3 Poison |
-| `pickpocket` | Pick Pocket | Skill | 1 | Draw 2 | Draw 2 + gain 5 Gold |
-| `smokescreen` | Smoke Screen | Skill | 1 | Gain 6 Block. Discard 1, draw 1 | — |
-| `swiftjab` | Swift Jab | Attack | 0 | Deal 3 dmg | Deal 5 dmg |
-| `slipaway` | Slip Away | Skill | 0 | Draw 1 card | Draw 1 + gain 3 Block |
-| `cheapshot` | Cheap Shot | Attack | 1 | Deal 5 dmg + Weak 1 | Deal 5 dmg + Weak 2 |
-| `coinflick` | Coin Flick | Skill | 1 | Gain 4 Gold | Gain 4 Gold + draw 1 |
-| `nimblepace` | Nimble Pace | Skill | 1 | Draw 2. Discard 1 | Draw 3. Discard 1 |
+| Key | Name | Type | Cost | Base Effect | Odd Roll Effect | Upgrade Effect |
+|---|---|---|---|---|---|---|
+| `strike` | Strike | Attack | 1 | Deal 6 dmg | — | Deal 9 dmg |
+| `strike` | Strike | Attack | 1 | Deal 6 dmg | — | Deal 9 dmg |
+| `defend` | Defend | Skill | 1 | Gain 5 Block | — | Gain 8 Block |
+| `defend` | Defend | Skill | 1 | Gain 5 Block | — | Gain 8 Block |
+| `quickstrike` | Quick Strike | Attack | 1 | Deal 4 dmg twice | Deal 5 dmg twice | Deal 6 dmg twice. Odd: Deal 8 dmg twice |
+| `quickstrike` | Quick Strike | Attack | 1 | Deal 4 dmg twice | Deal 5 dmg twice | Deal 6 dmg twice. Odd: Deal 8 dmg twice |
+| `shadowstep` | Shadow Step | Skill | 1 | Gain 4 Block | Gain 7 Block + draw 1 | Gain 6 Block. Odd: Gain 10 Block + draw 1 |
+| `poisonblade` | Poison Blade | Attack | 2 | Deal 6 dmg | Deal 6 dmg + apply 3 Poison | Deal 9 dmg. Odd: Deal 9 dmg + 4 Poison |
+| `pickpocket` | Pick Pocket | Skill | 1 | Draw 2 | Draw 2 + gain 5 Gold | Draw 3. Odd: Draw 3 + 8 Gold |
+| `smokescreen` | Smoke Screen | Skill | 1 | Gain 6 Block. Discard 1, draw 1 | — | Gain 9 Block. Discard 1 draw 1 |
+| `swiftjab` | Swift Jab | Attack | 0 | Deal 3 dmg | Deal 5 dmg | Deal 4 dmg. Odd: Deal 6 dmg |
+| `slipaway` | Slip Away | Skill | 0 | Draw 1 card | Draw 1 + gain 3 Block | Draw 1 + 2 Block. Odd: Draw 2 + 2 Block |
+| `cheapshot` | Cheap Shot | Attack | 1 | Deal 5 dmg + Weak 1 | Deal 5 dmg + Weak 2 | Deal 7 dmg + Weak 1. Odd: Deal 7 dmg + Weak 2 |
+| `coinflick` | Coin Flick | Skill | 1 | Gain 4 Gold | Gain 4 Gold + draw 1 | Gain 8 Gold. Odd: Gain 8 Gold + draw 1 |
+| `nimblepace` | Nimble Pace | Skill | 1 | Draw 2. Discard 1 | Draw 3. Discard 1 | Draw 3. Discard 1. Odd: Draw 4. Discard 1 |
 
 #### 🔵 Uncommon (10 cards)
 
-| Key | Name | Type | Cost | Base Effect | Odd Roll Effect |
-|---|---|---|---|---|---|
-| `envenomdagger` | Envenom | Attack | 1 | Deal 4 dmg + 2 Poison | Deal 4 dmg + 4 Poison |
-| `backstab` | Backstab | Attack | 1 | Deal 10 dmg. Only playable as first card this turn | Deal 14 dmg. Only playable as first card this turn |
-| `cripple` | Cripple | Skill | 1 | Apply Weak 2 + Vulnerable 1 | Apply Weak 2 + Vulnerable 2 |
-| `shadowmark` | Shadow Mark | Skill | 1 | Mark enemy — next attack deals +5 dmg | Mark enemy — next attack deals +8 dmg |
-| `poisoncloud` | Poison Cloud | Skill | 1 | Apply 4 Poison | Apply 6 Poison |
-| `thiefsgambit` | Thief's Gambit | Attack | 1 | Deal 3 dmg. Draw 1. Gain 5 Gold | Deal 5 dmg. Draw 1. Gain 5 Gold |
-| `bladedance` | Blade Dance | Attack | 1 | Deal 3 dmg three times | Deal 4 dmg three times |
-| `disappear` | Disappear | Skill | 1 | Gain 6 Block. Next card costs 0 | Gain 8 Block. Next 2 cards cost 0 |
-| `concoction` | Concoction | Skill | 1 | Apply 2 Poison. Draw 1 | Apply 3 Poison. Draw 2 |
-| `gutpunch` | Gut Punch | Attack | 1 | Deal 4 dmg + 1 Poison | Deal 4 dmg + 2 Poison |
+| Key | Name | Type | Cost | Base Effect | Odd Roll Effect | Upgrade Effect |
+|---|---|---|---|---|---|---|
+| `envenomdagger` | Envenom | Attack | 1 | Deal 4 dmg + 2 Poison | Deal 4 dmg + 4 Poison | Deal 6 dmg + 2 Poison. Odd: Deal 6 dmg + 5 Poison |
+| `backstab` | Backstab | Attack | 1 | Deal 10 dmg. Only playable as first card this turn | Deal 14 dmg. Only playable as first card this turn | Deal 13 dmg. First card only. Odd: Deal 18 dmg. First card only |
+| `cripple` | Cripple | Skill | 1 | Apply Weak 2 + Vulnerable 1 | Apply Weak 2 + Vulnerable 2 | Apply Weak 3 + Vulnerable 1. Odd: Apply Weak 3 + Vulnerable 2 |
+| `shadowmark` | Shadow Mark | Skill | 1 | Mark enemy — next attack deals +5 dmg | Mark enemy — next attack deals +8 dmg | Next attack +7 dmg. Odd: Next attack +10 dmg |
+| `poisoncloud` | Poison Cloud | Skill | 1 | Apply 4 Poison | Apply 6 Poison | Apply 6 Poison. Odd: Apply 8 Poison |
+| `thiefsgambit` | Thief's Gambit | Attack | 1 | Deal 3 dmg. Draw 1. Gain 5 Gold | Deal 5 dmg. Draw 1. Gain 5 Gold | Deal 5 dmg. Draw 1. 8 Gold. Odd: Deal 7 dmg. Draw 1. 8 Gold |
+| `bladedance` | Blade Dance | Attack | 1 | Deal 3 dmg three times | Deal 4 dmg three times | Deal 4 dmg three times. Odd: Deal 5 dmg three times |
+| `disappear` | Disappear | Skill | 1 | Gain 6 Block. Next card costs 0 | Gain 8 Block. Next 2 cards cost 0 | Gain 7 Block. Next card costs 0. Odd: Gain 7 Block. Next 2 cards cost 0 |
+| `concoction` | Concoction | Skill | 1 | Apply 2 Poison. Draw 1 | Apply 3 Poison. Draw 2 | Apply 3 Poison. Draw 1. Odd: Apply 4 Poison. Draw 2 |
+| `gutpunch` | Gut Punch | Attack | 1 | Deal 4 dmg + 1 Poison | Deal 4 dmg + 2 Poison | Deal 6 dmg + 1 Poison. Odd: Deal 6 dmg + 3 Poison |
 
 #### 🟣 Rare (6 cards)
 
-| Key | Name | Type | Cost | Base Effect | Odd Roll Effect |
-|---|---|---|---|---|---|
-| `deathmark` | Death Mark | Skill | 1 | Double current Poison stacks on enemy. Exhaust | Double Poison stacks. Draw 1. Exhaust |
-| `shadowartist` | Shadow Artist | Power | 2 | Exhausted. 2nd and 4th card you play each turn cost 0 | Exhausted. 2nd, 3rd and 4th card you play each turn cost 0 |
-| `poisonmaster` | Poison Master | Power | 2 | Exhausted. Poison deals +1 dmg per stack | Exhausted. Poison deals +2 dmg per stack |
-| `lethalrhythm` | Lethal Rhythm | Power | 1 | Exhausted. Each time you play 2 cards in a turn, deal 3 dmg | Exhausted. Each time you play 2 cards, deal 5 dmg |
-| `assassinate` | Assassinate | Attack | 2 | Deal 14 dmg. If enemy has 5+ Poison: deal 22 instead | Deal 18 dmg. If enemy has 5+ Poison: deal 28 instead |
-| `goldenstrike` | Golden Strike | Attack | 1 | Deal dmg equal to Gold ÷ 10 (max 15) | Deal dmg equal to Gold ÷ 8 (max 20) |
+| Key | Name | Type | Cost | Base Effect | Odd Roll Effect | Upgrade Effect |
+|---|---|---|---|---|---|---|
+| `deathmark` | Death Mark | Skill | 1 | Double current Poison stacks on enemy. Exhaust | Double Poison stacks. Draw 1. Exhaust | Double Poison stacks. Draw 1. Exhaust. Odd: Triple Poison stacks. Draw 1. Exhaust |
+| `shadowartist` | Shadow Artist | Power | 2 | Exhausted. 2nd and 4th card you play each turn cost 0 | Exhausted. 2nd, 3rd and 4th card you play each turn cost 0 | 2nd, 3rd, and 4th card cost 0 |
+| `poisonmaster` | Poison Master | Power | 2 | Exhausted. Poison deals +1 dmg per stack | Exhausted. Poison deals +2 dmg per stack | Poison deals +2 per stack |
+| `lethalrhythm` | Lethal Rhythm | Power | 1 | Exhausted. Each time you play 2 cards in a turn, deal 3 dmg | Exhausted. Each time you play 2 cards, deal 5 dmg | Every 2 cards played deal 5 dmg |
+| `assassinate` | Assassinate | Attack | 2 | Deal 14 dmg. If enemy has 5+ Poison: deal 22 instead | Deal 18 dmg. If enemy has 5+ Poison: deal 28 instead | Deal 17 dmg. 5+ Poison: deal 26. Odd: Deal 21 dmg. 5+ Poison: deal 32 |
+| `goldenstrike` | Golden Strike | Attack | 1 | Deal dmg equal to Gold ÷ 10 (max 15) | Deal dmg equal to Gold ÷ 8 (max 20) | Deal dmg = Gold ÷ 8 (max 20). Odd: Deal dmg = Gold ÷ 6 (max 25) |
 
 ---
 
@@ -719,49 +719,49 @@ Some cards are Exhausted on use — removed from combat for the rest of the figh
 
 #### 🟢 Common (15 cards — 10 starters + 5 reward)
 
-| Key | Name | Type | Cost | Base Effect | Extreme Roll Effect |
-|---|---|---|---|---|---|
-| `strike` | Strike | Attack | 1 | Deal 6 dmg | — |
-| `strike` | Strike | Attack | 1 | Deal 6 dmg | — |
-| `defend` | Defend | Skill | 1 | Gain 5 Block | — |
-| `defend` | Defend | Skill | 1 | Gain 5 Block | — |
-| `blooddrain` | Blood Drain | Attack | 1 | Deal 6 dmg | Deal 6 dmg + heal 8 HP |
-| `blooddrain` | Blood Drain | Attack | 1 | Deal 6 dmg | Deal 6 dmg + heal 8 HP |
-| `nightshroud` | Night Shroud | Skill | 1 | Gain 5 Block | Gain 10 Block |
-| `lifeleech` | Life Leech | Attack | 2 | Deal 9 dmg | Deal 9 dmg + drain 12 Block |
-| `crimsonbite` | Crimson Bite | Attack | 1 | Deal 5 dmg + 1 Regen | Deal 7 dmg + 3 Regen |
-| `darkembrace` | Dark Embrace | Skill | 1 | Lose 4 HP. Gain 8 Block | — |
-| `bloodpulse` | Blood Pulse | Skill | 1 | Gain 2 Regen | Gain 4 Regen |
-| `draintouch` | Drain Touch | Attack | 1 | Deal 5 dmg | Deal 5 dmg + heal 5 HP |
-| `nightveil` | Night Veil | Skill | 1 | Gain 6 Block | Gain 6 Block + 2 Regen |
-| `darkblood` | Dark Blood | Skill | 0 | Lose 3 HP. Draw 2 cards | — |
-| `swoopdown` | Swoop Down | Skill | 1 | Gain Fly this turn. Damage taken halved | Gain Fly + 4 Block |
+| Key | Name | Type | Cost | Base Effect | Extreme Roll Effect | Upgrade Effect |
+|---|---|---|---|---|---|---|
+| `strike` | Strike | Attack | 1 | Deal 6 dmg | — | Deal 9 dmg |
+| `strike` | Strike | Attack | 1 | Deal 6 dmg | — | Deal 9 dmg |
+| `defend` | Defend | Skill | 1 | Gain 5 Block | — | Gain 8 Block |
+| `defend` | Defend | Skill | 1 | Gain 5 Block | — | Gain 8 Block |
+| `blooddrain` | Blood Drain | Attack | 1 | Deal 6 dmg | Deal 6 dmg + heal 8 HP | Deal 9 dmg. Extreme: Deal 9 dmg + heal 13 HP |
+| `blooddrain` | Blood Drain | Attack | 1 | Deal 6 dmg | Deal 6 dmg + heal 8 HP | Deal 9 dmg. Extreme: Deal 9 dmg + heal 13 HP |
+| `nightshroud` | Night Shroud | Skill | 1 | Gain 5 Block | Gain 10 Block | Gain 8 Block. Extreme: Gain 15 Block |
+| `lifeleech` | Life Leech | Attack | 2 | Deal 9 dmg | Deal 9 dmg + drain 12 Block | Deal 13 dmg. Extreme: Deal 13 dmg + drain 18 Block |
+| `crimsonbite` | Crimson Bite | Attack | 1 | Deal 5 dmg + 1 Regen | Deal 7 dmg + 3 Regen | Deal 7 dmg + 2 Regen. Extreme: Deal 9 dmg + 4 Regen |
+| `darkembrace` | Dark Embrace | Skill | 1 | Lose 4 HP. Gain 8 Block | — | Lose 3 HP. Gain 11 Block |
+| `bloodpulse` | Blood Pulse | Skill | 1 | Gain 2 Regen | Gain 4 Regen | Gain 4 Regen. Extreme: Gain 6 Regen |
+| `draintouch` | Drain Touch | Attack | 1 | Deal 5 dmg | Deal 5 dmg + heal 5 HP | Deal 7 dmg. Extreme: Deal 7 dmg + heal 10 HP |
+| `nightveil` | Night Veil | Skill | 1 | Gain 6 Block | Gain 6 Block + 2 Regen | Gain 8 Block. Extreme: Gain 8 Block + 3 Regen |
+| `darkblood` | Dark Blood | Skill | 0 | Lose 3 HP. Draw 2 cards | — | Lose 2 HP. Draw 2 |
+| `swoopdown` | Swoop Down | Skill | 1 | Gain Fly this turn. Damage taken halved | Gain Fly + 4 Block | Gain Fly + 3 Block. Extreme: Gain Fly + 6 Block |
 
 #### 🔵 Uncommon (10 cards)
 
-| Key | Name | Type | Cost | Base Effect | Extreme Roll Effect |
-|---|---|---|---|---|---|
-| `sanguinestrike` | Sanguine Strike | Attack | 1 | Deal 8 dmg + 1 Regen | Deal 10 dmg + 3 Regen |
-| `crimsonpact` | Crimson Pact | Skill | 1 | Lose 6 HP. Gain 3 Regen + draw 2 | Lose 4 HP. Gain 5 Regen + draw 2 |
-| `bloodbank` | Blood Bank | Skill | 1 | Convert 10 HP into 10 Block | Convert 8 HP into 14 Block |
-| `drainlife` | Drain Life | Attack | 2 | Deal 12 dmg. Heal HP equal to half dmg dealt | Deal 12 dmg. Heal HP equal to full dmg dealt |
-| `batform` | Bat Form | Skill | 1 | Gain Fly this turn + draw 1 | Gain Fly + draw 2 + 2 Regen |
-| `shadowfeast` | Shadow Feast | Attack | 1 | Deal 6 dmg. If Regen active: deal 10 instead | Deal 10 dmg. If Regen active: deal 15 instead |
-| `darkrite` | Dark Rite | Skill | 1 | Lose 8 HP. Gain 12 Block + 2 Regen | Lose 5 HP. Gain 16 Block + 3 Regen |
-| `bloodrush` | Blood Rush | Skill | 0 | Spend 5 HP. Next attack deals +6 dmg | Spend 3 HP. Next attack deals +9 dmg |
-| `nightstalk` | Night Stalk | Attack | 1 | Deal 5 dmg twice | Deal 7 dmg twice + 2 Regen |
-| `cursedveins` | Cursed Veins | Skill | 1 | Gain 3 Regen. Next card costs 0 | Gain 5 Regen. Next Skill card costs 0 |
+| Key | Name | Type | Cost | Base Effect | Extreme Roll Effect | Upgrade Effect |
+|---|---|---|---|---|---|---|
+| `sanguinestrike` | Sanguine Strike | Attack | 1 | Deal 8 dmg + 1 Regen | Deal 10 dmg + 3 Regen | Deal 10 dmg + 2 Regen. Extreme: Deal 13 dmg + 4 Regen |
+| `crimsonpact` | Crimson Pact | Skill | 1 | Lose 6 HP. Gain 3 Regen + draw 2 | Lose 4 HP. Gain 5 Regen + draw 2 | Lose 4 HP. Gain 4 Regen + draw 2. Extreme: Lose 3 HP. Gain 6 Regen + draw 2 |
+| `bloodbank` | Blood Bank | Skill | 1 | Convert 10 HP into 10 Block | Convert 8 HP into 14 Block | Convert 8 HP into 14 Block. Extreme: Convert 6 HP into 18 Block |
+| `drainlife` | Drain Life | Attack | 2 | Deal 12 dmg. Heal HP equal to half dmg dealt | Deal 12 dmg. Heal HP equal to full dmg dealt | Deal 15 dmg. Heal half dmg. Extreme: Deal 15 dmg. Heal full dmg |
+| `batform` | Bat Form | Skill | 1 | Gain Fly this turn + draw 1 | Gain Fly + draw 2 + 2 Regen | Gain Fly + draw 2. Extreme: Gain Fly + draw 2 + 3 Regen |
+| `shadowfeast` | Shadow Feast | Attack | 1 | Deal 6 dmg. If Regen active: deal 10 instead | Deal 10 dmg. If Regen active: deal 15 instead | Deal 8 dmg. Regen active: deal 13. Extreme: Deal 12 dmg. Regen active: deal 18 |
+| `darkrite` | Dark Rite | Skill | 1 | Lose 8 HP. Gain 12 Block + 2 Regen | Lose 5 HP. Gain 16 Block + 3 Regen | Lose 6 HP. Gain 15 Block + 2 Regen. Extreme: Lose 4 HP. Gain 19 Block + 4 Regen |
+| `bloodrush` | Blood Rush | Skill | 0 | Spend 5 HP. Next attack deals +6 dmg | Spend 3 HP. Next attack deals +9 dmg | Spend 3 HP. Next attack +9 dmg. Extreme: Spend 2 HP. Next attack +12 dmg |
+| `nightstalk` | Night Stalk | Attack | 1 | Deal 5 dmg twice | Deal 7 dmg twice + 2 Regen | Deal 6 dmg twice. Extreme: Deal 8 dmg twice + 3 Regen |
+| `cursedveins` | Cursed Veins | Skill | 1 | Gain 3 Regen. Next card costs 0 | Gain 5 Regen. Next Skill card costs 0 | Gain 4 Regen. Next card costs 0. Extreme: Gain 6 Regen. Next Skill costs 0 |
 
 #### 🟣 Rare (6 cards)
 
-| Key | Name | Type | Cost | Base Effect | Extreme Roll Effect |
-|---|---|---|---|---|---|
-| `bloodlord` | Blood Lord | Power | 2 | Exhausted. Heal 2 HP each time you deal damage | Heal 3 HP each time you deal damage |
-| `eternalhunger` | Eternal Hunger | Power | 2 | Exhausted. Each Regen tick also deals 2 dmg to enemy | Each Regen tick deals 3 dmg to enemy |
-| `vampiricform` | Vampiric Form | Power | 2 | Exhausted. Fly activates automatically on turns you roll 1 or max | Fly activates + gain 3 Regen on those turns |
-| `darkascension` | Dark Ascension | Skill | 2 | Lose 15 HP. Gain 20 Block + 5 Regen | Lose 10 HP. Gain 28 Block + 7 Regen |
-| `soulrend` | Soul Rend | Attack | 2 | Deal 15 dmg. Heal HP equal to dmg dealt | Deal 22 dmg. Heal HP equal to dmg dealt |
-| `bloodtide` | Blood Tide | Skill | 1 | Exhaust. Double current Regen stacks | Exhaust. Double Regen + heal 5 HP |
+| Key | Name | Type | Cost | Base Effect | Extreme Roll Effect | Upgrade Effect |
+|---|---|---|---|---|---|---|
+| `bloodlord` | Blood Lord | Power | 2 | Exhausted. Heal 2 HP each time you deal damage | Heal 3 HP each time you deal damage | Heal 4 HP each time you deal damage |
+| `eternalhunger` | Eternal Hunger | Power | 2 | Exhausted. Each Regen tick also deals 2 dmg to enemy | Each Regen tick deals 3 dmg to enemy | Each Regen tick deals 4 dmg to enemy |
+| `vampiricform` | Vampiric Form | Power | 2 | Exhausted. Fly activates automatically on turns you roll 1 or max | Fly activates + gain 3 Regen on those turns | Fly activates + 4 Regen on rolls of 1 or max |
+| `darkascension` | Dark Ascension | Skill | 2 | Lose 15 HP. Gain 20 Block + 5 Regen | Lose 10 HP. Gain 28 Block + 7 Regen | Lose 12 HP. Gain 24 Block + 6 Regen. Extreme: Lose 8 HP. Gain 32 Block + 8 Regen |
+| `soulrend` | Soul Rend | Attack | 2 | Deal 15 dmg. Heal HP equal to dmg dealt | Deal 22 dmg. Heal HP equal to dmg dealt | Deal 19 dmg. Heal equal to dmg. Extreme: Deal 26 dmg. Heal equal to dmg |
+| `bloodtide` | Blood Tide | Skill | 1 | Exhaust. Double current Regen stacks | Exhaust. Double Regen + heal 5 HP | Double Regen + heal 5 HP. Exhaust. Extreme: Triple Regen + heal 8 HP. Exhaust |
 
 ---
 
@@ -778,59 +778,60 @@ Some cards are Exhausted on use — removed from combat for the rest of the figh
 
 #### 🟢 Common (15 cards — 10 starters + 5 reward)
 
-| Key | Name | Type | Cost | Base Effect | Max Roll Effect |
-|---|---|---|---|---|---|
-| `strike` | Strike | Attack | 1 | Deal 6 dmg | — |
-| `strike` | Strike | Attack | 1 | Deal 6 dmg | — |
-| `defend` | Defend | Skill | 1 | Gain 5 Block | — |
-| `defend` | Defend | Skill | 1 | Gain 5 Block | — |
-| `highorlow` | High or Low | Attack | 1 | Roll 4-6: deal 12. Roll 2-3: deal 5 | — |
-| `highorlow` | High or Low | Attack | 1 | Roll 4-6: deal 12. Roll 2-3: deal 5 | — |
-| `doubldown` | Double Down | Skill | 0 | Flip: double roll or drop to 2 | — |
-| `luckystrike` | Lucky Strike | Attack | 2 | Deal 8 dmg | Deal 20 dmg |
-| `hedgebet` | Hedge Bet | Skill | 1 | Gain Block equal to current roll | Gain Block equal to roll × 2 |
-| `wildcard` | Wild Card | Attack | 1 | Deal dmg equal to roll × 2 | Deal dmg equal to roll × 3 |
-| `longshot` | Long Shot | Attack | 1 | Roll 4-6: deal 10. Roll 2-3: deal 4 | Deal 16 dmg |
-| `safepull` | Safe Pull | Skill | 1 | Gain 4 Block. Set die to 4 (once per turn) | Gain 6 Block. Set die to 5 (once per turn) |
-| `risktaker` | Risk Taker | Skill | 0 | Reroll die. Draw 1 card | Reroll die. Draw 2 cards |
-| `oddscheck` | Odds Check | Skill | 1 | Draw 2. If roll is 4+: draw 3 instead | Draw 3. Gain 5 Gold |
-| `chipsin` | Chips In | Skill | 1 | Gain 5 Gold | Gain 5 Gold + draw 1 |
+| Key | Name | Type | Cost | Base Effect | Max Roll Effect | Upgrade Effect |
+|---|---|---|---|---|---|---|
+| `strike` | Strike | Attack | 1 | Deal 6 dmg | — | Deal 9 dmg |
+| `strike` | Strike | Attack | 1 | Deal 6 dmg | — | Deal 9 dmg |
+| `defend` | Defend | Skill | 1 | Gain 5 Block | — | Gain 8 Block |
+| `defend` | Defend | Skill | 1 | Gain 5 Block | — | Gain 8 Block |
+| `highorlow` | High or Low | Attack | 1 | Roll 4-6: deal 12. Roll 2-3: deal 5 | — | Roll 4-6: deal 18. Roll 2-3: deal 8 |
+| `highorlow` | High or Low | Attack | 1 | Roll 4-6: deal 12. Roll 2-3: deal 5 | — | Roll 4-6: deal 18. Roll 2-3: deal 8 |
+| `doubledown` | Double Down | Skill | 0 | Flip: win → double roll (capped at max). Lose → drop to 2 | — | Flip: win → set die to max. Lose → keep current |
+| `luckystrike` | Lucky Strike | Attack | 2 | Deal 8 dmg | Deal 20 dmg | Deal 12 dmg. Max: Deal 28 dmg |
+| `hedgebet` | Hedge Bet | Skill | 1 | Gain Block equal to current roll | Gain Block equal to roll × 2 | Gain Block = roll + 2. Max: Gain Block = roll × 2 + 2 |
+| `wildcard` | Wild Card | Attack | 1 | Deal dmg equal to roll × 2 | Deal dmg equal to roll × 3 | Deal dmg = roll × 2 + 2. Max: Deal dmg = roll × 3 + 2 |
+| `longshot` | Long Shot | Attack | 1 | Roll 4-6: deal 10. Roll 2-3: deal 4 | Deal 16 dmg | Roll 4-6: deal 14. Roll 2-3: deal 6. Max: Deal 20 dmg |
+| `safepull` | Safe Pull | Skill | 1 | Gain 4 Block. Set die to 4 (once per turn) | Gain 6 Block. Set die to 5 (once per turn) | Gain 6 Block. Set die to 5. Max: Gain 8 Block. Set die to 5 |
+| `risktaker` | Risk Taker | Skill | 0 | Reroll die. Draw 1 card | Reroll die. Draw 2 cards | Reroll die. Draw 2. Max: Reroll die. Draw 2 + 3 Block |
+| `oddscheck` | Odds Check | Skill | 1 | Draw 2. If roll is 4+: draw 3 instead | Draw 3. Gain 5 Gold | Draw 3. Roll 4+: draw 4. Max: Draw 3. Gain 8 Gold |
+| `chipsin` | Chips In | Skill | 1 | Gain 5 Gold | Gain 5 Gold + draw 1 | Gain 8 Gold. Max: Gain 8 Gold + draw 1 |
 
 #### 🔵 Uncommon (10 cards)
 
-| Key | Name | Type | Cost | Base Effect | Max Roll Effect |
-|---|---|---|---|---|---|
-| `allin` | All In | Attack | 2 | Deal dmg equal to roll × 4 | Deal dmg equal to roll × 5 |
-| `loadeddie` | Loaded Die | Skill | 1 | Set die to any value 3-5 (once per turn) | Set die to any value 3-6 (once per turn) |
-| `pocketaces` | Pocket Aces | Skill | 1 | Next attack deals +roll dmg | Next attack deals +(roll × 2) dmg |
-| `doubleornothing` | Double or Nothing | Attack | 1 | Deal 6 dmg. 50/50: deal 14 or take 6 dmg | Deal 6 dmg. 50/50: deal 20 or take 3 dmg |
-| `counttheodds` | Count the Odds | Skill | 0 | Look at top 2 cards. Keep 1 discard 1 | Look at top 3 cards. Keep 2 discard 1 |
-| `highstakes` | High Stakes | Skill | 1 | Gain Gold equal to roll × 3 | Gain Gold equal to roll × 5 |
-| `bluff` | Bluff | Skill | 1 | Apply Weak 2 to enemy | Apply Weak 2 + Vulnerable 1 to enemy |
-| `wildcardcombo` | Wild Combo | Attack | 1 | Deal 3 dmg. Draw 1. Reroll die | Deal 5 dmg. Draw 2. Reroll die |
-| `pressyourluck` | Press Your Luck | Attack | 2 | Deal 10 dmg. Reroll — if higher deal 6 more | Deal 14 dmg. Reroll — if higher deal 10 more |
-| `jackpot` | Jackpot | Skill | 1 | Gain Gold equal to roll × 4. Exhaust | Gain 40 Gold. Exhaust |
+| Key | Name | Type | Cost | Base Effect | Max Roll Effect | Upgrade Effect |
+|---|---|---|---|---|---|---|
+| `allin` | All In | Attack | 2 | Deal dmg equal to roll × 4 | Deal dmg equal to roll × 5 | Deal dmg = roll × 4 + 4. Max: Deal dmg = roll × 6 |
+| `loadeddie` | Loaded Die | Skill | 1 | Set die to any value 3-5 (once per turn) | Set die to any value 3-6 (once per turn) | Set die to any value 3-6. Max: Set die to any value 4-6 |
+| `pocketaces` | Pocket Aces | Skill | 1 | Next attack deals +roll dmg | Next attack deals +(roll × 2) dmg | Next attack +(roll + 2) dmg. Max: Next attack +(roll × 2 + 2) dmg |
+| `doubleornothing` | Double or Nothing | Attack | 1 | Deal 6 dmg. 50/50: deal 14 or take 6 dmg | Deal 6 dmg. 50/50: deal 20 or take 3 dmg | Deal 8 dmg. 50/50: deal 20 or take 4. Max: Deal 8 dmg. 50/50: deal 26 or take 2 |
+| `counttheodds` | Count the Odds | Skill | 0 | Look at top 2 cards. Keep 1 discard 1 | Look at top 3 cards. Keep 2 discard 1 | Look at top 3. Keep 2 discard 1. Max: Look at top 4. Keep 3 discard 1 |
+| `highstakes` | High Stakes | Skill | 1 | Gain Gold equal to roll × 3 | Gain Gold equal to roll × 5 | Gain Gold = roll × 4. Max: Gain Gold = roll × 6 + draw 1 |
+| `bluff` | Bluff | Skill | 1 | Apply Weak 2 to enemy | Apply Weak 2 + Vulnerable 1 to enemy | Apply Weak 3 to enemy. Max: Apply Weak 3 + Vulnerable 2 |
+| `wildcardcombo` | Wild Combo | Attack | 1 | Deal 3 dmg. Draw 1. Reroll die | Deal 5 dmg. Draw 2. Reroll die | Deal 5 dmg. Draw 2. Reroll. Max: Deal 7 dmg. Draw 2. Reroll |
+| `pressyourluck` | Press Your Luck | Attack | 2 | Deal 10 dmg. Reroll — if higher deal 6 more | Deal 14 dmg. Reroll — if higher deal 10 more | Deal 13 dmg. Reroll — higher: +8. Max: Deal 17 dmg. Reroll — higher: +12 |
+| `jackpot` | Jackpot | Skill | 1 | Gain Gold equal to roll × 4. Exhaust | Gain 40 Gold. Exhaust | Gain Gold = roll × 5. Exhaust. Max: Gain 50 Gold + draw 1. Exhaust |
 
 #### 🟣 Rare (6 cards)
 
-| Key | Name | Type | Cost | Base Effect | Max Roll Effect |
-|---|---|---|---|---|---|
-| `houseedge` | House Edge | Power | 2 | Exhausted. Min die roll raised to 3 this combat | Min die roll raised to 4 this combat |
-| `luckystreak` | Lucky Streak | Power | 1 | Exhausted. Each max roll draws 1 card | Each max roll draws 1 card + deals 4 dmg |
-| `gamblersfallacy` | Gambler's Fallacy | Power | 2 | Exhausted. After 3 non-max rolls in a row, next roll is guaranteed max | After 2 non-max rolls, next roll is guaranteed max |
-| `bettingitall` | Betting It All | Attack | 3 | Deal dmg equal to Gold ÷ 5 (max 30). Exhaust | Deal dmg equal to Gold ÷ 4 (max 40). Exhaust |
-| `loadedhouse` | Loaded House | Skill | 1 | Exhaust. Next 2 dice rolls are automatically max | Exhaust. Next 3 dice rolls are automatically max |
-| `devilsdeal` | Devil's Deal | Skill | 1 | Gain 3 Energy. Lose Gold equal to roll × 10. Min cost 1 | Gain 3 Energy. Lose Gold equal to roll × 5. Min cost 1 |
+| Key | Name | Type | Cost | Base Effect | Max Roll Effect | Upgrade Effect |
+|---|---|---|---|---|---|---|
+| `houseedge` | House Edge | Power | 2 | Exhausted. Min die roll raised to 3 this combat | Min die roll raised to 4 this combat | Min die roll raised to 4 |
+| `luckystreak` | Lucky Streak | Power | 1 | Exhausted. Each max roll draws 1 card | Each max roll draws 1 card + deals 4 dmg | Each max roll draws 1 card + 6 dmg |
+| `gamblersfallacy` | Gambler's Fallacy | Power | 2 | Exhausted. After 3 non-max rolls in a row, next roll is guaranteed max | After 2 non-max rolls, next roll is guaranteed max | After 2 non-max rolls, next is guaranteed max |
+| `bettingitall` | Betting It All | Attack | 3 | Deal dmg equal to Gold ÷ 5 (max 30). Exhaust | Deal dmg equal to Gold ÷ 4 (max 40). Exhaust | Deal dmg = Gold ÷ 4 (max 40). Exhaust. Max: Deal dmg = Gold ÷ 3 (max 50). Exhaust |
+| `loadedhouse` | Loaded House | Skill | 1 | Exhaust. Next 2 dice rolls are automatically max | Exhaust. Next 3 dice rolls are automatically max | Next 3 rolls auto max. Exhaust. Max: Next 4 rolls auto max. Exhaust |
+| `devilsdeal` | Devil's Deal | Skill | 1 | Gain 3 Energy. Lose Gold equal to roll × 10. Min cost 1 | Gain 3 Energy. Lose Gold equal to roll × 5. Min cost 1 | Gain 3 Energy. Lose Gold = roll × 8. Min cost 1. Max: Gain 3 Energy. Lose Gold = roll × 4. Min cost 1 |
 
 ### Shared Pool
-| Key | Name | Type | Cost | Base Effect | Max Roll Effect |
+
+| Key | Name | Type | Cost | Base Effect | Upgrade Effect |
 |---|---|---|---|---|---|
-| `ragefuel` | Rage Fuel | Power | 1 | Gain Strength. All attacks +1 dmg this combat |
-| `blizzard` | Blizzard | Attack | 2 | Deal 5 dmg 3 times |
-| `stealheal` | Steal & Heal | Attack | 2 |Deal 10 dmg, heal 5 HP |
-| `curseddice` | Cursed Die | Skill | 0 | Reroll the die. Take 3 damage |
-| `ironwall` | Iron Wall | Skill | 2 | Gain 14 Block |
-| `soulsteal` | Soul Steal | Attack | 1 | Deal 7 dmg. Gain 1 Soul |
+| `ragefuel` | Rage Fuel | Skill | 1 | Gain Strength. All attacks +1 dmg this combat | Attacks deal +3 dmg this turn. Draw 1 |
+| `blizzard` | Blizzard | Attack | 2 | Deal 5 dmg 3 times | Deal 8 dmg 3 times |
+| `stealheal` | Steal & Heal | Attack | 2 | Deal 10 dmg, heal 5 HP | Deal 14 dmg. Heal 9 HP |
+| `curseddice` | Cursed Die | Skill | 0 | Reroll the die. Take 3 damage | Reroll die. Take 1 damage |
+| `ironwall` | Iron Wall | Skill | 2 | Gain 14 Block | Gain 20 Block |
+| `soulsteal` | Soul Steal | Attack | 1 | Deal 7 dmg. Gain 1 Soul | Deal 10 dmg. Heal 5 HP. Draw 1 |
 
 ---
 

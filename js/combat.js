@@ -51,6 +51,9 @@ function startAldricFight() {
   G.block = 0;
   G.statuses = { player: [], enemy: [] };
   G.exhaustedPile = [];
+  G._forcedMaxRolls = 0;
+  G.dieSetUsedThisTurn = false;
+  G.turnCardsPlayed = 0;
   G.inBoss = true;
   G.isFinalBoss = true;
 
@@ -354,6 +357,9 @@ function startCombat(isElite) {
   G.block = 0;
   G.statuses = { player: [], enemy: [] };
   G.exhaustedPile = [];
+  G._forcedMaxRolls = 0;
+  G.dieSetUsedThisTurn = false;
+  G.turnCardsPlayed = 0;
   G.inBoss = false;
 
   updateCombatSprites(G.charKey, null);
@@ -375,6 +381,9 @@ function startBossFight() {
   G.block = 0;
   G.statuses = { player: [], enemy: [] };
   G.exhaustedPile = [];
+  G._forcedMaxRolls = 0;
+  G.dieSetUsedThisTurn = false;
+  G.turnCardsPlayed = 0;
   G.inBoss = true;
 
   showScreen('combat-screen');
@@ -558,6 +567,8 @@ function startTurn() {
   G._manaSurge = false; // reset each turn
   // Enemy block persists until player damages through it — does NOT reset each turn
   G.rerollUsed = false;
+  G.dieSetUsedThisTurn = false;
+  G.turnCardsPlayed = 0;
   G.diceRolled = false;
 
   // Use active die
@@ -587,7 +598,13 @@ function startTurn() {
 
 function rollDice(g) {
   SFX.diceRoll();
-  let roll = Math.floor(Math.random() * g.diceMax) + 1;
+  let roll;
+  if ((g._forcedMaxRolls || 0) > 0) {
+    roll = g.diceMax;
+    g._forcedMaxRolls--;
+  } else {
+    roll = Math.floor(Math.random() * g.diceMax) + 1;
+  }
   // Gambler min 2
   if (g.charKey === 'gambler' && roll < 2) roll = 2;
   // Apply die-specific bonus
@@ -711,6 +728,7 @@ function playCard(cardKey) {
   if (G.runStats) G.runStats.cardsPlayed++;
   const roll = G.currentDie || 1;
   card.effect(G, roll);
+  G.turnCardsPlayed = (G.turnCardsPlayed || 0) + 1;
   if (G.enemy && G.enemy.hp > 0 && card.type === 'Skill' && G.enemy.special && G.enemy.special.trigger === 'skill') {
     try { G.enemy.special.effect(G); } catch (err) { console.log('skill special ability error', err); }
   }
@@ -730,7 +748,7 @@ function playCard(cardKey) {
   const idx = G.hand.indexOf(cardKey);
   if (idx >= 0) {
     G.hand.splice(idx, 1);
-    if (card.type === 'Power') {
+    if (card.type === 'Power' || card.exhaust) {
       // Power cards are exhausted — removed from combat, not discarded
       // They stay in the deck for future runs but don't cycle back this combat
       if (!G.exhaustedPile) G.exhaustedPile = [];

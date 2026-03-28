@@ -160,6 +160,788 @@ const CARD_UPGRADES = {
   soulsteal:    { name:'Soul Steal+',   emoji:'👻', type:'Attack', cost:1, desc:'Deal 10 dmg. Gain 2 Souls.',                  dice:false, effect:(g)=>{ dealDamage(g,'enemy',10); g.souls+=2; updateHUD(); } },
 };
 
+const STRUCTURED_CARD_DEFS = [
+  {
+    id: 'strike',
+    name: 'Strike',
+    emoji: '⚔️',
+    classKey: 'shared',
+    rarity: 'common',
+    type: 'Attack',
+    cost: 1,
+    desc: 'Deal 6 damage.',
+    tags: ['attack', 'starter'],
+    actions: [
+      { type: 'damage', amount: 6 },
+    ],
+    upgrade: {
+      name: 'Strike+',
+      desc: 'Deal 9 dmg.',
+      actions: [
+        { type: 'damage', amount: 9 },
+      ],
+    },
+  },
+  {
+    id: 'defend',
+    name: 'Defend',
+    emoji: '🛡️',
+    classKey: 'shared',
+    rarity: 'common',
+    type: 'Skill',
+    cost: 1,
+    desc: 'Gain 5 Block.',
+    tags: ['block', 'starter'],
+    actions: [
+      { type: 'block', amount: 5 },
+    ],
+    upgrade: {
+      name: 'Defend+',
+      desc: 'Gain 8 Block.',
+      actions: [
+        { type: 'block', amount: 8 },
+      ],
+    },
+  },
+  {
+    id: 'quickstrike',
+    name: 'Quick Strike',
+    emoji: '💨',
+    classKey: 'thief',
+    rarity: 'common',
+    type: 'Attack',
+    cost: 1,
+    dice: true,
+    affinityBonus: 'odd',
+    desc: 'Deal 4 dmg twice. Odd: deal 5 twice.',
+    tags: ['attack', 'multi-hit'],
+    actions: [
+      {
+        type: 'branch',
+        when: { affinity: 'odd' },
+        then: [{ type: 'damage', amount: 5 }, { type: 'damage', amount: 5 }],
+        else: [{ type: 'damage', amount: 4 }, { type: 'damage', amount: 4 }],
+      },
+    ],
+    upgrade: {
+      name: 'Quick Strike+',
+      desc: 'Deal 6 dmg twice. Odd: Deal 8 dmg twice.',
+      actions: [
+        {
+          type: 'branch',
+          when: { affinity: 'odd' },
+          then: [{ type: 'damage', amount: 8 }, { type: 'damage', amount: 8 }],
+          else: [{ type: 'damage', amount: 6 }, { type: 'damage', amount: 6 }],
+        },
+      ],
+    },
+  },
+  {
+    id: 'shadowstep',
+    name: 'Shadow Step',
+    emoji: '🌑',
+    classKey: 'thief',
+    rarity: 'common',
+    type: 'Skill',
+    cost: 1,
+    dice: true,
+    affinityBonus: 'odd',
+    desc: 'Gain 4 Block. Odd: gain 7 Block + draw 1.',
+    tags: ['block', 'draw'],
+    actions: [
+      {
+        type: 'branch',
+        when: { affinity: 'odd' },
+        then: [{ type: 'block', amount: 7 }, { type: 'draw', amount: 1 }],
+        else: [{ type: 'block', amount: 4 }],
+      },
+    ],
+    upgrade: {
+      name: 'Shadow Step+',
+      desc: 'Gain 6 Block. Odd: Gain 10 Block + draw 1.',
+      actions: [
+        {
+          type: 'branch',
+          when: { affinity: 'odd' },
+          then: [{ type: 'block', amount: 10 }, { type: 'draw', amount: 1 }],
+          else: [{ type: 'block', amount: 6 }],
+        },
+      ],
+    },
+  },
+  {
+    id: 'poisonblade',
+    name: 'Poison Blade',
+    emoji: '☠️',
+    classKey: 'thief',
+    rarity: 'common',
+    type: 'Attack',
+    cost: 2,
+    dice: true,
+    affinityBonus: 'odd',
+    desc: 'Deal 6 dmg. Odd: Deal 6 dmg + apply 3 Poison.',
+    tags: ['attack', 'poison'],
+    actions: [
+      { type: 'damage', amount: 6 },
+      {
+        type: 'branch',
+        when: { affinity: 'odd' },
+        then: [{ type: 'applyStatus', target: 'enemy', status: '☠️Poison', amount: 3 }],
+        else: [],
+      },
+    ],
+    upgrade: {
+      name: 'Poison Blade+',
+      desc: 'Deal 9 dmg. Odd: Deal 9 dmg + 4 Poison.',
+      actions: [
+        { type: 'damage', amount: 9 },
+        {
+          type: 'branch',
+          when: { affinity: 'odd' },
+          then: [{ type: 'applyStatus', target: 'enemy', status: '☠️Poison', amount: 4 }],
+          else: [],
+        },
+      ],
+    },
+  },
+  {
+    id: 'pickpocket',
+    name: 'Pick Pocket',
+    emoji: '💰',
+    classKey: 'thief',
+    rarity: 'common',
+    type: 'Skill',
+    cost: 1,
+    dice: true,
+    affinityBonus: 'odd',
+    desc: 'Draw 2 cards. Odd: gain 5 Gold.',
+    tags: ['draw', 'gold'],
+    actions: [
+      { type: 'draw', amount: 2 },
+      {
+        type: 'branch',
+        when: { affinity: 'odd' },
+        then: [{ type: 'gainGold', amount: 5 }],
+        else: [],
+      },
+    ],
+    upgrade: {
+      name: 'Pick Pocket+',
+      desc: 'Draw 3. Odd: Draw 3 + 8 Gold.',
+      actions: [
+        { type: 'draw', amount: 3 },
+        {
+          type: 'branch',
+          when: { affinity: 'odd' },
+          then: [{ type: 'gainGold', amount: 8 }],
+          else: [],
+        },
+      ],
+    },
+  },
+  {
+    id: 'smokescreen',
+    name: 'Smoke Screen',
+    emoji: '💨',
+    classKey: 'thief',
+    rarity: 'common',
+    type: 'Skill',
+    cost: 1,
+    desc: 'Gain 6 Block. Discard 1, draw 1.',
+    tags: ['block', 'draw', 'discard'],
+    actions: [
+      { type: 'block', amount: 6 },
+      { type: 'discardRandom', amount: 1 },
+      { type: 'draw', amount: 1 },
+    ],
+    upgrade: {
+      name: 'Smoke Screen+',
+      desc: 'Gain 9 Block. Discard 1 draw 1.',
+      actions: [
+        { type: 'block', amount: 9 },
+        { type: 'discardRandom', amount: 1 },
+        { type: 'draw', amount: 1 },
+      ],
+    },
+  },
+  {
+    id: 'swiftjab',
+    name: 'Swift Jab',
+    emoji: '🗡️',
+    classKey: 'thief',
+    rarity: 'common',
+    type: 'Attack',
+    cost: 0,
+    dice: true,
+    affinityBonus: 'odd',
+    desc: 'Deal 3 dmg. Odd: deal 5 dmg.',
+    tags: ['attack', 'zero-cost'],
+    actions: [
+      {
+        type: 'branch',
+        when: { affinity: 'odd' },
+        then: [{ type: 'damage', amount: 5 }],
+        else: [{ type: 'damage', amount: 3 }],
+      },
+    ],
+    upgrade: {
+      name: 'Swift Jab+',
+      desc: 'Deal 4 dmg. Odd: Deal 6 dmg.',
+      actions: [
+        {
+          type: 'branch',
+          when: { affinity: 'odd' },
+          then: [{ type: 'damage', amount: 6 }],
+          else: [{ type: 'damage', amount: 4 }],
+        },
+      ],
+    },
+  },
+  {
+    id: 'slipaway',
+    name: 'Slip Away',
+    emoji: '🫥',
+    classKey: 'thief',
+    rarity: 'common',
+    type: 'Skill',
+    cost: 0,
+    dice: true,
+    affinityBonus: 'odd',
+    desc: 'Draw 1 card. Odd: Draw 1 + gain 3 Block.',
+    tags: ['draw', 'block', 'zero-cost'],
+    actions: [
+      { type: 'draw', amount: 1 },
+      {
+        type: 'branch',
+        when: { affinity: 'odd' },
+        then: [{ type: 'block', amount: 3 }],
+        else: [],
+      },
+    ],
+    upgrade: {
+      name: 'Slip Away+',
+      desc: 'Draw 1 + 2 Block. Odd: Draw 2 + 2 Block.',
+      actions: [
+        { type: 'block', amount: 2 },
+        {
+          type: 'branch',
+          when: { affinity: 'odd' },
+          then: [{ type: 'draw', amount: 2 }],
+          else: [{ type: 'draw', amount: 1 }],
+        },
+      ],
+    },
+  },
+  {
+    id: 'cheapshot',
+    name: 'Cheap Shot',
+    emoji: '🥊',
+    classKey: 'thief',
+    rarity: 'common',
+    type: 'Attack',
+    cost: 1,
+    dice: true,
+    affinityBonus: 'odd',
+    desc: 'Deal 5 dmg + Weak 1. Odd: Deal 5 dmg + Weak 2.',
+    tags: ['attack', 'weak'],
+    actions: [
+      { type: 'damage', amount: 5 },
+      {
+        type: 'branch',
+        when: { affinity: 'odd' },
+        then: [{ type: 'applyStatus', target: 'enemy', status: '😵Weak', amount: 2 }],
+        else: [{ type: 'applyStatus', target: 'enemy', status: '😵Weak', amount: 1 }],
+      },
+    ],
+    upgrade: {
+      name: 'Cheap Shot+',
+      desc: 'Deal 7 dmg + Weak 1. Odd: Deal 7 dmg + Weak 2.',
+      actions: [
+        { type: 'damage', amount: 7 },
+        {
+          type: 'branch',
+          when: { affinity: 'odd' },
+          then: [{ type: 'applyStatus', target: 'enemy', status: '😵Weak', amount: 2 }],
+          else: [{ type: 'applyStatus', target: 'enemy', status: '😵Weak', amount: 1 }],
+        },
+      ],
+    },
+  },
+  {
+    id: 'coinflick',
+    name: 'Coin Flick',
+    emoji: '🪙',
+    classKey: 'thief',
+    rarity: 'common',
+    type: 'Skill',
+    cost: 1,
+    dice: true,
+    affinityBonus: 'odd',
+    desc: 'Gain 4 Gold. Odd: Gain 4 Gold + draw 1.',
+    tags: ['gold', 'draw'],
+    actions: [
+      { type: 'gainGold', amount: 4 },
+      {
+        type: 'branch',
+        when: { affinity: 'odd' },
+        then: [{ type: 'draw', amount: 1 }],
+        else: [],
+      },
+    ],
+    upgrade: {
+      name: 'Coin Flick+',
+      desc: 'Gain 8 Gold. Odd: Gain 8 Gold + draw 1.',
+      actions: [
+        { type: 'gainGold', amount: 8 },
+        {
+          type: 'branch',
+          when: { affinity: 'odd' },
+          then: [{ type: 'draw', amount: 1 }],
+          else: [],
+        },
+      ],
+    },
+  },
+  {
+    id: 'nimblepace',
+    name: 'Nimble Pace',
+    emoji: '👣',
+    classKey: 'thief',
+    rarity: 'common',
+    type: 'Skill',
+    cost: 1,
+    dice: true,
+    affinityBonus: 'odd',
+    desc: 'Draw 2. Discard 1. Odd: Draw 3. Discard 1.',
+    tags: ['draw', 'discard'],
+    actions: [
+      {
+        type: 'branch',
+        when: { affinity: 'odd' },
+        then: [{ type: 'draw', amount: 3 }],
+        else: [{ type: 'draw', amount: 2 }],
+      },
+      { type: 'discardRandom', amount: 1 },
+    ],
+    upgrade: {
+      name: 'Nimble Pace+',
+      desc: 'Draw 3. Discard 1. Odd: Draw 4. Discard 1.',
+      actions: [
+        {
+          type: 'branch',
+          when: { affinity: 'odd' },
+          then: [{ type: 'draw', amount: 4 }],
+          else: [{ type: 'draw', amount: 3 }],
+        },
+        { type: 'discardRandom', amount: 1 },
+      ],
+    },
+  },
+  {
+    id: 'wildcard',
+    name: 'Wild Card',
+    emoji: '🃏',
+    classKey: 'gambler',
+    rarity: 'common',
+    type: 'Attack',
+    cost: 1,
+    desc: 'Deal damage equal to roll × 2.',
+    tags: ['attack', 'roll-scale'],
+    actions: [
+      { type: 'damage', amount: { kind: 'rollScale', multiplier: 2 } },
+    ],
+    upgrade: {
+      name: 'Wild Card+',
+      desc: 'Deal dmg = roll × 2 + 2. Max: Deal dmg = roll × 3 + 2.',
+      actions: [
+        {
+          type: 'branch',
+          when: { maxRoll: true },
+          then: [{ type: 'damage', amount: { kind: 'rollScale', multiplier: 3, bonus: 2 } }],
+          else: [{ type: 'damage', amount: { kind: 'rollScale', multiplier: 2, bonus: 2 } }],
+        },
+      ],
+    },
+  },
+  {
+    id: 'poisoncloud',
+    name: 'Poison Cloud',
+    emoji: '☠️',
+    classKey: 'thief',
+    rarity: 'uncommon',
+    type: 'Skill',
+    cost: 1,
+    dice: true,
+    affinityBonus: 'odd',
+    desc: 'Apply 4 Poison. Odd: apply 6 Poison.',
+    tags: ['poison', 'status'],
+    actions: [
+      {
+        type: 'branch',
+        when: { affinity: 'odd' },
+        then: [{ type: 'applyStatus', target: 'enemy', status: '☠️Poison', amount: 6 }],
+        else: [{ type: 'applyStatus', target: 'enemy', status: '☠️Poison', amount: 4 }],
+      },
+    ],
+    upgrade: {
+      name: 'Poison Cloud+',
+      desc: 'Apply 6 Poison. Odd: apply 8 Poison.',
+      actions: [
+        {
+          type: 'branch',
+          when: { affinity: 'odd' },
+          then: [{ type: 'applyStatus', target: 'enemy', status: '☠️Poison', amount: 8 }],
+          else: [{ type: 'applyStatus', target: 'enemy', status: '☠️Poison', amount: 6 }],
+        },
+      ],
+    },
+  },
+  {
+    id: 'deathmark',
+    name: 'Death Mark',
+    emoji: '💀',
+    classKey: 'thief',
+    rarity: 'rare',
+    type: 'Skill',
+    cost: 1,
+    exhaust: true,
+    desc: 'Double current Poison stacks on enemy. Exhaust.',
+    tags: ['poison', 'exhaust'],
+    actions: [
+      { type: 'multiplyStatus', target: 'enemy', status: '☠️Poison', multiplier: 2 },
+    ],
+    upgrade: {
+      name: 'Death Mark+',
+      dice: true,
+      affinityBonus: 'odd',
+      desc: 'Double Poison stacks. Draw 1. Exhaust. Odd: Triple Poison stacks. Draw 1. Exhaust.',
+      actions: [
+        {
+          type: 'branch',
+          when: { affinity: 'odd' },
+          then: [{ type: 'multiplyStatus', target: 'enemy', status: '☠️Poison', multiplier: 3 }],
+          else: [{ type: 'multiplyStatus', target: 'enemy', status: '☠️Poison', multiplier: 2 }],
+        },
+        { type: 'draw', amount: 1 },
+      ],
+    },
+  },
+  {
+    id: 'loadedhouse',
+    name: 'Loaded House',
+    emoji: '🎰',
+    classKey: 'gambler',
+    rarity: 'rare',
+    type: 'Skill',
+    cost: 1,
+    exhaust: true,
+    desc: 'Next 2 dice rolls are automatically max. Exhaust.',
+    tags: ['dice', 'exhaust'],
+    actions: [
+      { type: 'forceMaxRolls', amount: 2 },
+    ],
+    upgrade: {
+      name: 'Loaded House+',
+      desc: 'Next 3 rolls auto max. Max: Next 4 rolls auto max. Exhaust.',
+      actions: [
+        {
+          type: 'branch',
+          when: { maxRoll: true },
+          then: [{ type: 'forceMaxRolls', amount: 4 }],
+          else: [{ type: 'forceMaxRolls', amount: 3 }],
+        },
+      ],
+    },
+  },
+  {
+    id: 'curseddice',
+    name: 'Cursed Die',
+    emoji: '🎴',
+    classKey: 'shared',
+    rarity: 'shared',
+    type: 'Skill',
+    cost: 0,
+    desc: 'Reroll the die. Take 3 damage.',
+    tags: ['dice', 'self-damage'],
+    actions: [
+      { type: 'rerollDie' },
+      { type: 'selfDamage', amount: 3 },
+    ],
+    upgrade: {
+      name: 'Cursed Die+',
+      desc: 'Reroll the die. Take 1 damage.',
+      actions: [
+        { type: 'rerollDie' },
+        { type: 'selfDamage', amount: 1 },
+      ],
+    },
+  },
+];
+
+function getCardEvalContext(g, roll, cardDef) {
+  const currentDieType = g.currentDieType || getDie(g.activeDie);
+  return {
+    roll: roll || g.currentDie || 1,
+    dieMax: currentDieType ? currentDieType.max : g.diceMax,
+    cardsPlayedThisTurn: g.turnCardsPlayed || 0,
+    cardDef,
+  };
+}
+
+function syncCardEvalContext(g, ctx) {
+  const currentDieType = g.currentDieType || getDie(g.activeDie);
+  ctx.roll = g.currentDie || ctx.roll || 1;
+  ctx.dieMax = currentDieType ? currentDieType.max : g.diceMax;
+}
+
+function cardConditionMatches(g, ctx, when) {
+  if (!when) return true;
+  return Object.entries(when).every(([key, expected]) => {
+    if (key === 'affinity') return checkAffinity(g, ctx.roll, expected);
+    if (key === 'maxRoll') return expected ? ctx.roll === ctx.dieMax : ctx.roll !== ctx.dieMax;
+    if (key === 'evenRoll') return expected ? ctx.roll % 2 === 0 : ctx.roll % 2 !== 0;
+    if (key === 'oddRoll') return expected ? ctx.roll % 2 !== 0 : ctx.roll % 2 === 0;
+    if (key === 'highRoll') return expected ? ctx.roll >= 6 : ctx.roll < 6;
+    if (key === 'extremeRoll') return expected ? (ctx.roll === 1 || ctx.roll === ctx.dieMax) : (ctx.roll !== 1 && ctx.roll !== ctx.dieMax);
+    if (key === 'firstCardOnly') return expected ? ctx.cardsPlayedThisTurn === 0 : ctx.cardsPlayedThisTurn > 0;
+    if (key === 'regenActive') {
+      const regen = g.statuses.player.find(s => s.name === '💚Regen');
+      return expected ? (regen || { stacks: 0 }).stacks > 0 : !(regen && regen.stacks > 0);
+    }
+    if (key === 'enemyPoisonAtLeast') {
+      const poison = g.statuses.enemy.find(s => s.name === '☠️Poison');
+      return (poison ? poison.stacks : 0) >= expected;
+    }
+    if (key === 'goldAtLeast') return (g.gold || 0) >= expected;
+    return true;
+  });
+}
+
+function resolveCardValue(g, ctx, value) {
+  if (value == null) return 0;
+  if (typeof value === 'number') return value;
+  if (typeof value === 'function') return value(g, ctx);
+
+  if (value.kind === 'roll') return ctx.roll;
+  if (value.kind === 'rollScale') return (ctx.roll * (value.multiplier || 1)) + (value.bonus || 0);
+  if (value.kind === 'goldScale') {
+    const scaled = Math.floor((g.gold || 0) / (value.divisor || 1)) + (value.bonus || 0);
+    return Math.min(scaled, value.max == null ? scaled : value.max);
+  }
+  if (value.kind === 'statusStacks') {
+    const arr = value.target === 'player' ? g.statuses.player : g.statuses.enemy;
+    const status = arr.find(s => s.name === value.status);
+    const stacks = status ? status.stacks : 0;
+    return (stacks * (value.multiplier || 1)) + (value.bonus || 0);
+  }
+  return 0;
+}
+
+function setCombatDieValue(g, value) {
+  if (g.dieSetUsedThisTurn) {
+    showMsg('Die can only be set once per turn!');
+    return false;
+  }
+
+  const nextValue = Math.max(1, Math.min(value, g.diceMax));
+  g.currentDie = nextValue;
+  g.dieSetUsedThisTurn = true;
+
+  const dieEl = document.getElementById('current-die');
+  if (dieEl) {
+    dieEl.classList.remove('rolling');
+    dieEl.textContent = nextValue;
+  }
+  checkAffinityHighlight(g, nextValue);
+  renderHand();
+  return true;
+}
+
+function runCardActions(g, ctx, actions) {
+  if (!actions || !actions.length) return;
+  actions.forEach(action => runCardAction(g, ctx, action));
+}
+
+function runCardAction(g, ctx, action) {
+  if (!action) return;
+  if (action.type !== 'branch' && action.when && !cardConditionMatches(g, ctx, action.when)) return;
+
+  switch (action.type) {
+    case 'branch':
+      runCardActions(g, ctx, cardConditionMatches(g, ctx, action.when) ? action.then : action.else);
+      return;
+    case 'damage':
+      dealDamage(g, action.target || 'enemy', resolveCardValue(g, ctx, action.amount));
+      return;
+    case 'block':
+      gainBlock(g, action.target || 'player', resolveCardValue(g, ctx, action.amount));
+      return;
+      case 'draw':
+        drawCards(g, resolveCardValue(g, ctx, action.amount));
+        return;
+      case 'discardRandom': {
+        const discardCount = resolveCardValue(g, ctx, action.amount);
+        for (let i = 0; i < discardCount; i++) {
+          if (!g.hand || !g.hand.length) break;
+          const randomIndex = Math.floor(Math.random() * g.hand.length);
+          const [discarded] = g.hand.splice(randomIndex, 1);
+          if (discarded != null) {
+            g.discardPile.push(discarded);
+          }
+        }
+        return;
+      }
+      case 'applyStatus':
+        applyStatus(g, action.target || 'enemy', action.status, resolveCardValue(g, ctx, action.amount));
+        return;
+    case 'heal':
+      healPlayer(g, resolveCardValue(g, ctx, action.amount));
+      return;
+    case 'gainGold':
+      g.gold += resolveCardValue(g, ctx, action.amount);
+      updateHUD();
+      return;
+    case 'gainEnergy':
+      g.energy += resolveCardValue(g, ctx, action.amount);
+      return;
+    case 'rerollDie':
+      rollDice(g);
+      syncCardEvalContext(g, ctx);
+      return;
+    case 'setDie':
+      setCombatDieValue(g, resolveCardValue(g, ctx, action.amount));
+      syncCardEvalContext(g, ctx);
+      return;
+    case 'selfDamage':
+      {
+        const selfDamage = resolveCardValue(g, ctx, action.amount);
+        const minHp = action.minHp == null ? 0 : action.minHp;
+        g.hp = Math.max(minHp, g.hp - selfDamage);
+        if (typeof noteRunFinalBlow === 'function') noteRunFinalBlow(g, selfDamage);
+        floatDamage('player-combatant', selfDamage, 'dmg');
+      }
+      renderAll();
+      return;
+    case 'multiplyStatus': {
+      const arr = action.target === 'player' ? g.statuses.player : g.statuses.enemy;
+      const status = arr.find(s => s.name === action.status);
+      if (status && status.stacks > 0) {
+        status.stacks *= action.multiplier || 1;
+      }
+      return;
+    }
+    case 'forceMaxRolls':
+      g._forcedMaxRolls = (g._forcedMaxRolls || 0) + resolveCardValue(g, ctx, action.amount);
+      return;
+    default:
+      return;
+  }
+}
+
+function buildStructuredCard(def, upgraded) {
+  const tier = upgraded && def.upgrade ? def.upgrade : {};
+  const runtime = {
+    structured: true,
+    id: upgraded ? `${def.id}+` : def.id,
+    baseId: def.id,
+    name: tier.name || (upgraded ? `${def.name}+` : def.name),
+    emoji: tier.emoji || def.emoji,
+    classKey: tier.classKey || def.classKey,
+    rarity: tier.rarity || def.rarity,
+    type: tier.type || def.type,
+    cost: tier.cost == null ? def.cost : tier.cost,
+    desc: tier.desc || def.desc,
+    dice: tier.dice == null ? !!def.dice : !!tier.dice,
+    affinityBonus: tier.affinityBonus || def.affinityBonus,
+    tags: (tier.tags || def.tags || []).slice(),
+    exhaust: tier.exhaust == null ? !!def.exhaust : !!tier.exhaust,
+    upgradeData: def.upgrade || null,
+    effect(g, roll) {
+      const ctx = getCardEvalContext(g, roll, runtime);
+      runCardActions(g, ctx, tier.actions || def.actions || []);
+    },
+  };
+  return runtime;
+}
+
+const STRUCTURED_ACTION_TYPES = new Set([
+  'branch',
+  'damage',
+  'block',
+  'draw',
+  'discardRandom',
+  'applyStatus',
+  'heal',
+  'gainGold',
+  'gainEnergy',
+  'rerollDie',
+  'setDie',
+  'selfDamage',
+  'multiplyStatus',
+  'forceMaxRolls',
+]);
+
+function validateStructuredActions(cardId, actions, path = 'actions') {
+  if (!Array.isArray(actions)) {
+    console.warn(`[cards] ${cardId} ${path} should be an array.`);
+    return false;
+  }
+
+  let isValid = true;
+  actions.forEach((action, idx) => {
+    const actionPath = `${path}[${idx}]`;
+    if (!action || !action.type) {
+      console.warn(`[cards] ${cardId} ${actionPath} is missing an action type.`);
+      isValid = false;
+      return;
+    }
+    if (!STRUCTURED_ACTION_TYPES.has(action.type)) {
+      console.warn(`[cards] ${cardId} ${actionPath} uses unknown action type "${action.type}".`);
+      isValid = false;
+      return;
+    }
+    if (action.type === 'branch') {
+      const thenValid = validateStructuredActions(cardId, action.then || [], `${actionPath}.then`);
+      const elseValid = !action.else || validateStructuredActions(cardId, action.else, `${actionPath}.else`);
+      isValid = thenValid && elseValid && isValid;
+    }
+  });
+  return isValid;
+}
+
+function validateStructuredCardDef(def) {
+  const requiredFields = ['id', 'name', 'type', 'cost', 'desc'];
+  let isValid = true;
+
+  requiredFields.forEach(field => {
+    if (def[field] == null || def[field] === '') {
+      console.warn(`[cards] Structured card is missing required field "${field}".`, def);
+      isValid = false;
+    }
+  });
+
+  if (!validateStructuredActions(def.id || '(unknown)', def.actions || [], 'actions')) {
+    isValid = false;
+  }
+  if (def.upgrade && def.upgrade.actions && !validateStructuredActions(def.id, def.upgrade.actions, 'upgrade.actions')) {
+    isValid = false;
+  }
+
+  return isValid;
+}
+
+function registerStructuredCard(def) {
+  if (!validateStructuredCardDef(def)) return;
+  const baseCard = buildStructuredCard(def, false);
+  CARDS[def.id] = baseCard;
+  if (def.upgrade) {
+    CARD_UPGRADES[def.id] = buildStructuredCard(def, true);
+    CARDS[def.id + '+'] = CARD_UPGRADES[def.id];
+  }
+}
+
+STRUCTURED_CARD_DEFS.forEach(registerStructuredCard);
+
 // Register upgraded cards into CARDS with a '+' suffix key
 Object.entries(CARD_UPGRADES).forEach(([key, card]) => {
   CARDS[key + '+'] = card;
@@ -945,10 +1727,27 @@ function roomLabel(type) {
 const CHAR_REWARD_POOLS = {
   barbarian: ['ragefuel','heavyblow','warshout','ironbash','ironwall','soulsteal','curseddice','stealheal','blizzard'],
   mage:      ['fireball','frostbolt','arcanebarrier','blizzard','arcanesight','arcanemomentum','arcaneboost','voidchannel','ironwall','soulsteal'],
-  thief:     ['quickstrike','shadowstep','poisonblade','pickpocket','smokescreen','soulsteal','stealheal','curseddice','blizzard'],
-  gambler:   ['highorlow','doubldown','luckystrike','hedgebet','wildcard','curseddice','soulsteal','stealheal','ragefuel'],
+  thief:     ['strike','defend','quickstrike','shadowstep','poisonblade','pickpocket','smokescreen','swiftjab','slipaway','cheapshot','coinflick','nimblepace','poisoncloud','deathmark','soulsteal','stealheal','curseddice','blizzard'],
+  gambler:   ['highorlow','doubldown','luckystrike','hedgebet','wildcard','loadedhouse','curseddice','soulsteal','stealheal','ragefuel'],
   vampire:   ['blooddrain','nightshroud','lifeleech','crimsonbite','darkembrace','stealheal','soulsteal','ironwall','ragefuel'],
 };
 
 // Universal cards that can appear for any character (rare slots)
 const UNIVERSAL_REWARD_CARDS = ['ironwall','soulsteal','stealheal','curseddice'];
+
+function inferCardOwner(cardKey) {
+  if (UNIVERSAL_REWARD_CARDS.includes(cardKey)) return 'shared';
+  const owner = Object.keys(CHAR_REWARD_POOLS).find(key => (CHAR_REWARD_POOLS[key] || []).includes(cardKey));
+  return owner || 'starter';
+}
+
+Object.entries(CARDS).forEach(([key, card]) => {
+  if (!card.id) card.id = key;
+  if (!card.baseId) card.baseId = key.endsWith('+') ? key.slice(0, -1) : key;
+  if (!card.classKey) card.classKey = inferCardOwner(card.baseId);
+  if (!card.rarity) card.rarity = key.endsWith('+') ? 'upgraded' : 'unknown';
+  if (!card.tags) card.tags = [];
+  if (!card.upgradeData && CARD_UPGRADES[card.baseId]) {
+    card.upgradeData = CARD_UPGRADES[card.baseId];
+  }
+});
