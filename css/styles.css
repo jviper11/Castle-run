@@ -2147,6 +2147,34 @@ body {
     justify-content: flex-start;
     gap: 0.16rem;
   }
+  #player-combatant .combatant-info {
+    align-items: center;
+    gap: 0.12rem;
+  }
+  #player-combatant .combatant-name,
+  #player-combatant .hp-bar-wrap,
+  #player-combatant .block-display,
+  #player-combatant .passive-badge {
+    width: 88px;
+    max-width: 100%;
+    align-self: center;
+  }
+  #player-combatant .combatant-name {
+    line-height: 1.05;
+  }
+  #player-combatant .passive-badge {
+    justify-content: center;
+    min-height: unset;
+    padding: 0.04rem 0.22rem;
+    margin-top: -0.02rem;
+    border-color: rgba(90, 58, 60, 0.42);
+    background: rgba(18, 14, 15, 0.68);
+    color: rgba(232, 221, 208, 0.72);
+  }
+  #player-combatant .status-icons {
+    justify-content: center;
+    width: 88px;
+  }
   .hand-area {
     min-height: 100px;
     max-height: 110px;
@@ -2301,8 +2329,23 @@ body {
       height: 92px;
       gap: 0.14rem;
     }
+    #player-combatant .combatant-info {
+      gap: 0.1rem;
+    }
     .combatant-name {
       font-size: 0.66rem;
+    }
+    #player-combatant .combatant-name,
+    #player-combatant .hp-bar-wrap,
+    #player-combatant .block-display,
+    #player-combatant .passive-badge,
+    #player-combatant .status-icons {
+      width: 82px;
+    }
+    #player-combatant .passive-badge {
+      padding: 0.03rem 0.18rem;
+      font-size: 0.44rem;
+      letter-spacing: 0.02em;
     }
     .hp-bar-wrap {
       gap: 0.12rem;
@@ -2459,6 +2502,21 @@ body {
     flex: 0 0 96px;
     height: 96px;
     gap: 0.14rem;
+  }
+  #player-combatant .combatant-info {
+    gap: 0.1rem;
+  }
+  #player-combatant .combatant-name,
+  #player-combatant .hp-bar-wrap,
+  #player-combatant .block-display,
+  #player-combatant .passive-badge,
+  #player-combatant .status-icons {
+    width: 84px;
+  }
+  #player-combatant .passive-badge {
+    padding: 0.03rem 0.2rem;
+    font-size: 0.45rem;
+    letter-spacing: 0.02em;
   }
 
   .intent-box {
