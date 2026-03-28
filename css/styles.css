@@ -673,6 +673,7 @@ body {
 .card-emoji { font-size: 0.95rem; display: block; text-align: center; margin: 0.3rem 0 0.2rem; }
 .card-name { font-family: 'Cinzel', serif; font-size: 0.5rem; font-weight: 600; color: var(--gold); text-align: center; letter-spacing: 0.03em; line-height: 1.2; }
 .card-type { font-size: 0.55rem; color: var(--text3); text-align: center; margin-top: 0.15rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.card-compact-summary { display: none; }
 .card-desc { font-size: 0.42rem; color: var(--text2); text-align: center; margin-top: 0.3rem; line-height: 1.3; }
 .card-dice-req { font-size: 0.42rem; color: var(--gold); text-align: center; margin-top: 0.2rem; font-style: italic; }
 .card.mobile-compressed {
@@ -695,22 +696,36 @@ body {
 .card.mobile-compressed .card-name {
   font-size: 0.43rem;
   line-height: 1.05;
-  min-height: 1.95em;
+  min-height: 1.05em;
+  overflow: hidden;
+}
+.card.mobile-compressed .card-compact-summary {
+  display: block;
+  margin-top: 0.12rem;
+  font-size: 0.36rem;
+  color: var(--text2);
+  text-align: center;
+  line-height: 1.08;
+  min-height: 2.15em;
   overflow: hidden;
 }
 .card.mobile-compressed.selected {
   width: 82px;
-  min-height: 126px;
+  min-height: 132px;
   padding: 0.44rem 0.4rem 0.34rem;
   transform: translateY(-28px) scale(1.02);
   border-color: var(--gold);
   box-shadow: 0 10px 24px rgba(0,0,0,0.6), 0 0 12px rgba(201,168,76,0.24);
   z-index: 40;
+  overflow: visible;
 }
 .card.mobile-compressed.selected .card-type,
 .card.mobile-compressed.selected .card-desc,
 .card.mobile-compressed.selected .card-dice-req {
   display: block;
+}
+.card.mobile-compressed.selected .card-compact-summary {
+  display: none;
 }
 .card.mobile-compressed.selected .card-emoji {
   font-size: 0.95rem;
@@ -2457,9 +2472,14 @@ body {
     }
     .card.mobile-compressed.selected {
       width: 76px;
-      min-height: 112px;
+      min-height: 118px;
       padding: 0.36rem 0.32rem 0.26rem;
       transform: translateY(-24px) scale(1.01);
+    }
+    .card.mobile-compressed .card-compact-summary {
+      font-size: 0.33rem;
+      margin-top: 0.08rem;
+      min-height: 2.05em;
     }
     .card-cost {
       top: 3px;

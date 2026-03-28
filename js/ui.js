@@ -33,6 +33,64 @@ function renderHP() {
   }
 }
 
+function getCompactCardSummary(card) {
+  if (!card || !card.desc) return '';
+  const desc = card.desc.replace(/\s+/g, ' ').trim();
+
+  let match = desc.match(/^Deal (\d+) dmg twice\./i);
+  if (match) return `${match[1]} dmg x2`;
+
+  match = desc.match(/^Deal (\d+) damage?\./i);
+  if (match) return `Deal ${match[1]} dmg`;
+
+  match = desc.match(/^Deal (\d+) dmg\./i);
+  if (match) return `Deal ${match[1]} dmg`;
+
+  match = desc.match(/^Deal (\d+) dmg to enemy (\d+) times\./i);
+  if (match) return `${match[1]} dmg x${match[2]}`;
+
+  match = desc.match(/^Deal (\d+) dmg, heal (\d+) HP\./i);
+  if (match) return `${match[1]} dmg + ${match[2]} heal`;
+
+  match = desc.match(/^Deal (\d+) dmg\..*apply (\d+) Poison\./i);
+  if (match) return `${match[1]} dmg + ${match[2]} Poison`;
+
+  match = desc.match(/^Deal (\d+) dmg\..*apply (\d+) Burn\./i);
+  if (match) return `${match[1]} dmg + ${match[2]} Burn`;
+
+  match = desc.match(/^Deal (\d+) dmg\..*apply (\d+) Chill\./i);
+  if (match) return `${match[1]} dmg + ${match[2]} Chill`;
+
+  match = desc.match(/^Deal (\d+) dmg\..*Gain (\d+) Souls\./i);
+  if (match) return `${match[1]} dmg + ${match[2]} Souls`;
+
+  match = desc.match(/^Gain (\d+) Block\./i);
+  if (match) return `Gain ${match[1]} Block`;
+
+  match = desc.match(/^Draw (\d+) cards?\./i);
+  if (match) return `Draw ${match[1]}`;
+
+  match = desc.match(/^Draw (\d+) card\..*discard 1\./i);
+  if (match) return `Draw ${match[1]} then discard`;
+
+  match = desc.match(/^Flip: triple roll or keep current\./i);
+  if (match) return 'Triple roll flip';
+
+  match = desc.match(/^Roll 4-6: deal (\d+)\. Roll 2-3: deal (\d+)\./i);
+  if (match) return `${match[2]}-${match[1]} gamble`;
+
+  const firstClause = desc.split('. ')[0]
+    .replace(/^Deal /i, '')
+    .replace(/^Gain /i, 'Gain ')
+    .replace(/^Draw /i, 'Draw ')
+    .replace(/ damage/ig, ' dmg')
+    .replace(/ dmg/ig, ' dmg')
+    .replace(/ cards?/ig, '')
+    .replace(/ HP/ig, ' heal')
+    .replace(/\.+$/g, '');
+  return firstClause;
+}
+
 function renderHand() {
   const area = document.getElementById('hand-area');
   // remove old cards
@@ -97,10 +155,12 @@ const weakIndicator = isWeak2
   ? '<div style="font-size:0.5rem;color:#7fb3d3;text-align:center;margin-top:0.1rem;">😵 WEAK</div>'
   : '';
 
-el.innerHTML = `
+    const compactSummary = getCompactCardSummary(c);
+    el.innerHTML = `
   <div class="card-cost" style="${costStyle}">${actualCost}</div>
   <span class="card-emoji">${c.emoji}</span>
   <div class="card-name">${c.name}</div>
+  <div class="card-compact-summary">${compactSummary}</div>
   <div class="card-type">${c.type}</div>
   <div class="card-desc">${displayDesc}</div>
   ${weakIndicator}
