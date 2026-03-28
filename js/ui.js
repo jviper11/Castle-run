@@ -104,6 +104,17 @@ function ensureMobileCardPreview() {
   return preview;
 }
 
+function getAffinityPreviewLabel(affinityBonus) {
+  const labels = {
+    odd: 'Odd roll bonus',
+    even: 'Even roll bonus',
+    high: 'High roll bonus',
+    extreme: 'Extreme roll bonus',
+    gambler: 'Roll-value bonus'
+  };
+  return labels[affinityBonus] || 'Conditional bonus';
+}
+
 function renderHand() {
   const area = document.getElementById('hand-area');
   // remove old cards
@@ -174,9 +185,11 @@ const weakIndicator = isWeak2
   : '';
 
     const compactSummary = getCompactCardSummary(c);
+    const previewConditionText = c.dice ? `🎲 ${getAffinityPreviewLabel(c.affinityBonus)}` : '';
     const previewBonusText = c.dice
-      ? `🎲 ${affinityActive ? 'Bonus Active!' : `${String(c.affinityBonus || '').toUpperCase()} roll bonus`}`
+      ? (affinityActive ? 'Bonus Active on this roll' : 'Bonus inactive on this roll')
       : '';
+    const previewPlayHint = canPlay ? 'Tap selected card again to play' : `Need ${actualCost} Energy`;
     el.innerHTML = `
   <div class="card-cost" style="${costStyle}">${actualCost}</div>
   <span class="card-emoji">${c.emoji}</span>
@@ -228,9 +241,11 @@ const weakIndicator = isWeak2
           <div class="mobile-card-preview-emoji">${c.emoji}</div>
           <div class="mobile-card-preview-name">${c.name}</div>
           <div class="mobile-card-preview-type">${c.type}</div>
+          ${previewConditionText ? `<div class="mobile-card-preview-condition">${previewConditionText}</div>` : ''}
           <div class="mobile-card-preview-desc">${displayDesc}</div>
           ${weakIndicator}
           ${previewBonusText ? `<div class="mobile-card-preview-bonus">${previewBonusText}</div>` : ''}
+          <div class="mobile-card-preview-hint">${previewPlayHint}</div>
         </div>
       `;
     }
