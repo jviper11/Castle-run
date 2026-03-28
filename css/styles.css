@@ -39,6 +39,7 @@ body {
   color: var(--text);
   font-family: 'Crimson Pro', Georgia, serif;
   height: calc(var(--vh, 1vh) * 100);
+  height: 100dvh;
   overflow: hidden;
   user-select: none;
 }
@@ -46,7 +47,9 @@ body {
 #game {
   width: 100%;
   height: calc(var(--vh, 1vh) * 100);
+  height: 100dvh;
   min-height: 100vh;
+  min-height: 100dvh;
   position: relative;
   background-image:
     linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.85) 100%),
@@ -202,8 +205,11 @@ body {
 #combat-screen.active {
   display: flex !important;
   flex-direction: column;
+  min-height: 100dvh;
+  max-height: 100dvh;
   height: 100dvh;
   overflow: hidden;
+  overscroll-behavior: none;
 }
 
 .floor-bg {
@@ -2142,20 +2148,28 @@ body {
     background: var(--bg);
     touch-action: manipulation;
     overflow-x: hidden;
-    overflow-y: auto;
+    overflow-y: hidden;
+    height: calc(var(--vh, 1vh) * 100);
+    height: 100dvh;
     min-height: 100dvh;
     width: 100%;
     position: relative;
+    overscroll-behavior-y: none;
   }
   #game {
+    height: calc(var(--vh, 1vh) * 100);
+    height: 100dvh;
     min-height: 100dvh;
     width: 100%;
     position: relative;
+    overflow: hidden;
   }
 
   /* All screens — fill game container, hidden by default */
   .screen {
     height: calc(var(--vh, 1vh) * 100);
+    height: 100dvh;
+    min-height: 100dvh;
     width: 100%;
     position: absolute;
     top: 0; left: 0;
@@ -2193,6 +2207,15 @@ body {
     min-height: 30px;
     padding: 0.06rem 0.24rem;
     font-size: 0.48rem;
+  }
+
+  #combat-screen,
+  #combat-screen.active {
+    height: 100dvh;
+    min-height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+    overscroll-behavior: none;
   }
 
  /* ── COMBAT SCREEN — mobile interaction overrides only ── */
@@ -2269,6 +2292,9 @@ body {
     border-top: 1px solid rgba(90, 58, 60, 0.55);
     box-shadow: inset 0 8px 16px rgba(0,0,0,0.2);
     overflow-y: visible;
+    overscroll-behavior-x: contain;
+    overscroll-behavior-y: none;
+    touch-action: pan-x;
   }
   .card {
     padding: 0.44rem 0.4rem;
@@ -2284,16 +2310,16 @@ body {
     margin-top: 0.14rem;
   }
   #dice-corner {
-    top: calc(50% - (env(safe-area-inset-bottom, 0px) * 0.2));
-    bottom: auto;
+    top: auto;
+    bottom: calc(0.28rem + env(safe-area-inset-bottom, 0px));
     left: 0.38rem;
-    transform: translateY(-50%);
+    transform: none;
   }
   .end-turn-btn {
-    top: calc(50% - (env(safe-area-inset-bottom, 0px) * 0.2));
-    bottom: auto;
+    top: auto;
+    bottom: calc(0.28rem + env(safe-area-inset-bottom, 0px));
     right: 0.42rem;
-    transform: translateY(-50%);
+    transform: none;
     padding: 0.34rem 0.72rem;
   }
   /* No hover on mobile — active press instead */
@@ -2548,8 +2574,8 @@ body {
     }
     .end-turn-btn {
       right: 0.58rem;
-      top: calc(50% - (env(safe-area-inset-bottom, 0px) * 0.2));
-      bottom: auto;
+      top: auto;
+      bottom: calc(0.12rem + env(safe-area-inset-bottom, 0px));
       font-size: 0.56rem;
       padding: 0.22rem 0.54rem;
     }
