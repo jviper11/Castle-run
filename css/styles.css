@@ -414,13 +414,13 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.2rem;
-  background: rgba(201,168,76,0.1);
-  border: 1px solid rgba(201,168,76,0.3);
+  background: rgba(18, 14, 15, 0.82);
+  border: 1px solid rgba(90, 58, 60, 0.55);
   border-radius: 3px;
-  padding: 0.12rem 0.35rem;
-  font-size: 0.56rem;
-  color: var(--gold);
-  letter-spacing: 0.04em;
+  padding: 0.1rem 0.3rem;
+  font-size: 0.52rem;
+  color: rgba(232, 221, 208, 0.82);
+  letter-spacing: 0.03em;
   font-family: 'Cinzel', serif;
   white-space: nowrap;
   position: relative;
@@ -2109,8 +2109,8 @@ body {
   .passive-badge {
     cursor: pointer;
     min-height: 30px;
-    padding: 0.08rem 0.28rem;
-    font-size: 0.52rem;
+    padding: 0.06rem 0.24rem;
+    font-size: 0.48rem;
   }
 
  /* ── COMBAT SCREEN — mobile interaction overrides only ── */
@@ -2494,6 +2494,136 @@ body {
   .end-turn-btn {
     right: 0.62rem;
     padding: 0.3rem 0.66rem;
+  }
+}
+
+@media (max-width: 1100px) and (orientation: landscape) {
+  #path-screen {
+    gap: 0.7rem;
+    padding: 0.7rem 0.6rem 1rem;
+    justify-content: center;
+  }
+
+  #path-floor-label {
+    font-size: 1.6rem !important;
+    letter-spacing: 0.12em !important;
+  }
+
+  #path-subtitle {
+    max-width: 620px !important;
+    font-size: 0.94rem !important;
+    line-height: 1.35;
+    margin: 0 auto;
+  }
+
+  #path-choices {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(112px, 1fr));
+    gap: 0.7rem !important;
+    align-items: stretch !important;
+    width: min(100%, 760px) !important;
+    padding: 0.2rem 0.25rem 0.45rem !important;
+    overflow: visible !important;
+  }
+
+  .path-card {
+    width: auto;
+    min-width: 0;
+    padding: 0.95rem 0.7rem;
+  }
+
+  .path-card-header {
+    font-size: 0.9rem;
+    padding-bottom: 0.45rem;
+    margin-bottom: 0.34rem;
+  }
+
+  .path-room-icon {
+    width: 50px;
+    height: 34px;
+    font-size: 0.96rem;
+  }
+
+  .path-room-arrow {
+    font-size: 0.62rem;
+    padding: 2px 0;
+  }
+
+  .path-card-stats {
+    font-size: 0.64rem;
+    margin-top: 0.45rem;
+    padding-top: 0.34rem;
+  }
+
+  .path-card-boss {
+    font-size: 0.72rem;
+    padding-top: 0.34rem;
+    margin-top: 0.34rem;
+  }
+
+  #path-screen > div:last-child {
+    margin-top: 0.05rem !important;
+  }
+
+  #path-screen > div:last-child p {
+    font-size: 0.8rem !important;
+    text-align: center;
+    max-width: 620px;
+  }
+
+  #path-back-btn {
+    margin-top: 0.1rem;
+  }
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+  #path-screen {
+    gap: 0.55rem;
+    padding: 0.5rem 0.55rem 0.8rem;
+  }
+
+  #path-floor-label {
+    font-size: 1.4rem !important;
+  }
+
+  #path-subtitle {
+    font-size: 0.86rem !important;
+    max-width: 560px !important;
+  }
+
+  #path-choices {
+    gap: 0.58rem !important;
+    width: min(100%, 700px) !important;
+    padding: 0.12rem 0.2rem 0.3rem !important;
+  }
+
+  .path-card {
+    padding: 0.78rem 0.58rem;
+  }
+
+  .path-card-header {
+    font-size: 0.82rem;
+    padding-bottom: 0.36rem;
+    margin-bottom: 0.28rem;
+  }
+
+  .path-room-icon {
+    width: 46px;
+    height: 31px;
+    font-size: 0.88rem;
+  }
+
+  .path-card-stats {
+    font-size: 0.6rem;
+    line-height: 1.32;
+  }
+
+  .path-card-boss {
+    font-size: 0.68rem;
+  }
+
+  #path-screen > div:last-child p {
+    font-size: 0.72rem !important;
   }
 }
 
