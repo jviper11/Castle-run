@@ -2142,7 +2142,7 @@ body {
   }
   .combat-arena {
     align-items: flex-end;
-    padding-bottom: 0.05rem;
+    padding-bottom: 0.35rem;
   }
   .combatant {
     flex: 1 1 0;
@@ -2194,14 +2194,17 @@ body {
     width: 88px;
   }
   .hand-area {
-    min-height: 100px;
-    max-height: 110px;
-    margin-top: -6px;
+    flex: 0 0 112px;
+    height: 112px;
+    min-height: 112px;
+    max-height: 112px;
+    margin-top: -2px;
     padding: 0.14rem 76px calc(0.28rem + env(safe-area-inset-bottom, 0px)) 78px;
     scroll-padding-left: 78px;
     scroll-padding-right: 76px;
     border-top: 1px solid rgba(90, 58, 60, 0.55);
     box-shadow: inset 0 8px 16px rgba(0,0,0,0.2);
+    overflow-y: visible;
   }
   .card {
     padding: 0.44rem 0.4rem;
@@ -2329,7 +2332,7 @@ body {
       font-size: 0.56rem;
     }
     .combat-arena {
-      padding: 0 2.5% 0;
+      padding: 0 2.5% 0.18rem;
       gap: 0.2rem;
     }
     .combatant {
@@ -2386,13 +2389,14 @@ body {
       padding: 0 0.2rem;
     }
     .hand-area {
+      flex: 0 0 94px;
       align-items: flex-end;
-      height: auto;
-      min-height: 96px;
-      max-height: none;
+      height: 94px;
+      min-height: 94px;
+      max-height: 94px;
       overflow-y: visible;
       gap: 0.14rem;
-      margin-top: -9px;
+      margin-top: -2px;
       padding: 0.18rem 70px calc(0.12rem + env(safe-area-inset-bottom, 0px)) 64px;
       scroll-padding-left: 66px;
       scroll-padding-right: 70px;
@@ -2500,7 +2504,7 @@ body {
   .combat-arena {
     flex: 0 1 auto;
     min-height: auto;
-    padding: 0 2.5% 0.02rem;
+    padding: 0 2.5% 0.24rem;
     gap: 0.16rem;
   }
 
@@ -2543,14 +2547,14 @@ body {
   }
 
   .hand-area {
-    flex: 0 0 auto;
+    flex: 0 0 108px;
     align-items: flex-end;
-    height: auto;
-    min-height: 102px;
-    max-height: none;
+    height: 108px;
+    min-height: 108px;
+    max-height: 108px;
     overflow-y: visible;
     gap: 0.18rem;
-    margin-top: -7px;
+    margin-top: -2px;
     padding: 0.18rem 74px calc(0.16rem + env(safe-area-inset-bottom, 0px)) 66px;
     scroll-padding-left: 68px;
     scroll-padding-right: 74px;
@@ -2575,6 +2579,7 @@ body {
 
 @media (max-width: 1100px) and (orientation: landscape) {
   #path-screen {
+    min-height: 0;
     gap: 0.45rem;
     padding: 0.4rem 0.45rem 0.55rem;
     justify-content: flex-start;
@@ -2595,18 +2600,23 @@ body {
 
   #path-choices {
     display: grid !important;
+    flex: 1 1 auto;
+    min-height: 0;
     grid-template-columns: repeat(3, minmax(100px, 1fr));
-    gap: 0.45rem !important;
+    gap: 0.36rem !important;
     align-items: stretch !important;
     width: min(100%, 680px) !important;
-    padding: 0.08rem 0.12rem 0.18rem !important;
-    overflow: hidden !important;
+    max-height: 100%;
+    padding: 0.04rem 0.12rem 0.14rem !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
   }
 
   .path-card {
     width: auto;
     min-width: 0;
-    padding: 0.64rem 0.5rem;
+    padding: 0.58rem 0.46rem;
   }
 
   .path-card-header {
@@ -2617,7 +2627,7 @@ body {
 
   .path-room-icon {
     width: 42px;
-    height: 28px;
+    height: 26px;
     font-size: 0.82rem;
   }
 
@@ -2628,15 +2638,15 @@ body {
 
   .path-card-stats {
     font-size: 0.54rem;
-    line-height: 1.24;
-    margin-top: 0.28rem;
-    padding-top: 0.24rem;
+    line-height: 1.18;
+    margin-top: 0.22rem;
+    padding-top: 0.2rem;
   }
 
   .path-card-boss {
     font-size: 0.6rem;
-    padding-top: 0.24rem;
-    margin-top: 0.24rem;
+    padding-top: 0.2rem;
+    margin-top: 0.2rem;
   }
 
   #path-screen > div:last-child {
@@ -2656,6 +2666,7 @@ body {
 
 @media (max-height: 520px) and (orientation: landscape) {
   #path-screen {
+    min-height: 0;
     gap: 0.35rem;
     padding: 0.3rem 0.42rem 0.45rem;
     overflow: hidden;
@@ -2671,13 +2682,13 @@ body {
   }
 
   #path-choices {
-    gap: 0.36rem !important;
+    gap: 0.28rem !important;
     width: min(100%, 640px) !important;
-    padding: 0.04rem 0.08rem 0.1rem !important;
+    padding: 0.02rem 0.06rem 0.08rem !important;
   }
 
   .path-card {
-    padding: 0.5rem 0.42rem;
+    padding: 0.42rem 0.36rem;
   }
 
   .path-card-header {
@@ -2688,13 +2699,13 @@ body {
 
   .path-room-icon {
     width: 38px;
-    height: 24px;
+    height: 22px;
     font-size: 0.76rem;
   }
 
   .path-card-stats {
     font-size: 0.5rem;
-    line-height: 1.18;
+    line-height: 1.12;
   }
 
   .path-card-boss {
