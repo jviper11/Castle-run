@@ -2325,11 +2325,14 @@ body {
       padding: 0 0.2rem;
     }
     .hand-area {
-      min-height: 84px;
-      max-height: 88px;
+      align-items: flex-end;
+      height: auto;
+      min-height: 96px;
+      max-height: none;
+      overflow-y: visible;
       gap: 0.14rem;
       margin-top: -9px;
-      padding: 0.14rem 70px calc(0.12rem + env(safe-area-inset-bottom, 0px)) 64px;
+      padding: 0.18rem 70px calc(0.12rem + env(safe-area-inset-bottom, 0px)) 64px;
       scroll-padding-left: 66px;
       scroll-padding-right: 70px;
     }
@@ -2464,13 +2467,15 @@ body {
   }
 
   .hand-area {
-    flex: 0 0 88px;
-    height: 88px;
-    min-height: 88px;
-    max-height: 88px;
+    flex: 0 0 auto;
+    align-items: flex-end;
+    height: auto;
+    min-height: 102px;
+    max-height: none;
+    overflow-y: visible;
     gap: 0.18rem;
     margin-top: -7px;
-    padding: 0.14rem 74px calc(0.16rem + env(safe-area-inset-bottom, 0px)) 66px;
+    padding: 0.18rem 74px calc(0.16rem + env(safe-area-inset-bottom, 0px)) 66px;
     scroll-padding-left: 68px;
     scroll-padding-right: 74px;
   }
