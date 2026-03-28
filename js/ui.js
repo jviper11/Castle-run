@@ -12,14 +12,24 @@ function renderHP() {
   const pct = v => Math.max(0, Math.min(100, v)) + '%';
   document.getElementById('player-hp-text').textContent = `${Math.max(0,G.hp)}/${G.maxHp}`;
   document.getElementById('player-hp-bar').style.width = pct(G.hp / G.maxHp * 100);
+  const playerBlockDisplay = document.getElementById('player-block-display');
   document.getElementById('player-block-text').textContent = G.block;
-  document.getElementById('player-block-bar').style.width = pct(G.block / 20 * 100);
+  if (playerBlockDisplay) {
+    playerBlockDisplay.classList.toggle('is-empty', G.block <= 0);
+    playerBlockDisplay.setAttribute('aria-label', `Block ${G.block}`);
+  }
 
   if (G.enemy) {
     document.getElementById('enemy-hp-text').textContent = `${Math.max(0,G.enemy.hp)}/${G.enemy.maxHp}`;
     document.getElementById('enemy-hp-bar').style.width = pct(G.enemy.hp / G.enemy.maxHp * 100);
+    const enemyBlockDisplay = document.getElementById('enemy-block-display');
     document.getElementById('enemy-block-text').textContent = G.enemy.block;
-    document.getElementById('enemy-block-bar').style.width = pct(G.enemy.block / 20 * 100);
+    if (enemyBlockDisplay) {
+      const hasBlock = G.enemy.block > 0;
+      enemyBlockDisplay.hidden = !hasBlock;
+      enemyBlockDisplay.classList.toggle('is-empty', !hasBlock);
+      enemyBlockDisplay.setAttribute('aria-label', `Block ${G.enemy.block}`);
+    }
   }
 }
 
@@ -43,33 +53,22 @@ function renderHand() {
     if (!canPlay) el.classList.add('unplayable');
 
     // Build dynamic description
-const strengthStatus = G.statuses?.player?.find(s => s.name === '💢Strength');
-const rageBonus = (c.type === 'Attack' && strengthStatus && strengthStatus.stacks > 0) ? strengthStatus.stacks : 0;
-
 const weakStatus2 = G.statuses?.player?.find(s => s.name === '😵Weak');
 const isWeak2 = c.type === 'Attack' && weakStatus2 && weakStatus2.stacks > 0;
 
 let displayDesc = c.desc;
 
 if (c.type === 'Attack') {
-  displayDesc = c.desc.replace(/\b(\d+)\s*(dmg|damage)\b/gi, (match, num, word) => {
+  displayDesc = c.desc.replace(/\b(deal)\s+(\d+)/gi, (match, verb, num) => {
     const base = parseInt(num, 10);
-    let shown = base;
-
-    if (rageBonus > 0) {
-      shown += rageBonus;
-    }
-
-    if (isWeak2) {
-      shown = Math.floor(shown * 0.75);
-    }
+    const shown = getModifiedPlayerAttackDamage(G, base);
 
     if (shown === base) {
-      return `${shown} ${word}`;
+      return `${verb} ${shown}`;
     }
 
     const color = shown > base ? '#e74c3c' : '#7fb3d3';
-    return `<span style="color:${color};font-weight:bold">${shown}</span> <span style="text-decoration:line-through;opacity:0.5;font-size:0.85em">${base}</span> ${word}`;
+    return `${verb} <span style="color:${color};font-weight:bold">${shown}</span> <span style="text-decoration:line-through;opacity:0.5;font-size:0.85em">${base}</span>`;
   });
 }
 

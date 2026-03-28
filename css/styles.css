@@ -368,6 +368,35 @@ body {
 .bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
 .hp-fill { background: linear-gradient(90deg, var(--hp), #e74c3c); }
 .block-fill { background: linear-gradient(90deg, var(--block), #5dade2); }
+.block-display {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  padding: 0.16rem 0.48rem;
+  border-radius: 999px;
+  border: 1px solid rgba(93, 173, 226, 0.45);
+  background: linear-gradient(180deg, rgba(93, 173, 226, 0.18), rgba(20, 34, 54, 0.68));
+  color: #d9efff;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+  transition: opacity 0.2s ease, border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+.block-display.is-empty {
+  border-color: rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.05);
+  color: var(--text2);
+  opacity: 0.72;
+}
+.block-display-icon {
+  font-size: 0.72rem;
+  line-height: 1;
+}
+.block-display-value {
+  font-family: 'Cinzel', serif;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1;
+  min-width: 1ch;
+}
 
 .status-icons { display: flex; gap: 0.3rem; flex-wrap: wrap; justify-content: flex-start; min-height: 14px; }
 .status-icon {
@@ -1859,6 +1888,16 @@ body {
   .hp-bar-wrap {
     width: 160px;
   }
+  .block-display {
+    gap: 0.38rem;
+    padding: 0.24rem 0.7rem;
+  }
+  .block-display-icon {
+    font-size: 0.9rem;
+  }
+  .block-display-value {
+    font-size: 0.95rem;
+  }
   .bar-label {
     font-size: 0.8rem;
     margin-bottom: 4px;
@@ -2024,6 +2063,29 @@ body {
 
   /* ── COMBAT SCREEN — mobile interaction overrides only ── */
   .block-fill { background: linear-gradient(90deg, #4fc3f7, #5dade2); }
+  .combat-arena {
+    align-items: flex-end;
+  }
+  .combatant {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 46%;
+    justify-content: flex-start;
+    gap: 0.35rem;
+  }
+  .combatant-sprite {
+    flex: 0 0 110px;
+    width: 90px;
+    height: 110px;
+    max-width: 90px;
+    max-height: 110px;
+    align-self: center;
+  }
+  .combatant-info {
+    flex: 0 0 122px;
+    height: 122px;
+    justify-content: flex-start;
+  }
   .hand-area {
     min-height: 108px;
     max-height: 120px;

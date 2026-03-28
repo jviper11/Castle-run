@@ -23,6 +23,7 @@ function startAldricFight() {
   const phase = ALDRIC.phases[0];
   G.aldricPhase = 1;
   G.aldricDamageDealt = 0;
+  G.aldricTotalDamage = 0;
   G.aldricTurns = 0;
   G.aldricStoneHeart = phase.stoneHeartBase;
   G.aldricRelicsTriggered = [];
@@ -487,6 +488,42 @@ function getModifiedEnemyAttackDamage(g, baseDamage) {
   return getModifiedIncomingDamage(g, dmg, false);
 }
 
+function getModifiedPlayerAttackDamage(g, baseDamage, consumeEnemyFly = false) {
+  if (!g.enemy) return baseDamage;
+  if (g.enemy._phased) return 0;
+
+  let dmg = baseDamage;
+  const playerStrength = g.statuses.player.find(s => s.name === '💢Strength');
+  if (playerStrength && playerStrength.stacks > 0) {
+    dmg += playerStrength.stacks;
+  }
+
+  const activeDieBonus = getDie(g.activeDie);
+  if (activeDieBonus.bonus === 'odd_dmg' && g.currentDie && g.currentDie % 2 !== 0) {
+    dmg += 2;
+  }
+
+  const playerWeak = g.statuses.player.find(s => s.name === '😵Weak');
+  if (playerWeak && playerWeak.stacks > 0) {
+    dmg = Math.floor(dmg * 0.75);
+  }
+
+  const enemyVuln = g.statuses.enemy.find(s => s.name === '🫗Vulnerable');
+  if (enemyVuln && enemyVuln.stacks > 0) {
+    dmg = Math.floor(dmg * 1.25);
+  }
+
+  const enemyFly = g.statuses.enemy.find(s => s.name === '🦇Fly');
+  if (enemyFly && enemyFly.stacks > 0) {
+    dmg = Math.floor(dmg * 0.5);
+    if (consumeEnemyFly) {
+      removeStatus(g, 'enemy', '🦇Fly');
+    }
+  }
+
+  return dmg;
+}
+
 function startTurn() {
   setEndTurnLocked(false);
 
@@ -859,31 +896,7 @@ function dealDamage(g, target, amount) {
       }, 140);
       return;
     }
-    // Apply player Strength bonus to all attacks
-    const playerStrength = g.statuses.player.find(s => s.name === '💢Strength');
-    if (playerStrength && playerStrength.stacks > 0) {
-      amount += playerStrength.stacks;
-    }
-    // d8 Hunter's Die: odd rolls deal +2 bonus damage
-    const activeDieBonus = getDie(g.activeDie);
-    if (activeDieBonus.bonus === 'odd_dmg' && g.currentDie && g.currentDie % 2 !== 0) {
-      amount += 2;
-    }
-    // Apply Weak — player deals 25% less damage
-    const playerWeak = g.statuses.player.find(s => s.name === '😵Weak');
-    if (playerWeak && playerWeak.stacks > 0) {
-      amount = Math.floor(amount * 0.75);
-    }
-    // Vulnerable increases damage taken by 25% until end of target turn
-    const enemyVuln = g.statuses.enemy.find(s => s.name === '🫗Vulnerable');
-    if (enemyVuln && enemyVuln.stacks > 0) {
-      amount = Math.floor(amount * 1.25);
-    }
-    const enemyFly = g.statuses.enemy.find(s => s.name === '🦇Fly');
-    if (enemyFly && enemyFly.stacks > 0) {
-      amount = Math.floor(amount * 0.5);
-      removeStatus(g, 'enemy', '🦇Fly');
-    }
+    amount = getModifiedPlayerAttackDamage(g, amount, true);
 
      // Stone Skin — absorb incoming damage before block/HP
     if (g.enemy._stoneShield && g.enemy._stoneShield > 0) {
@@ -909,11 +922,11 @@ function dealDamage(g, target, amount) {
 
     floatDamage('enemy-combatant', pen || amount, 'dmg');
     
-    // Aldric Stone Heart decay on damage
-    if (g.enemy && g.enemy.isAldric && g.aldricPhase === 1 && pen > 0) {
-      g.aldricDamageDealt = (g.aldricDamageDealt || 0) + pen;
+    // Aldric Stone Heart decay on total incoming damage, even if block absorbs it
+    if (g.enemy && g.enemy.isAldric && g.aldricPhase === 1 && amount > 0) {
+      g.aldricTotalDamage = (g.aldricTotalDamage || 0) + amount;
       const decayThreshold = 60;
-      const decayCount = Math.floor(g.aldricDamageDealt / decayThreshold);
+      const decayCount = Math.floor(g.aldricTotalDamage / decayThreshold);
       const newStoneHeart = Math.max(
         ALDRIC.phases[0].stoneHeartMin,
         ALDRIC.phases[0].stoneHeartBase - (decayCount * 2)
