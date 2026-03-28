@@ -43,7 +43,18 @@ body {
   user-select: none;
 }
 
-#game { width: 100%; height: calc(var(--vh, 1vh) * 100); position: relative; }
+#game {
+  width: 100%;
+  height: calc(var(--vh, 1vh) * 100);
+  min-height: 100vh;
+  position: relative;
+  background-image:
+    linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.85) 100%),
+    url('../assets/floor1.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
 
 .screen { display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
 .screen.active { display: flex; z-index: 10; }
