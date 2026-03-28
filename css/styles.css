@@ -2325,17 +2325,17 @@ body {
       padding: 0 0.2rem;
     }
     .hand-area {
-      min-height: 82px;
-      max-height: 86px;
-      gap: 0.16rem;
-      margin-top: -10px;
-      padding: 0.06rem 64px calc(0.14rem + env(safe-area-inset-bottom, 0px)) 66px;
+      min-height: 80px;
+      max-height: 84px;
+      gap: 0.14rem;
+      margin-top: -9px;
+      padding: 0.05rem 70px calc(0.12rem + env(safe-area-inset-bottom, 0px)) 64px;
       scroll-padding-left: 66px;
-      scroll-padding-right: 64px;
+      scroll-padding-right: 70px;
     }
     .card {
       width: 62px;
-      padding: 0.28rem 0.28rem;
+      padding: 0.26rem 0.28rem;
     }
     .card-cost {
       top: 3px;
@@ -2382,7 +2382,7 @@ body {
       padding: 0.06rem 0.22rem;
     }
     .end-turn-btn {
-      right: 0.3rem;
+      right: 0.58rem;
       top: calc(50% - (env(safe-area-inset-bottom, 0px) * 0.2));
       bottom: auto;
       font-size: 0.56rem;
@@ -2463,18 +2463,19 @@ body {
   }
 
   .hand-area {
-    flex: 0 0 88px;
-    height: 88px;
-    min-height: 88px;
-    max-height: 88px;
-    margin-top: -6px;
-    padding: 0.08rem 66px calc(0.18rem + env(safe-area-inset-bottom, 0px)) 68px;
+    flex: 0 0 84px;
+    height: 84px;
+    min-height: 84px;
+    max-height: 84px;
+    gap: 0.18rem;
+    margin-top: -7px;
+    padding: 0.06rem 74px calc(0.16rem + env(safe-area-inset-bottom, 0px)) 66px;
     scroll-padding-left: 68px;
-    scroll-padding-right: 66px;
+    scroll-padding-right: 74px;
   }
 
   .card {
-    padding: 0.3rem 0.3rem;
+    padding: 0.28rem 0.3rem;
   }
 
   #dice-corner {
@@ -2482,7 +2483,8 @@ body {
   }
 
   .end-turn-btn {
-    right: 0.26rem;
+    right: 0.62rem;
+    padding: 0.3rem 0.66rem;
   }
 }
 
