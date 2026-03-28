@@ -703,23 +703,35 @@ body {
   box-shadow: 0 8px 20px rgba(0,0,0,0.6), 0 0 12px rgba(231,76,60,0.28);
 }
 
+.combat-choice-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 160;
+  overflow: visible;
+  display: none;
+}
+.combat-choice-overlay.active {
+  display: block;
+}
 .hand-choice-indicator {
   position: absolute;
-  top: -0.72rem;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
-  max-width: calc(100% - 170px);
-  padding: 0.16rem 0.58rem;
+  transform: translate(-50%, -50%);
+  width: min(320px, calc(100% - 2rem));
+  max-width: calc(100% - 2rem);
+  padding: 0.22rem 0.7rem;
   border: 1px solid rgba(192,57,43,0.55);
   background: rgba(18,12,14,0.96);
   color: var(--red3);
   font-family: 'Cinzel', serif;
-  font-size: 0.5rem;
+  font-size: 0.56rem;
   letter-spacing: 0.04em;
   text-align: center;
   pointer-events: none;
-  box-shadow: 0 8px 18px rgba(0,0,0,0.28);
-  z-index: 120;
+  box-shadow: 0 12px 24px rgba(0,0,0,0.34);
+  z-index: 1;
 }
 
 .mobile-card-preview {

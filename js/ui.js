@@ -130,6 +130,19 @@ function ensureMobileCardPreview() {
   return preview;
 }
 
+function ensureCombatChoiceOverlay() {
+  let overlay = document.getElementById('combat-choice-overlay');
+  if (!overlay) {
+    const combatScreen = document.getElementById('combat-screen');
+    if (!combatScreen) return null;
+    overlay = document.createElement('div');
+    overlay.id = 'combat-choice-overlay';
+    overlay.className = 'combat-choice-overlay';
+    combatScreen.appendChild(overlay);
+  }
+  return overlay;
+}
+
 function getAffinityPreviewLabel(affinityBonus) {
   const labels = {
     odd: 'Odd roll bonus',
@@ -144,11 +157,16 @@ function getAffinityPreviewLabel(affinityBonus) {
 function renderHand() {
   const area = document.getElementById('hand-area');
   // remove old cards
-  area.querySelectorAll('.card, .hand-choice-indicator').forEach(c => c.remove());
+  area.querySelectorAll('.card').forEach(c => c.remove());
   const preview = ensureMobileCardPreview();
+  const choiceOverlay = ensureCombatChoiceOverlay();
   if (preview) {
     preview.classList.remove('active');
     preview.innerHTML = '';
+  }
+  if (choiceOverlay) {
+    choiceOverlay.classList.remove('active');
+    choiceOverlay.innerHTML = '';
   }
 
   const mobileLandscape = !!(window.matchMedia && window.matchMedia('(max-width: 1100px) and (orientation: landscape)').matches);
@@ -164,11 +182,12 @@ function renderHand() {
 
   const roll = G.currentDie || 1;
   const pendingDiscard = G.pendingCombatChoice && G.pendingCombatChoice.type === 'discard';
-  if (pendingDiscard) {
+  if (pendingDiscard && choiceOverlay) {
     const indicator = document.createElement('div');
     indicator.className = 'hand-choice-indicator';
     indicator.textContent = G.pendingCombatChoice.prompt || 'Choose a card to discard.';
-    area.insertBefore(indicator, area.querySelector('.end-turn-btn'));
+    choiceOverlay.appendChild(indicator);
+    choiceOverlay.classList.add('active');
   }
   let selectedEl = null;
   G.hand.forEach((key, index) => {
