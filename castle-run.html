@@ -195,7 +195,7 @@ body {
 /* ── COMBAT ── */
 #combat-screen {
   flex-direction: column;
-  background: var(--bg);
+  background: transparent;
   /* Vignette corners for atmosphere */
   box-shadow: inset 0 0 120px rgba(0,0,0,0.7);
 }
@@ -205,8 +205,15 @@ body {
   inset: 0;
   transition: background 1.2s ease;
   pointer-events: none;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
-.floor-1-bg { background: linear-gradient(180deg, #0e0a08 0%, #0a0806 100%); }
+.floor-1-bg {
+  background-image:
+    linear-gradient(180deg, rgba(0,0,0,0.58) 0%, rgba(0,0,0,0.82) 100%),
+    url('assets/floor1.png');
+}
 .floor-2-bg { background: linear-gradient(180deg, #080a0e 0%, #06080a 100%); }
 .floor-3-bg { background: linear-gradient(180deg, #09060f 0%, #070510 100%); }
 .floor-4-bg { background: linear-gradient(180deg, #100806 0%, #0a0504 100%); }
