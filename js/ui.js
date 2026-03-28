@@ -91,10 +91,28 @@ function getCompactCardSummary(card) {
   return firstClause;
 }
 
+function ensureMobileCardPreview() {
+  let preview = document.getElementById('mobile-card-preview');
+  if (!preview) {
+    const combatScreen = document.getElementById('combat-screen');
+    if (!combatScreen) return null;
+    preview = document.createElement('div');
+    preview.id = 'mobile-card-preview';
+    preview.className = 'mobile-card-preview';
+    combatScreen.appendChild(preview);
+  }
+  return preview;
+}
+
 function renderHand() {
   const area = document.getElementById('hand-area');
   // remove old cards
   area.querySelectorAll('.card, .hand-choice-indicator').forEach(c => c.remove());
+  const preview = ensureMobileCardPreview();
+  if (preview) {
+    preview.classList.remove('active');
+    preview.innerHTML = '';
+  }
 
   const mobileLandscape = !!(window.matchMedia && window.matchMedia('(max-width: 1100px) and (orientation: landscape)').matches);
   const selectedStillValid =
@@ -156,6 +174,9 @@ const weakIndicator = isWeak2
   : '';
 
     const compactSummary = getCompactCardSummary(c);
+    const previewBonusText = c.dice
+      ? `🎲 ${affinityActive ? 'Bonus Active!' : `${String(c.affinityBonus || '').toUpperCase()} roll bonus`}`
+      : '';
     el.innerHTML = `
   <div class="card-cost" style="${costStyle}">${actualCost}</div>
   <span class="card-emoji">${c.emoji}</span>
@@ -199,6 +220,20 @@ const weakIndicator = isWeak2
       el.onclick = () => playCard(key);
     }
     if (isSelected) selectedEl = el;
+    if (isSelected && preview && !pendingDiscard && !G._voidChannelSelecting) {
+      preview.classList.add('active');
+      preview.innerHTML = `
+        <div class="mobile-card-preview-inner${affinityActive ? ' affinity-active' : ''}">
+          <div class="mobile-card-preview-cost" style="${costStyle}">${actualCost}</div>
+          <div class="mobile-card-preview-emoji">${c.emoji}</div>
+          <div class="mobile-card-preview-name">${c.name}</div>
+          <div class="mobile-card-preview-type">${c.type}</div>
+          <div class="mobile-card-preview-desc">${displayDesc}</div>
+          ${weakIndicator}
+          ${previewBonusText ? `<div class="mobile-card-preview-bonus">${previewBonusText}</div>` : ''}
+        </div>
+      `;
+    }
     area.insertBefore(el, area.querySelector('.end-turn-btn'));
   });
 

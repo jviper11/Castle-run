@@ -656,6 +656,10 @@ body {
   z-index: 14;
 }
 
+.mobile-card-preview {
+  display: none;
+}
+
 .card-cost {
   position: absolute;
   top: 4px; left: 4px;
@@ -710,30 +714,30 @@ body {
   overflow: hidden;
 }
 .card.mobile-compressed.selected {
-  width: 82px;
-  min-height: 132px;
-  padding: 0.44rem 0.4rem 0.34rem;
-  transform: translateY(-28px) scale(1.02);
+  width: 60px;
+  min-height: 72px;
+  padding: 0.34rem 0.28rem 0.24rem;
+  transform: translateY(-8px);
   border-color: var(--gold);
-  box-shadow: 0 10px 24px rgba(0,0,0,0.6), 0 0 12px rgba(201,168,76,0.24);
-  z-index: 40;
-  overflow: visible;
+  box-shadow: 0 8px 18px rgba(0,0,0,0.5), 0 0 12px rgba(201,168,76,0.22);
+  z-index: 26;
+  overflow: hidden;
 }
 .card.mobile-compressed.selected .card-type,
 .card.mobile-compressed.selected .card-desc,
 .card.mobile-compressed.selected .card-dice-req {
-  display: block;
-}
-.card.mobile-compressed.selected .card-compact-summary {
   display: none;
 }
+.card.mobile-compressed.selected .card-compact-summary {
+  display: block;
+}
 .card.mobile-compressed.selected .card-emoji {
-  font-size: 0.95rem;
-  margin: 0.22rem 0 0.14rem;
+  font-size: 0.82rem;
+  margin: 0.12rem 0 0.08rem;
 }
 .card.mobile-compressed.selected .card-name {
-  font-size: 0.5rem;
-  min-height: 0;
+  font-size: 0.43rem;
+  min-height: 1.05em;
 }
 
 .end-turn-btn {
@@ -2471,15 +2475,31 @@ body {
       margin-left: 0;
     }
     .card.mobile-compressed.selected {
-      width: 76px;
-      min-height: 118px;
-      padding: 0.36rem 0.32rem 0.26rem;
-      transform: translateY(-24px) scale(1.01);
+      width: 56px;
+      min-height: 66px;
+      padding: 0.28rem 0.24rem 0.18rem;
+      transform: translateY(-7px);
     }
     .card.mobile-compressed .card-compact-summary {
       font-size: 0.33rem;
       margin-top: 0.08rem;
       min-height: 2.05em;
+    }
+    .mobile-card-preview {
+      bottom: 86px;
+      width: min(170px, calc(100vw - 150px));
+    }
+    .mobile-card-preview-inner {
+      padding: 0.48rem 0.42rem 0.36rem;
+    }
+    .mobile-card-preview-name {
+      font-size: 0.54rem;
+    }
+    .mobile-card-preview-desc {
+      font-size: 0.44rem;
+    }
+    .mobile-card-preview-bonus {
+      font-size: 0.42rem;
     }
     .card-cost {
       top: 3px;
@@ -2646,8 +2666,90 @@ body {
   }
 
   .card.mobile-compressed.selected {
-    margin-left: -8px;
-    margin-right: 4px;
+    margin-left: -10px;
+    margin-right: 2px;
+  }
+
+  .mobile-card-preview {
+    position: absolute;
+    left: 50%;
+    bottom: 96px;
+    transform: translateX(-50%) translateY(8px);
+    width: min(180px, calc(100vw - 168px));
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.16s ease, transform 0.16s ease;
+    z-index: 34;
+  }
+
+  .mobile-card-preview.active {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .mobile-card-preview-inner {
+    position: relative;
+    border: 1px solid rgba(201,168,76,0.45);
+    background: linear-gradient(180deg, rgba(26,18,20,0.97), rgba(14,9,11,0.98));
+    box-shadow: 0 12px 28px rgba(0,0,0,0.58);
+    padding: 0.56rem 0.48rem 0.42rem;
+    text-align: center;
+  }
+
+  .mobile-card-preview-inner.affinity-active {
+    border-color: var(--gold);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.58), 0 0 12px rgba(201,168,76,0.2);
+  }
+
+  .mobile-card-preview-cost {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--energy);
+    color: var(--bg);
+    font-family: 'Cinzel', serif;
+    font-size: 0.62rem;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobile-card-preview-emoji {
+    font-size: 1rem;
+    margin: 0.1rem 0 0.12rem;
+  }
+
+  .mobile-card-preview-name {
+    font-family: 'Cinzel', serif;
+    font-size: 0.6rem;
+    color: var(--gold);
+    line-height: 1.18;
+  }
+
+  .mobile-card-preview-type {
+    margin-top: 0.16rem;
+    font-size: 0.5rem;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .mobile-card-preview-desc {
+    margin-top: 0.26rem;
+    font-size: 0.48rem;
+    color: var(--text2);
+    line-height: 1.28;
+  }
+
+  .mobile-card-preview-bonus {
+    margin-top: 0.24rem;
+    font-size: 0.46rem;
+    color: var(--gold);
+    font-style: italic;
   }
 
   #dice-corner {
