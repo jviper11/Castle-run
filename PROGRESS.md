@@ -14,12 +14,12 @@
 | Floor & Path System | ✅ Complete | ✅ In prototype |
 | Combat System | ✅ Complete | ✅ In prototype |
 | Cards — Barbarian | ✅ Complete | ✅ All 24 reward cards coded. Pool updated. |
-| Cards — Mage | ✅ Complete | ⚠️ Starters only (10 cards). 20 reward cards not in game |
-| Cards — Thief | ✅ Complete | ✅ Starters + common reward pool in game. 16 uncommon/rare not in game |
-| Cards — Vampire | ✅ Complete | ⚠️ Starters only (10 cards). 21 reward cards not in game |
-| Cards — Gambler | ✅ Complete | ⚠️ Starters only (10 cards). 21 reward cards not in game |
+| Cards — Mage | ✅ Complete | ✅ All 27 reward cards coded. Pool updated. |
+| Cards — Thief | ✅ Complete | ✅ All 26 reward cards coded. Pool updated. |
+| Cards — Vampire | ✅ Complete | ✅ All 28 reward cards coded. Pool updated. |
+| Cards — Gambler | ✅ Complete | ✅ All 26 reward cards coded. Pool updated. |
 | Card Upgrades | ✅ Complete | ⚠️ Starter upgrades only. Reward card upgrades not in game |
-| Shared Card Pool | ✅ Complete | ⚠️ Partial — some in game, some missing |
+| Shared Card Pool | ✅ Complete | ✅ In prototype |
 | Enemy Roster (all floors) | ✅ Complete | ✅ In prototype |
 | Boss Debuff System | ✅ Complete | ✅ In prototype |
 | Events (18) | ✅ Complete | ✅ In prototype |
@@ -387,4 +387,4 @@ Categories: Gold events, HP-for-Gold trades, Curse card rewards, Risk events, Cl
 | Early 2026 | Enemy roster all 4 floors. Boss debuff system. 18 events. Economy. Consumables. |
 | Early 2026 | King Aldric 3-phase fight. True Ending relic system. Two endings locked. |
 | Early 2026 | GDD v0.5 → v0.7. Floor hint system. Sir Crimson story arc early design. |
-| April 2026 | Sir Crimson full arc locked — story presence + mid-run fight between F2/F3. Fight designed (Echo mechanic, 160 HP, 4 moves). Rare relics (10) designed. Character relics (15) designed with weakness-patching philosophy. All relic balance tweaks applied. PROGRESS.md created. Barbarian full card pool coded (20 new cards: 5 common, 10 uncommon, 5 rare). Barbarian reward pool updated to 24 cards. |
+| April 2026 | Sir Crimson full arc locked. Rare relics (10) + Character relics (15) designed. PROGRESS.md created. Barbarian full card pool coded (24 reward cards). Mage full card pool coded (27 reward cards). Thief full card pool coded (26 reward cards). Vampire full card pool coded (28 reward cards). Gambler full card pool coded (26 reward cards). All 5 hero reward pools updated. rollDice() updated with Loaded House, House Edge, Gambler's Fallacy, Lucky Streak support. |
