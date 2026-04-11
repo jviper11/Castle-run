@@ -4285,7 +4285,7 @@ if (G._shadowMark > 0 && card.type === 'Attack') {
 }
 
 // Disappear free card
-if (G._disappearCount > 0 && card.key !== 'disappear') {
+if (G._disappearCount > 0 && cardkey !== 'disappear') {
   G.energy += actualCost;
   G._disappearCount--;
 }
