@@ -2924,17 +2924,17 @@ const CHARACTERS = {
 const CARDS = {
   strike:      { name:'Strike',      emoji:'⚔️',  type:'Attack', cost:1, desc:'Deal 6 damage.',                          dice:false, effect:(g)=>dealDamage(g,'enemy',6) },
   defend:      { name:'Defend',      emoji:'🛡️',  type:'Skill',  cost:1, desc:'Gain 5 Block.',                           dice:false, effect:(g)=>gainBlock(g,'player',5) },
-  heavyblow:   { name:'Heavy Blow',  emoji:'🪓',  type:'Attack', cost:2, desc:'Deal 10 dmg. Even: deal 16.',              dice:true,  affinityBonus:'even', effect:(g,r)=>dealDamage(g,'enemy', checkAffinity(g,r,'even') ? 16 : 10) },
-  warshout:    { name:'War Shout',   emoji:'😤',  type:'Skill',  cost:1, desc:'Gain 6 Block. Even: gain 10.',             dice:true,  affinityBonus:'even', effect:(g,r)=>gainBlock(g,'player', checkAffinity(g,r,'even') ? 10 : 6) },
+  heavyblow:   { name:'Heavy Blow',  emoji:'🪓',  type:'Attack', cost:2, desc:'Deal 10 dmg. Even: deal 16 dmg.',              dice:true,  affinityBonus:'even', effect:(g,r)=>dealDamage(g,'enemy', checkAffinity(g,r,'even') ? 16 : 10) },
+  warshout:    { name:'War Shout',   emoji:'😤',  type:'Skill',  cost:1, desc:'Gain 6 Block. Even: gain 10 Block.',             dice:true,  affinityBonus:'even', effect:(g,r)=>gainBlock(g,'player', checkAffinity(g,r,'even') ? 10 : 6) },
   fireball:    { name:'Fireball',    emoji:'🔥',  type:'Attack', cost:2, desc:'Deal 8 dmg. High: deal 15 + burn.',        dice:true,  affinityBonus:'high', effect:(g,r)=>{ dealDamage(g,'enemy', checkAffinity(g,r,'high') ? 15 : 8); if(checkAffinity(g,r,'high')) applyStatus(g,'enemy','🔥Burn',2); } },
   frostbolt:   { name:'Frost Bolt',  emoji:'❄️',  type:'Attack', cost:1, desc:'Deal 5 dmg. High: deal 9 + chill.',        dice:true,  affinityBonus:'high', effect:(g,r)=>{ dealDamage(g,'enemy', checkAffinity(g,r,'high') ? 9 : 5); if(checkAffinity(g,r,'high')) applyStatus(g,'enemy','❄️Chill',1); } },
   arcanebarrier:{ name:'Arcane Shield',emoji:'🔷', type:'Skill', cost:1, desc:'Gain 4 Block. High: gain 9.',              dice:true,  affinityBonus:'high', effect:(g,r)=>gainBlock(g,'player', checkAffinity(g,r,'high') ? 9 : 4) },
-  quickstrike: { name:'Quick Strike', emoji:'💨', type:'Attack', cost:1, desc:'Deal 4 dmg twice. Odd: deal 5 twice.',     dice:true,  affinityBonus:'odd',  effect:(g,r)=>{ const d=checkAffinity(g,r,'odd')?5:4; dealDamage(g,'enemy',d); dealDamage(g,'enemy',d); } },
+  quickstrike: { name:'Quick Strike', emoji:'💨', type:'Attack', cost:1, desc:'Deal 4 dmg twice. Odd: deal 5 dmg twice.',     dice:true,  affinityBonus:'odd',  effect:(g,r)=>{ const d=checkAffinity(g,r,'odd')?5:4; dealDamage(g,'enemy',d); dealDamage(g,'enemy',d); } },
   shadowstep:  { name:'Shadow Step', emoji:'🌑',  type:'Skill',  cost:1, desc:'Gain 4 Block. Odd: gain 7 + draw 1.',      dice:true,  affinityBonus:'odd',  effect:(g,r)=>{ gainBlock(g,'player', checkAffinity(g,r,'odd')?7:4); if(checkAffinity(g,r,'odd')) drawCards(g,1); } },
   poisonblade: { name:'Poison Blade',emoji:'☠️',  type:'Attack', cost:2, desc:'Deal 6 dmg. Odd: apply 3 Poison.',         dice:true,  affinityBonus:'odd',  effect:(g,r)=>{ dealDamage(g,'enemy',6); if(checkAffinity(g,r,'odd')) applyStatus(g,'enemy','☠️Poison',3); } },
-  highorlow:   { name:'High or Low', emoji:'🎰',  type:'Attack', cost:1, desc:'Roll 4-6: deal 12. Roll 2-3: deal 5.',     dice:true,  affinityBonus:'gambler', effect:(g,r)=>dealDamage(g,'enemy', r>=4 ? 12 : 5) },
+  highorlow:   { name:'High or Low', emoji:'🎰',  type:'Attack', cost:1, desc:'Roll 4-6: deal 12 dmg. Roll 2-3: deal 5 dmg.',     dice:true,  affinityBonus:'gambler', effect:(g,r)=>dealDamage(g,'enemy', r>=4 ? 12 : 5) },
   doubldown:   { name:'Double Down', emoji:'🃏',  type:'Skill',  cost:0, desc:'Flip: double roll or drop to 1.',          dice:false, effect:(g)=>doubleDown(g) },
-  luckystrike: { name:'Lucky Strike',emoji:'🍀',  type:'Attack', cost:2, desc:'Deal 8 dmg. On max roll: deal 20.',        dice:true,  affinityBonus:'gambler', effect:(g,r)=>dealDamage(g,'enemy', r===g.diceMax ? 20 : 8) },
+  luckystrike: { name:'Lucky Strike',emoji:'🍀',  type:'Attack', cost:2, desc:'Deal 8 dmg. On max roll: deal 20 dmg.',        dice:true,  affinityBonus:'gambler', effect:(g,r)=>dealDamage(g,'enemy', r===g.diceMax ? 20 : 8) },
   blooddrain:  { name:'Blood Drain', emoji:'🩸',  type:'Attack', cost:1, desc:'Deal 6 dmg. Extreme: drain 8 HP.',         dice:true,  affinityBonus:'extreme', effect:(g,r)=>{ const roll=r||g.currentDie||1; dealDamage(g,'enemy',6); if(checkAffinity(g,roll,'extreme')) { healPlayer(g,8); showMsg('🩸 Blood Drain — lifesteal active!'); } } },
   nightshroud: { name:'Night Shroud',emoji:'🦇',  type:'Skill',  cost:1, desc:'Gain 5 Block. Extreme: gain 10.',          dice:true,  affinityBonus:'extreme', effect:(g,r)=>{ const roll=r||g.currentDie||1; gainBlock(g,'player', checkAffinity(g,roll,'extreme') ? 10 : 5); } },
   lifeleech:   { name:'Life Leech',  emoji:'💜',  type:'Attack', cost:2, desc:'Deal 9 dmg. Extreme: drain 12 Block.',      dice:true,  affinityBonus:'extreme', effect:(g,r)=>{ const roll=r||g.currentDie||1; dealDamage(g,'enemy',9); if(checkAffinity(g,roll,'extreme')) { gainBlock(g,'player',12); showMsg('💜 Life Leech — drained their force!'); } } },
@@ -2954,7 +2954,7 @@ const CARDS = {
   battlecry:     { name:'Battle Cry',      emoji:'😤', type:'Skill',  cost:1, desc:'Gain 6 Block. Even: gain 6 Block + draw 2.',  dice:true, affinityBonus:'even', effect:(g,r)=>{ gainBlock(g,'player',6); if(checkAffinity(g,r,'even')) drawCards(g,2); } },
   ironroar:      { name:'Iron Roar',       emoji:'🔊', type:'Skill',  cost:0, desc:'Apply Weak 1 to enemy. Even: Weak 2.',        dice:true, affinityBonus:'even', effect:(g,r)=>{ applyStatus(g,'enemy','😵Weak', checkAffinity(g,r,'even')?2:1); } },
   bloodlust:     { name:'Blood Lust',      emoji:'❤️', type:'Skill',  cost:1, desc:'Heal 4 HP. Even: heal 8 HP.',                dice:true, affinityBonus:'even', effect:(g,r)=>healPlayer(g, checkAffinity(g,r,'even')?8:4) },
-  entrench:      { name:'Entrench',        emoji:'⚓', type:'Skill',  cost:1, desc:'Gain 8 Block (persists this turn). Even: gain 13.', dice:true, affinityBonus:'even', effect:(g,r)=>{ gainBlock(g,'player', checkAffinity(g,r,'even')?13:8); showMsg('⚓ Entrench — Block gained!'); } },
+  entrench:      { name:'Entrench', emoji:'⚓', type:'Skill', cost:1, desc:'Gain 8 Block. All block persists to next turn. Even: gain 13.', dice:true, affinityBonus:'even', effect:(g,r)=>{ gainBlock(g,'player', checkAffinity(g,r,'even')?13:8); g._entrenchActive=true; showMsg('⚓ Entrench — Block carries to next turn!'); } },
   overpowerattack:{ name:'Overpower',      emoji:'💪', type:'Attack', cost:1, desc:'Deal 8 dmg. Even: deal 8 + Vulnerable 2.',   dice:true, affinityBonus:'even', effect:(g,r)=>{ dealDamage(g,'enemy',8); if(checkAffinity(g,r,'even')) applyStatus(g,'enemy','🫗Vulnerable',2); } },
   crushingblow:  { name:'Crushing Blow',   emoji:'🔨', type:'Attack', cost:2, desc:'Deal 12 dmg + remove 8 enemy Block. Even: deal 18.', dice:true, affinityBonus:'even', effect:(g,r)=>{ const dmg=checkAffinity(g,r,'even')?18:12; dealDamage(g,'enemy',dmg); if(g.enemy){ g.enemy.block=Math.max(0,g.enemy.block-8); } showMsg('🔨 Crushing Blow — smashed through their guard!'); } },
   warcallecho:   { name:'War Call',        emoji:'📢', type:'Skill',  cost:0, desc:'Draw 1 card. Even: draw 1 + apply Weak 1.',  dice:true, affinityBonus:'even', effect:(g,r)=>{ drawCards(g,1); if(checkAffinity(g,r,'even')) applyStatus(g,'enemy','😵Weak',1); } },
@@ -4116,7 +4116,7 @@ function startTurn() {
   G.selectedHandKey = null;
   G.turn++;
   G.energy = G.maxEnergy;
-  G.block = 0;
+  if (G._entrenchActive) { G._entrenchActive = false; } else { G.block = 0; }
   G._spellsThisTurn = 0;
   G._manaSurge = false; // reset each turn
   // Enemy block persists until player damages through it — does NOT reset each turn
@@ -4929,19 +4929,13 @@ function showReward() {
   pool.innerHTML = '';
 
   // Build reward pool: 2 class-specific + 1 universal
-  const classPool = (CHAR_REWARD_POOLS[G.charKey] || []).filter(k => !G.char.starterDeck.includes(k) || G.deck.filter(x => x === k).length < 2);
-  const universalPool = UNIVERSAL_REWARD_CARDS.slice();
+  const classPool = (CHAR_REWARD_POOLS[G.charKey] || []).filter(k => {
+    if (!CARDS[k]) return false;
+    if (G.char.starterDeck.includes(k)) return false;
+    return true;
+  });
 
-  const classPicks = shuffle([...classPool]).slice(0, 2);
-  const universalPick = rand(universalPool);
-
-  // avoid duplicates across the 3 picks
-  const allPicks = [...new Set([...classPicks, universalPick])].slice(0, 3);
-  // pad if needed
-  while (allPicks.length < 3) {
-    const extra = rand(classPool);
-    if (!allPicks.includes(extra)) allPicks.push(extra);
-  }
+  const allPicks = shuffle([...classPool]).slice(0, 3);
 
   allPicks.forEach(key => {
     const c = CARDS[key];
@@ -5227,20 +5221,20 @@ function renderHand() {
       ? `🎲 ${affinityActive ? 'Bonus Active!' : `${String(c.affinityBonus || '').toUpperCase()} roll bonus`}`
       : '';
     const previewPlayHint = canPlay ? 'Tap selected card again to play' : `Need ${actualCost} Energy`;
-    if (rageBonus > 0 && !isWeak2) {
-      displayDesc = c.desc.replace(/(\d+)\s*(dmg|damage)/g, (match, num, word) => {
-        const boosted = parseInt(num) + rageBonus;
-        return '<span style="color:#e74c3c;font-weight:bold">' + boosted + '</span> ' + word;
-      });
+   if (rageBonus > 0 && !isWeak2) {
+    displayDesc = c.desc.replace(/deal (\d+)/gi, (match, num) => {
+      const boosted = parseInt(num) + rageBonus;
+      return 'deal <span style="color:#e74c3c;font-weight:bold">' + boosted + '</span>';
+     });
     } else if (isWeak2 && rageBonus === 0) {
-      displayDesc = c.desc.replace(/(\d+)\s*(dmg|damage)/g, (match, num, word) => {
+      displayDesc = c.desc.replace(/deal (\d+)/gi, (match, num) => {
         const reduced = Math.floor(parseInt(num) * 0.75);
-        return '<span style="color:#7fb3d3;font-weight:bold">' + reduced + '</span> <span style="text-decoration:line-through;opacity:0.5;font-size:0.85em">' + num + '</span> ' + word;
+        return 'deal <span style="color:#7fb3d3;font-weight:bold">' + reduced + '</span> <span style="text-decoration:line-through;opacity:0.5;font-size:0.85em">' + num + '</span>';
       });
     } else if (isWeak2 && rageBonus > 0) {
-      displayDesc = c.desc.replace(/(\d+)\s*(dmg|damage)/g, (match, num, word) => {
+      displayDesc = c.desc.replace(/deal (\d+)/gi, (match, num) => {
         const final = Math.floor((parseInt(num) + rageBonus) * 0.75);
-        return '<span style="color:#7fb3d3;font-weight:bold">' + final + '</span> ' + word;
+        return 'deal <span style="color:#7fb3d3;font-weight:bold">' + final + '</span>';
       });
     }
     const weakIndicator = isWeak2 ? '<div style="font-size:0.5rem;color:#7fb3d3;text-align:center;margin-top:0.1rem;">😵 WEAK</div>' : '';
