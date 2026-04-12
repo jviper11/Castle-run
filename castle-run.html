@@ -392,7 +392,26 @@ body {
   line-height: 1;
   min-width: 1ch;
 }
-
+/* Status tooltip */
+.status-tooltip {
+  position: fixed;
+  background: var(--card-bg);
+  border: 1px solid var(--gold);
+  color: var(--text1);
+  font-size: 0.75rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 6px;
+  max-width: 200px;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  font-family: var(--font-body);
+  text-align: center;
+}
+.status-tooltip.visible {
+  opacity: 1;
+}
 #player-combatant .hp-bar-wrap:has(#player-status),
 #enemy-combatant .hp-bar-wrap:has(#enemy-block-bar),
 #enemy-combatant .combatant-info > .status-icons#enemy-status {
@@ -2466,6 +2485,7 @@ body {
 </style>
 </head>
 <body>
+  <div class="status-tooltip" id="status-tooltip"></div>
 <div id="loading-indicator" style="position:fixed;inset:0;background:#0a0809;color:#c9a84c;font-family:Georgia,serif;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1rem;z-index:9999;">
   <div style="font-size:1.5rem">⚔</div>
   <div>Loading Castle Run...</div>
@@ -5501,25 +5521,96 @@ function renderDicePool() {
   el.appendChild(pip);
 }
 
+const STATUS_DESCRIPTIONS = {
+  '💢Rage':          'Strength — attacks deal +1 dmg per stack.',
+  '😵Weak':          'Attacks deal 25% less damage. Ticks down each turn.',
+  '🫗Vulnerable':    'Takes 50% more damage from attacks. Ticks down each turn.',
+  '🔥Burn':          'Takes stacks × 2 damage at end of turn. Ticks down.',
+  '❄️Chill':         'Attack reduced by 25%. Ticks down each turn.',
+  '☠️Poison':        'Takes stacks damage at end of turn. Ticks down.',
+  '💚Regen':         'Heals stacks HP at end of turn. Ticks down.',
+  '🦇Fly':           'Damage taken is halved this turn.',
+  '🔥BerserkOath':   'HP loss grants Block.',
+  '❄️ColdMastery':   'Chill reduces enemy attack by more.',
+  '🔥BurningSoul':   'Burn deals bonus damage per stack.',
+  '🎭ShadowArtist':  'Certain cards cost less this turn.',
+  '☠️PoisonMaster':  'Poison deals bonus damage per stack.',
+  '🥁LethalRhythm':  'Every 2 cards played deals bonus damage.',
+  '✨Momentum':      'Each Skill/Power played adds +1 to dice roll (max +3).',
+  '⭐LuckyStreak':   'Max rolls draw a card and deal bonus damage.',
+  '🏠HouseEdge':     'Minimum dice roll is raised this combat.',
+  '🎯GamblerFallacy':'After enough non-max rolls, next roll is guaranteed max.',
+  '👑BloodLord':     'Heal HP each time you play an Attack.',
+  '🦷EternalHunger': 'Regen ticks also deal damage to enemy.',
+  '🧛VampiricForm':  'Extreme rolls automatically grant Fly.',
+};
+
+function showStatusTooltip(e, statusName) {
+  const tooltip = document.getElementById('status-tooltip');
+  const desc = STATUS_DESCRIPTIONS[statusName] || statusName;
+  tooltip.textContent = desc;
+  tooltip.classList.add('visible');
+
+  const clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+  const clientY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+  const x = Math.min(clientX, window.innerWidth - 220);
+  const y = clientY - 60;
+  tooltip.style.left = x + 'px';
+  tooltip.style.top = Math.max(10, y) + 'px';
+
+  clearTimeout(tooltip._hideTimer);
+  tooltip._hideTimer = setTimeout(() => tooltip.classList.remove('visible'), 2000);
+}
+
+function hideStatusTooltip() {
+  const tooltip = document.getElementById('status-tooltip');
+  clearTimeout(tooltip._hideTimer);
+  tooltip.classList.remove('visible');
+}
+
 function renderStatuses() {
   const STATUS_ICONS = {
-    '☠️Poison': '☠',
-    '🔥Burn': '🔥',
-    '❄️Chill': '❄',
-    '😵Weak': '😵',
-    '🫗Vulnerable': '🫗',
-    '💢Strength': '💢',
-    '💚Regen': '💚',
-    '🦇Fly': '🦇'
-  };
+  '☠️Poison':        '☠',
+  '🔥Burn':          '🔥',
+  '❄️Chill':         '❄',
+  '😵Weak':          '😵',
+  '🫗Vulnerable':    '🫗',
+  '💢Strength':      '💢',
+  '💢Rage':          '💢',
+  '💚Regen':         '💚',
+  '🦇Fly':           '🦇',
+  '🔥BerserkOath':   '🔥',
+  '❄️ColdMastery':   '❄',
+  '🔥BurningSoul':   '🔥',
+  '🎭ShadowArtist':  '🎭',
+  '☠️PoisonMaster':  '☠',
+  '🥁LethalRhythm':  '🥁',
+  '✨Momentum':      '✨',
+  '⭐LuckyStreak':   '⭐',
+  '🏠HouseEdge':     '🏠',
+  '🎯GamblerFallacy':'🎯',
+  '👑BloodLord':     '👑',
+  '🦷EternalHunger': '🦷',
+  '🧛VampiricForm':  '🧛',
+};
+
   ['player','enemy'].forEach(t => {
     const el = document.getElementById(`${t}-status`);
     if (!el) return;
-    el.innerHTML = G.statuses[t].map(s => {
+    el.innerHTML = '';
+    G.statuses[t].forEach(s => {
       const glyph = STATUS_ICONS[s.name] || (s.name ? s.name.split(/[\sA-Z]/)[0] : '?');
       const label = `${s.name.replace(/^[^\p{L}\p{N}]+/u, '').trim()} ${s.stacks}`.trim();
-      return `<span class="status-icon" aria-label="${label}" title="${label}"><span class="status-icon-glyph">${glyph}</span><span class="status-icon-value">${s.stacks}</span></span>`;
-    }).join('');
+      const span = document.createElement('span');
+      span.className = 'status-icon';
+      span.setAttribute('aria-label', label);
+      span.style.cursor = 'help';
+      span.innerHTML = `<span class="status-icon-glyph">${glyph}</span><span class="status-icon-value">${s.stacks}</span>`;
+      span.addEventListener('click', (e) => showStatusTooltip(e, s.name));
+      span.addEventListener('touchstart', (e) => { e.preventDefault(); showStatusTooltip(e, s.name); });
+      span.addEventListener('mouseleave', hideStatusTooltip);
+      el.appendChild(span);
+    });
   });
 }
 
