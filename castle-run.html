@@ -4515,10 +4515,11 @@ function endTurn() {
   }
 
   const chill = G.statuses.enemy.find(s => s.name === '❄️Chill');
-  if (chill) {
-    chill.stacks--;
-    if (chill.stacks <= 0) G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '❄️Chill');
-  }
+const chillActive = chill && chill.stacks > 0;
+if (chill) {
+  chill.stacks--;
+  if (chill.stacks <= 0) G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '❄️Chill');
+}
 
   // ── STEP 3: Regen ticks ──
   const regen = G.statuses.player.find(s => s.name === '💚Regen');
@@ -4570,8 +4571,7 @@ function endTurn() {
     let dmg = e.damage;
     const eStrong = G.statuses.enemy.find(s => s.name === '💢Rage');
     if (eStrong) dmg += eStrong.stacks;
-    const eChill = G.statuses.enemy.find(s => s.name === '❄️Chill');
-    if (eChill && eChill.stacks > 0) dmg = Math.floor(dmg * 0.75);
+    if (chillActive) dmg = Math.floor(dmg * 0.75);
     dmg = Math.max(0, dmg - G.block);
     G.block = Math.max(0, G.block - e.damage);
     if (dmg > 0) G.hp -= dmg;
