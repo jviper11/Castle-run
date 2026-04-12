@@ -3005,7 +3005,7 @@ const CARDS = {
   arcaneboost:  { name:'Arcane Boost',   emoji:'🔼', type:'Skill',  cost:1, desc:'Discard 1 card — add 1 to dice roll.',       dice:false, effect:(g)=>{ if(g.hand.length>0){ const idx=Math.floor(Math.random()*g.hand.length); g.discardPile.push(g.hand.splice(idx,1)[0]); g.currentDie=(g.currentDie||1)+1; const dieEl=document.getElementById('current-die'); if(dieEl){ dieEl.classList.remove('rolling'); void dieEl.offsetWidth; dieEl.classList.add('rolling'); setTimeout(()=>{ dieEl.textContent=g.currentDie; dieEl.classList.remove('rolling'); checkAffinityHighlight(g,g.currentDie); },200); } showMsg('🔼 Arcane Boost — dice is now '+g.currentDie+'!'); } else { showMsg('No cards to discard!'); } } },
   voidchannel:  { name:'Void Channel',   emoji:'🌀', type:'Skill',  cost:1, desc:'Choose 2 cards to discard — double dice roll. Requires 2 cards in hand.',
     dice:false, effect:(g)=>{ if(g.hand.length<2){ showMsg('Need at least 2 cards in hand!'); return; } startVoidChannelDiscard(g); } },
-  arcanemomentum:{ name:'Arcane Momentum',emoji:'✨',type:'Power',  cost:1, desc:'Each Skill/Power played this turn +1 to dice.',dice:false, effect:(g)=>{ g._arcaneMomentum=true; applyStatus(g,'player','✨Momentum',1); showMsg('✨ Arcane Momentum active!'); } },
+  arcanemomentum:{ name:'Arcane Momentum',emoji:'✨',type:'Power',  cost:1, desc:'Each Skill/Power played this combat adds +1 to dice roll (max +3 per turn).',dice:false, effect:(g)=>{ g._arcaneMomentum=true; applyStatus(g,'player','✨Momentum',1); showMsg('✨ Arcane Momentum active!'); } },
   arcanesight:  { name:'Arcane Sight',   emoji:'👁️', type:'Skill',  cost:1, desc:'Draw 2 cards. High: draw 3.',                dice:true,  affinityBonus:'high', effect:(g,r)=>{ drawCards(g, checkAffinity(g,r,'high') ? 3 : 2); } },
 
   // ── MAGE common rewards ──
@@ -3191,7 +3191,7 @@ const CARD_UPGRADES = {
   coldmastery:   { name:'Cold Mastery+',   emoji:'🧊', type:'Power',  cost:1, desc:'Exhaust. Chill reduces enemy attack by 50%.',   dice:false, effect:(g)=>{ if(!g.exhaustedPile) g.exhaustedPile=[]; g.exhaustedPile.push('coldmastery+'); applyStatus(g,'player','❄️ColdMastery',2); showMsg('🧊 Cold Mastery+ — Chill empowered to 50%!'); } },
   burningsoul:   { name:'Burning Soul+',   emoji:'🔥', type:'Power',  cost:1, desc:'Exhaust. Burn deals +2 damage per stack.',      dice:false, effect:(g)=>{ if(!g.exhaustedPile) g.exhaustedPile=[]; g.exhaustedPile.push('burningsoul+'); applyStatus(g,'player','🔥BurningSoul',2); showMsg('🔥 Burning Soul+ — Burn deals +2 per stack!'); } },
   arcanesight:   { name:'Arcane Sight+',   emoji:'👁️', type:'Skill',  cost:0, desc:'Draw 2 cards. High: draw 4.',                  dice:true, affinityBonus:'high', effect:(g,r)=>drawCards(g, checkAffinity(g,r,'high')?4:2) },
-  arcanemomentum:{ name:'Arcane Momentum+',emoji:'✨', type:'Power',  cost:0, desc:'Each Skill/Power played this turn +1 to dice (max +3).', dice:false, effect:(g)=>{ g._arcaneMomentum=true; g._momentumCap=3; applyStatus(g,'player','✨Momentum',1); showMsg('✨ Arcane Momentum+ — up to +3 die this turn!'); } },
+  arcanemomentum:{ name:'Arcane Momentum+',emoji:'✨', type:'Power',  cost:0, desc:'Each Skill/Power played this combat adds +1 to dice roll (max +3 per turn). Free.', dice:false, effect:(g)=>{ g._arcaneMomentum=true; g._momentumCap=3; applyStatus(g,'player','✨Momentum',1); showMsg('✨ Arcane Momentum+ — up to +3 die this turn!'); } },
   arcaneboost:   { name:'Arcane Boost+',   emoji:'🔼', type:'Skill',  cost:0, desc:'Discard 1 card — add 2 to dice roll.',          dice:false, effect:(g)=>{ if(g.hand.length>0){ const idx=Math.floor(Math.random()*g.hand.length); g.discardPile.push(g.hand.splice(idx,1)[0]); g.currentDie=Math.min((g.currentDie||1)+2,g.diceMax); const dieEl=document.getElementById('current-die'); if(dieEl){ dieEl.classList.remove('rolling'); void dieEl.offsetWidth; dieEl.classList.add('rolling'); setTimeout(()=>{ dieEl.textContent=g.currentDie; dieEl.classList.remove('rolling'); checkAffinityHighlight(g,g.currentDie); },200); } showMsg('🔼 Arcane Boost+ — dice +2!'); } else { showMsg('No cards to discard!'); } } },
   voidchannel:   { name:'Void Channel+',   emoji:'🌀', type:'Skill',  cost:1, desc:'Discard 2 cards — roll 3 times, keep highest result.', dice:false, effect:(g)=>{ if(g.hand.length<2){ showMsg('Need at least 2 cards!'); return; } const rolls=[]; for(let i=0;i<3;i++) rolls.push(Math.floor(Math.random()*g.diceMax)+1); g.currentDie=Math.max(...rolls); g._dieSetThisTurn=true; const dieEl=document.getElementById('current-die'); if(dieEl){ dieEl.classList.remove('rolling'); void dieEl.offsetWidth; dieEl.classList.add('rolling'); setTimeout(()=>{ dieEl.textContent=g.currentDie; dieEl.classList.remove('rolling'); checkAffinityHighlight(g,g.currentDie); },200); } for(let i=0;i<2;i++){ if(g.hand.length>0){ const idx=Math.floor(Math.random()*g.hand.length); g.discardPile.push(g.hand.splice(idx,1)[0]); } } showMsg('🌀 Void Channel+ — rolled '+g.currentDie+' (best of 3)!'); renderHand(); } },
 // ── THIEF upgrades ──
@@ -4260,7 +4260,8 @@ function startTurn() {
   G.selectedHandIndex = null;
   G.selectedHandKey = null;
   G.turn++;
-  G._momentumCap = 0;
+  const hasMomentum = G.statuses.player.find(s => s.name === '✨Momentum');
+  G._momentumCap = hasMomentum ? 3 : 0;
   G.energy = G.maxEnergy;
   if (G._entrenchActive) { G._entrenchActive = false; } else { G.block = 0; }
   G._spellsThisTurn = 0;
@@ -4506,11 +4507,17 @@ function endTurn() {
     if (burn.stacks <= 0) G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '🔥Burn');
   }
 
-  // ── STEP 2: Vulnerable ticks down ──
+  // ── STEP 2: Vulnerable + Chill tick down ──
   const vuln = G.statuses.enemy.find(s => s.name === '🫗Vulnerable');
   if (vuln) {
     vuln.stacks--;
     if (vuln.stacks <= 0) G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '🫗Vulnerable');
+  }
+
+  const chill = G.statuses.enemy.find(s => s.name === '❄️Chill');
+  if (chill) {
+    chill.stacks--;
+    if (chill.stacks <= 0) G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '❄️Chill');
   }
 
   // ── STEP 3: Regen ticks ──
@@ -4563,6 +4570,8 @@ function endTurn() {
     let dmg = e.damage;
     const eStrong = G.statuses.enemy.find(s => s.name === '💢Rage');
     if (eStrong) dmg += eStrong.stacks;
+    const eChill = G.statuses.enemy.find(s => s.name === '❄️Chill');
+    if (eChill && eChill.stacks > 0) dmg = Math.floor(dmg * 0.75);
     dmg = Math.max(0, dmg - G.block);
     G.block = Math.max(0, G.block - e.damage);
     if (dmg > 0) G.hp -= dmg;
@@ -4845,12 +4854,17 @@ function updateIntent() {
   if (!G.enemy) return;
   const e = G.enemy;
   const el = document.getElementById('enemy-intent');
-  // Show special ability name as a tappable hint
   const specialHint = e.special
     ? `<div style="font-size:0.65rem;color:var(--purple2);margin-top:0.2rem;">⚡ ${e.special.name} · <span style="color:var(--text3)">tap for info</span></div>`
     : '';
   if (e.intent === 'attack') {
-    el.innerHTML = `Preparing: <strong>Attack ${e.damage}</strong>${specialHint}`;
+    const chill = G.statuses.enemy.find(s => s.name === '❄️Chill');
+    const rawDmg = e.damage;
+    const actualDmg = (chill && chill.stacks > 0) ? Math.floor(rawDmg * 0.75) : rawDmg;
+    const dmgDisplay = (chill && chill.stacks > 0)
+      ? `<span style="color:#7fb3d3;font-weight:bold">${actualDmg}</span> <span style="text-decoration:line-through;opacity:0.5;font-size:0.85em">${rawDmg}</span>`
+      : `${rawDmg}`;
+    el.innerHTML = `Preparing: <strong>Attack ${dmgDisplay}</strong>${specialHint}`;
   } else {
     el.innerHTML = `Preparing: <strong>🛡 Defend</strong>${specialHint}`;
   }
