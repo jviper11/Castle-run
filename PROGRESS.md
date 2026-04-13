@@ -18,7 +18,7 @@
 | Cards — Thief | ✅ Complete | ✅ All 26 reward cards coded. Pool updated. |
 | Cards — Vampire | ✅ Complete | ✅ All 28 reward cards coded. Pool updated. |
 | Cards — Gambler | ✅ Complete | ✅ All 26 reward cards coded. Pool updated. |
-| Card Upgrades | ✅ Complete | ⚠️ Starter upgrades only. Reward card upgrades not in game |
+| Card Upgrades | ✅ Complete | ✅ All upgrades coded for all 5 heroes + shared pool |
 | Shared Card Pool | ✅ Complete | ✅ In prototype |
 | Enemy Roster (all floors) | ✅ Complete | ✅ In prototype |
 | Boss Debuff System | ✅ Complete | ✅ In prototype |
@@ -159,18 +159,8 @@ All 5 characters have full 30-card pools designed including upgrades. Each chara
 ### What's in the game right now
 Every hero has their **10-card starter deck** coded and working. Thief also has their common reward cards in the pool. Everyone else's reward pools are thin — 4-5 cards that are mostly just duplicates of starter cards.
 
-### What needs to be added per hero
-
-| Hero | Starters | Common Rewards | Uncommon | Rare | Total Missing |
-|---|---|---|---|---|---|
-| Barbarian | ✅ 10 cards | ✅ 5 cards | ✅ 10 cards | ✅ 5 cards | **Done** |
-| Mage | ✅ 10 cards | ❌ 4 cards | ❌ 10 cards | ❌ 6 cards | **20 cards** |
-| Thief | ✅ 10 cards | ✅ 5 cards | ❌ 10 cards | ❌ 6 cards | **16 cards** |
-| Vampire | ✅ 10 cards | ❌ 5 cards | ❌ 10 cards | ❌ 6 cards | **21 cards** |
-| Gambler | ✅ 10 cards | ❌ 5 cards | ❌ 10 cards | ❌ 6 cards | **21 cards** |
-| Shared pool | ✅ Partial | — | — | — | ~3 cards missing |
-
-**Total missing from prototype: ~99 cards**
+### Card Build Status — ✅ Complete
+All 5 heroes fully coded including starters, reward cards, and upgrades. Shared pool complete.
 
 ### Implementation note
 When adding cards to the file, use surgical grep approach — never read the full 5k line file. Target only the CARDS object and CHAR_REWARD_POOLS. Add per hero in one session each.
@@ -387,4 +377,4 @@ Categories: Gold events, HP-for-Gold trades, Curse card rewards, Risk events, Cl
 | Early 2026 | Enemy roster all 4 floors. Boss debuff system. 18 events. Economy. Consumables. |
 | Early 2026 | King Aldric 3-phase fight. True Ending relic system. Two endings locked. |
 | Early 2026 | GDD v0.5 → v0.7. Floor hint system. Sir Crimson story arc early design. |
-| April 2026 | Sir Crimson full arc locked. Rare relics (10) + Character relics (15) designed. PROGRESS.md created. Barbarian full card pool coded (24 reward cards). Mage full card pool coded (27 reward cards). Thief full card pool coded (26 reward cards). Vampire full card pool coded (28 reward cards). Gambler full card pool coded (26 reward cards). All 5 hero reward pools updated. rollDice() updated with Loaded House, House Edge, Gambler's Fallacy, Lucky Streak support. |
+| April 2026 | Sir Crimson full arc locked. Rare relics (10) + Character relics (15) designed. PROGRESS.md created. All 5 hero card pools coded (Barbarian 24, Mage 27, Thief 26, Vampire 28, Gambler 26). All upgrade versions coded for all 5 heroes. Reward pool fix — now shows full card variety. Status display system overhauled — Rage/Weak/Vulnerable/Chill all update card preview numbers with color coding. Status tooltip system added — tap icon to see description. Exhaust pile viewer added to deck overlay. Exhaust cards return to deck after combat. Burn changed to stacks × 1 (matching Poison). Burn/Poison timing split — Burn before enemy acts, Poison after. Chill only ticks on attack turns. Cold Mastery correctly reduces Chill percentage. Entrench block carry fixed. Energy display changed to single number. Time Warp redesigned as draw-focused card. rollDice() updated with full Gambler mechanics. Vulnerable per-turn tick (not per-hit). |
