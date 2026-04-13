@@ -1,9 +1,10 @@
 # CASTLE RUN — Game Design Document
-⚔
-CASTLE RUN
-Game Design Document  —  v0.8
+⚔ CASTLE RUN
+Game Design Document — v0.9
 Turn-based deck-building roguelite
 Save your companions. Storm the castle. Free the king.
+
+*Last updated: April 2026*
 
 ---
 
@@ -28,6 +29,13 @@ Five heroes answer the call to storm Castle Ashborne. Before they reach the gate
 You play as the fifth hero — the one who made it through. Floor by floor you fight your way up, facing corrupted versions of your companions as floor bosses. Defeating them doesn't kill them — it releases the Core they were carrying, a fragment of their true self.
 
 With all four Cores, you face King Aldric Ashborne himself. What happens next depends on whether you've uncovered the truth — or simply fought your way to the top.
+
+### Sir Crimson
+Sir Crimson is not one of your companions. He was the king's most trusted knight — the man whose desperate act of loyalty set everything in motion. Consumed by the castle long before the events of Castle Run, he now serves as its enforcer and gatekeeper between floors.
+
+He appears as a shadowy presence between Floor 1 and Floor 2, watching. Between Floor 2 and Floor 3 he confronts you — and the fight happens. After his defeat, the castle's grip briefly breaks. He becomes lucid, gives you the True Ending hint, and disappears.
+
+In the True Ending, he appears freed completely.
 
 ### The Two Endings
 
@@ -70,30 +78,29 @@ Dark gothic aesthetic. Inspired by Castlevania and Slay the Spire. Character art
 ## 3. Path & Floor System
 
 ### Floor Structure
-4 floors total
-Each floor has 3 paths, fully visible at floor start (room types only)
-Player selects one path and is committed for the entire floor
-Each floor contains 13–15 rooms, randomly determined per run
-All paths on a floor share the same room count
-Boss room appears at the end of each floor
+- 4 floors total
+- Each floor has 3 paths, fully visible at floor start (room types only)
+- Player selects one path and is committed for the entire floor
+- Each floor contains 13–15 rooms, randomly determined per run
+- Boss room appears at the end of each floor
 
 ### Path Identity
 
-Each path follows a predefined structure:
+**Path A (Combat Heavy)**
+- High number of battles
+- 2 Elite fights
+- 2 Rest sites
+- No shop
 
-Path A (Combat Heavy)
-High number of battles
-2 Elite fights
-2 Rest sites
-No shop
-Path B (Balanced)
-Mix of battles, events, and rests
-1 Elite fight
-2 Shops
-Path C (Events / Utility)
-Higher number of events
-1 Elite fight
-1 Shop
+**Path B (Balanced)**
+- Mix of battles, events, and rests
+- 1 Elite fight
+- 2 Shops
+
+**Path C (Events / Utility)**
+- Higher number of events
+- 1 Elite fight
+- 1 Shop
 
 ### Room Types
 
@@ -106,34 +113,24 @@ Higher number of events
 | Event | ? | Random event with choices | Hidden on Floor 3-4 |
 | Magic Door | 🪄 | High risk / high reward mystery | Always hidden |
 
-### (Not yet implemented — future expansion system)
-### 🔮 Special Door Events (Future System)
-
-(Not currently implemented — planned feature)
-
-The Magic Door will evolve into a high-risk decision room where the player must choose between multiple outcomes.
-
-Possible events include:
-
-Map Blind Curse — you can't see room icons for the rest of the floor
-Locked Door — pay gold to proceed
-Burning Door — take damage for a powerful reward
-Sealed Door — requires relic to open, reward scales with rarity
-Mirror Door — fight a shadow version of yourself
-
-These events introduce meaningful risk/reward decisions and will replace or expand the current Magic Door system.
-
 ### Mirror Mechanic
 At approximately 60% through each path, a Mirror Room appears. The castle shows you a reflection of what you've built. The Mirror fight uses a shadow copy of your deck and dice — a skill check on your own build.
 
 ### Floor Themes & Boss
 
-| Floor | Theme | Boss (Corrupted Companion) | Enemy Aesthetic |
-|---|---|---|---|
-| 1 | Castle Dungeon | Sir Crimson (Mimic Knight) | Guards, dungeon creatures |
-| 2 | Crypt | Companion 2 ⚠ TBD | Undead, skeletons, wraiths |
-| 3 | Forbidden Library | Companion 3 ⚠ TBD | Arcane constructs, dark scholars |
-| 4 | Throne Room | Companion 4 ⚠ TBD | Elite castle guards, demons |
+| Floor | Theme | Boss |
+|---|---|---|
+| 1 | Castle Dungeon | Corrupted companion (random) |
+| 2 | Catacombs | Corrupted companion (random) |
+| 3 | Shadow Realm / Void | Corrupted companion (random) |
+| 4 | Throne Room | King Aldric (fixed) |
+
+### Boss Debuff System (Balatro-inspired)
+Each corrupted companion boss has a fixed debuff shown before the fight. Debuffs scale per floor:
+- Floor 1 — disables your dice affinity bonus for the fight
+- Floor 2 — card type costs +1 energy
+- Floor 3 — severe mechanical restriction (block resets, draw reduction, etc.)
+- Floor 4 — brutal restriction per character kit
 
 ---
 
@@ -147,12 +144,13 @@ At approximately 60% through each path, a Mirror Room appears. The castle shows 
 5. Repeat until combat ends
 
 ### Energy
-Players start each turn with 3 Energy. Cards cost 0, 1, or 2 Energy. Unused Energy does not carry over. Some relics and cards modify max Energy or carry-over rules.
+Players start each turn with 3 Energy. Cards cost 0, 1, or 2 Energy. Unused Energy does not carry over. Some relics and cards modify max Energy temporarily. Energy is displayed as a single number — it can go above max temporarily from cards like Time Warp or Battle Trance.
 
 > ⚠ DESIGN RULE: Cards that generate Energy have flat fixed values. Affinity rolls cannot modify Energy gain. Draw effects may still be affinity-gated.
 
 ### Block System
-- Player block resets to 0 at the start of each enemy turn
+- Player block resets to 0 at the start of each player turn (unless Entrench is active)
+- Entrench exception: if Entrench was played, leftover block carries to the next turn once
 - Enemy block is persistent — must be broken through over multiple turns
 - Block absorbs damage before HP
 
@@ -162,7 +160,7 @@ Each character has one active die (d6 by default). At the start of their turn th
 - Players get 1 reroll per turn
 - Reroll resets at the start of each player turn
 - Some relics grant additional rerolls
-- **Die can only be set (forced to a specific value) once per turn**
+- Die can only be set (forced to a specific value) once per turn
 - Twinned Die relic applies to initial roll only — not rerolls
 
 ### Character Affinities
@@ -179,155 +177,156 @@ Each character has one active die (d6 by default). At the start of their turn th
 
 ### Status Effects
 
-| Status | Type | Effect | Clears |
-|---|---|---|---|
-| 🔥 Burn | DoT | Deals damage equal to current stacks at the start of player turn | Decreases by 1 stack each turn automatically |
-| ☠️ Poison | DoT | Deals damage equal to current stacks at the end of enemy turn | 1 stack removed after dealing damage each turn. |
-| ❄️ Chill | Debuff | Reduces enemy's next attack by 25%. Flat regardless of stacks | 1 stack consumed per enemy attack |
-| 😵 Weak | Debuff | Target deals 25% less damage. Flat regardless of stacks | 1 stack removed at end of target's turn |
-| 🩸 Vulnerable | Debuff | Target takes 25% more damage. Flat regardless of stacks | 1 stack removed at end of target's turn |
-| 💢 Strength | Buff | +N damage to all attacks | Permanent until combat ends |
-| 💚 Regen | Buff | Heal N HP at start of player turn | Decreases by 1 stack each turn. Max 10 stacks |
-| 🦇 Fly | Buff | Next damage taken reduced by 50% | Clears after triggering or at end of turn |
+| Status | Type | Effect | Timing | Clears |
+|---|---|---|---|---|
+| 🔥 Burn | DoT | Deals damage equal to stacks | Before enemy acts (end of player turn) | -1 stack per turn |
+| ☠️ Poison | DoT | Deals damage equal to stacks | After enemy acts | -1 stack per turn |
+| ❄️ Chill | Debuff | Reduces enemy's attack damage by 25% (more with Cold Mastery) | Applies on enemy attack turns only | -1 stack per enemy attack |
+| 😵 Weak | Debuff | Target deals 25% less damage | Applied immediately | -1 stack at end of turn |
+| 🫗 Vulnerable | Debuff | Target takes 50% more damage | Applied immediately | -1 stack at end of turn |
+| 💢 Rage/Strength | Buff | +N damage to all attacks | Applied immediately | Permanent until combat ends |
+| 💚 Regen | Buff | Heal N HP at end of player turn before enemy acts | End of player turn | -1 stack per turn. Max 10 stacks |
+| 🦇 Fly | Buff | Damage taken reduced by 50% | Next damage taken | Clears after triggering or end of turn |
 
-**Debuff Duration Rules:**
-- Debuffs (Weak, Vulnerable, Chill) last until the end of the target's next action
-- Player-applied debuffs affect the enemy immediately and expire after the enemy acts
-- Enemy-applied debuffs affect the player on their next turn and expire after the player acts
-- Stacking the same debuff multiple times extends duration not magnitude — 25% flat regardless of stack count
+**Status Timing Summary:**
+- Burn ticks BEFORE the enemy acts
+- Regen ticks BEFORE the enemy acts
+- Poison ticks AFTER the enemy acts
+- Vulnerable ticks down at end of turn (not per hit)
+- Chill only ticks when the enemy attacks (not on defend turns)
 
-> ⚠ Rage was removed as a status — it is now represented as a Power card (Rage Fuel) available in the Barbarian reward pool.
+**Cold Mastery modifier:**
+- No Cold Mastery: Chill reduces damage by 25%
+- Cold Mastery (base): reduces damage by 35%
+- Cold Mastery+: reduces damage by 50%
 
 ### Power Cards
 Power cards are played once and stay in the combat zone. They provide ongoing passive effects for the rest of the fight. When played, they are exhausted — removed from the deck for this combat only. They do not go to the discard pile.
 
 ### Exhaust
-Exhausted cards are removed from play for the rest of the current combat. They return to the deck at the start of the next combat. Some cards are always Exhausted on use (noted in card description). Exhausted cards cannot be retrieved by Arcane Recall or similar effects unless specifically stated.
+Exhausted cards are removed from play for the rest of the current combat. They return to the deck at the start of the next combat (after the reward screen). Some cards are always Exhausted on use (noted in card description). Exhausted cards cannot be retrieved by Arcane Recall or similar effects unless specifically stated.
 
 ---
 
-## 5. Characters & Starter Decks
+## 5. Sir Crimson — Mid-Run Encounter
+
+### Story Arc
+
+| Point | What Happens |
+|---|---|
+| Between Floor 1–2 | Appears as a shadowy presence. One line of dialogue. Watching. No fight. |
+| Between Floor 2–3 | Confronts you. The fight happens here. |
+| After the fight | Castle's grip breaks. He's lucid. Gives True Ending hint. Disappears. |
+| True Ending cutscene | Appears freed completely. |
+
+### The Fight
+- Type: Surprise encounter — no reward room beforehand
+- Difficulty: Full boss-level
+- HP: 160 | Base DMG: 12
+
+**His Moves (rotation):**
+
+| Move | Effect |
+|---|---|
+| Crimson Strike | Deal 12 damage |
+| Iron Guard | Gain 14 Block |
+| Shatter Step | Deal 8 damage, remove 8 player block |
+| Studied Blow | Deal 15 damage + Weak 2 (telegraphed one turn early) |
+
+**Mimic Move — every 3rd turn:**
+
+| Move | Effect |
+|---|---|
+| Echo | Pulls a random card from your deck and uses it against you at full effect. Always telegraphed. |
+
+Echo mechanic: block cards give him block, damage cards hit you, status cards apply to you. Larger decks are riskier — rewards tight deck building.
+
+**Post-fight dialogue:**
+*"The king... he didn't choose this. None of us did. The castle took everything from him — his grief was the door it walked through. If you want to free him... find what he lost. Four pieces. You'll know them when you see them."*
+
+---
+
+## 6. Characters & Starter Decks
 
 All characters share these baseline cards:
 - Strike — Deal 6 damage (Cost: 1)
 - Defend — Gain 5 Block (Cost: 1)
-
----
 
 ### Barbarian 🪓
 
 | Field | Detail |
 |---|---|
 | Dice Affinity | Even rolls (2, 4, 6) |
-| Affinity | Cards gain stronger damage or block on even rolls |
-| Playstyle | Heavy consistent hits, self-damage builds, low-HP payoffs |
 | HP | 90 |
 | Starter Deck | Strike x3, Defend x2, Heavy Blow x2, War Shout x2, Iron Bash x1 |
 | Boss Form | Siege Tyrant — enrages at 50% HP, gains +4 Strength, attacks twice per turn |
-
----
 
 ### Mage 🔮
 
 | Field | Detail |
 |---|---|
 | Dice Affinity | High rolls (6+) |
-| Affinity | Spells gain enhanced effects on high rolls |
-| Playstyle | Burn/Chill synergy, spell chaining, status scaling |
 | HP | 70 |
 | Starter Deck | Strike x2, Defend x2, Frost Bolt x2, Arcane Shield, Mana Surge, Arcane Boost, Void Channel |
 | Boss Form | Void Scholar — copies your last card played each turn as a counter-spell |
-
----
 
 ### Thief 🗡️
 
 | Field | Detail |
 |---|---|
 | Dice Affinity | Odd rolls (1, 3, 5) |
-| Affinity | Cards trigger combo bonuses on odd rolls |
-| Playstyle | Poison DoT, combo chains, card cycling, light Gold economy |
 | HP | 75 |
 | Starter Deck | Strike x2, Defend x2, Quick Strike x2, Shadow Step, Poison Blade, Pick Pocket, Smoke Screen |
 | Boss Form | Shadow Phantom — gains stealth every other turn (immune to damage while in stealth) |
-
----
 
 ### Vampire 🧛
 
 | Field | Detail |
 |---|---|
 | Dice Affinity | Extreme rolls (1 or max face) |
-| Affinity | Cards gain lifesteal or enhanced effects on extreme rolls |
-| Playstyle | Regen stacking, self-damage for power, Fly for defense, lifesteal |
 | HP | 78 |
 | Starter Deck | Strike x2, Defend x2, Blood Drain x2, Night Shroud, Life Leech, Crimson Bite, Dark Embrace |
 | Boss Form | The Eternal — heals 10 HP every turn; must be burst down |
-
----
 
 ### Gambler 🎲
 
 | Field | Detail |
 |---|---|
 | Dice Affinity | d6 Specialist — min roll 2, max roll = lucky streak |
-| Affinity | Cards read actual die value. Higher rolls = stronger effects |
-| Playstyle | Dice manipulation, high variance, Gold scaling, roll-reading |
 | HP | 72 |
 | Starter Deck | Strike x2, Defend x2, High or Low x2, Double Down, Lucky Strike, Hedge Bet, Wild Card |
 | Boss Form | The House — forces you to choose between two random harmful effects each turn |
 
 ---
 
-## 6. Floor Bosses
+## 7. Floor Bosses
 
-### Sir Crimson — Floor 1 Boss (The Mimic Knight)
-Sir Crimson is not one of your companions. He is the castle's enforcer — a knight whose soul was consumed long ago and replaced with something ancient. He mimics the form of whoever the castle last consumed, which makes him look familiar but wrong.
+### Corrupted Companions (Floors 1–3)
+Which companion appears on which floor is random each run. Affinity hints appear in rooms near the boss — environmental particles matching the boss's character (e.g. magic vapor for Mage, blood mist for Vampire).
 
-**Phase 1: The Impostor (HP: 120)**
-- Ability: Mimic — copies the last card you played and uses it against you next turn
-- Attack: Shield Bash — deals 8 damage and applies Weak for 2 turns
-- Threshold: At 0 HP, the knight's mask shatters
-
-**Phase 2: The True Knight (HP: 80)**
-- Ability: Iron Will — gains 10 persistent Block at the start of each turn
-- Attack: Crimson Cleave — deals 12 damage to player and removes 5 Block
-- Reward: Boss relic choice + 80 gold + full HP restore
-
----
-
-### Companions 2, 3, 4
-⚠ TBD: Names, lore, and boss mechanics for floor bosses 2, 3, and 4.
-
----
+⚠ TBD: Names, lore, and boss mechanics for the four corrupted companions.
 
 ### King Aldric Ashborne — Final Boss
-The king fights in three phases. Each phase has its own HP pool. All four Cores must be collected to unlock the throne room door.
 
 **Phase 1: The Corrupted King (HP: 250)**
-Aldric sits on the throne, eyes glowing purple, surrounded by castle stone. He uses the Castle to shield himself. Defense and attrition.
 - Ability: Stone Heart — starts with 50 Persistent Block. Gains 10 Block every time you roll an Even number
 - Attack: Grieving Ground — deals 15 damage and adds one Curse of Weakness to your discard pile
 - Threshold: At 0 HP, the Castle armor shatters
 
 **Phase 2: The Shattered Ruler (HP: 200)**
-The throne shatters. Aldric stands, wielding a fractured blade, moving erratically. Aggression and chaos.
 - Ability: Memory Leech — every 3rd turn, your dice affinity bonus is disabled for that turn
 - Attack: Fractured Strike — deals 8 damage 3 times. Doubles if you have Poison or Burn stacks
 - Ability: Desperation — gains 2 Strength for every Power card you have exhausted this combat
 - Ability: Dice Curse — your die result is inverted (roll a 6, it becomes a 1) every other turn
 
 **Phase 3: The Soul's Burden (HP: 150)**
-The corruption bleeds out. He looks human but is being crushed by shadow. A race to survive until the end.
-- Ability: Fading Light — at the start of each of your turns, you lose 5 HP (the castle is consuming him)
+- Ability: Fading Light — at the start of each of your turns, you lose 5 HP
 - Attack: Final Decree — deals 20 damage and silences your highest-cost card for 1 turn
 - True Ending Trigger — if all 4 True Ending Relics are held, a special action appears at 50 HP: Use the Relics. This ends Phase 3 without dealing the killing blow and triggers the True Ending.
 
 ---
 
-## 7. Enemy Roster
-
-All HP and damage values are starting points subject to playtesting.
+## 8. Enemy Roster
 
 ### Floor 1 — Castle Dungeon
 
@@ -346,7 +345,7 @@ All HP and damage values are starting points subject to playtesting.
 | Armored Guard | 40 | 9 | Shield Up: gains 8 Block every other turn |
 | Dungeon Hound | 32 | 11 | Frenzy: attacks twice if below 50% HP |
 | Cursed Statue | 45 | 7 | Petrify: applies Weak to player on hit |
-| Skeleton Archer | 28 | 8 | Range: always attacks from a safe distance, ignores Block once |
+| Skeleton Archer | 28 | 8 | Range: always attacks from safe distance, ignores Block once |
 
 **Floor 1 Elites**
 
@@ -357,7 +356,7 @@ All HP and damage values are starting points subject to playtesting.
 
 ---
 
-### Floor 2 — Crypt
+### Floor 2 — Catacombs
 
 **Standard Pool**
 
@@ -377,7 +376,7 @@ All HP and damage values are starting points subject to playtesting.
 
 ---
 
-### Floor 3 — Forbidden Library
+### Floor 3 — Shadow Realm / Void
 
 **Standard Pool**
 
@@ -403,9 +402,9 @@ All HP and damage values are starting points subject to playtesting.
 
 | Enemy | HP | Damage | Special Ability |
 |---|---|---|---|
-| Royal Guard | 70 | 14 | Loyalty: gains 10 Block when the king's HP drops below 50% (in boss fight only) |
+| Royal Guard | 70 | 14 | Loyalty: gains 10 Block when king's HP drops below 50% |
 | Corrupted Paladin | 80 | 12 | Holy Wrath: deals double damage if player has any curses in deck |
-| Shadow Demon | 60 | 16 | Umbral Step: moves to a shadow form, untargetable for 1 turn before attacking |
+| Shadow Demon | 60 | 16 | Umbral Step: untargetable for 1 turn before attacking |
 | Castle Shade | 55 | 13 | Drain Essence: heals 8 HP per successful hit |
 
 **Floor 4 Elites**
@@ -417,95 +416,126 @@ All HP and damage values are starting points subject to playtesting.
 
 ---
 
-## 8. Relic System
+## 9. Relic System
 
-Relics provide passive bonuses for the rest of the run. Collected from boss rewards, elites, shops, events, and Magic Doors. Each relic has a tier, floor availability, and source restrictions.
-
-> ⚠ DESIGN NOTE: Relics are not balanced for all characters equally. Some relics are weak or counterproductive for certain characters — this is intentional. Players learn which relics suit their build and skip poor pickups.
-
-### Relic Tiers
-
-| Tier | Available From | Source |
-|---|---|---|
-| Common | Any floor | Elite reward, Shop, Event |
-| Uncommon | Floor 2+ | Elite reward (Floor 2+), Shop, Event |
-| Rare | Floor 3+ | Elite only, Magic Door, Boss reward |
-| Cursed | Floor 2+ (events only) | Event only — always has a downside |
-| Boss | After each floor boss | Boss reward choice only |
-
----
-
-### Common Relics
-
-| Relic | Effect | Source |
-|---|---|---|
-| Bloodsoaked Rag | Heal 3 HP after each combat win | Elite reward, Event |
-| Iron Vambrace | Start every combat with 6 Block | Shop, Event |
-| Rusted Chain | Enemies start combat with 1 Vulnerable | Elite reward, Event |
-| Phantom Blade | First attack each combat deals +8 damage | Shop, Event |
-| Ivory Die | Your die gains one extra face, becoming a d7. Max roll is now 7. | Shop, Elite reward |
-| Ash Pendant | Gain 1 Soul after every battle | Event, Magic Door |
-| Cracked Hourglass | Reroll restored at start of every combat | Shop, Event |
-| Iron Ration | Heal 5 HP after elite fights | Shop, Event |
-| Lucky Rabbit Foot | Once per run, survive a killing blow at 1 HP | Elite reward, Event |
-| Tarnished Coin | Gain 5 bonus gold after every combat | Shop, Event |
-
----
-
-### Uncommon Relics (Floor 2+)
-
-| Relic | Effect | Source |
-|---|---|---|
-| Torn Page | Draw 1 extra card at the start of every other turn | Floor 2+ Elite, Shop |
-| Loaded Gauntlet | Minimum dice roll is always 2 | Floor 2+ Elite, Shop |
-| Lucky Coin | Once per turn, if you trigger your affinity, draw 1 card | Floor 2+ Event, Magic Door |
-| Bone Dice | When you reroll, result can never be lower than original | Floor 2+ Shop, Elite |
-| Grave Robber | Gain 8 Gold after each elite fight | Floor 2+ Event, Shop |
-| Gilded Quill | Every 10th card played deals double damage | Floor 2+ Elite only |
-| Scholar's Lens | See 1 extra card option on every reward screen | Floor 2+ Shop only |
-| Bone Key | Every 4th room has a chance to contain a hidden chest | Floor 2+ Magic Door only |
-| Twinned Die | On your initial roll each turn, roll twice and take the higher result. Does not apply to rerolls. | Floor 2+ Elite, Shop |
-| Soulbound Tome | Once per turn, if you play 3+ cards, gain 1 Energy | Floor 2+ Shop, Event |
-
----
-
-### Rare Relics (Floor 3+)
-
-| Relic | Effect | Source |
-|---|---|---|
-| Philosopher's Stone | Cards that cost 2 or more Energy cost 1 less | Floor 3+ Elite only |
-| Cursed Mirror | Start combat with 15 Block but take 5 damage | Floor 3+ Magic Door |
-| King's Chalice | Heal 8 HP each time you defeat an elite | Floor 3+ Boss reward |
-| Death's Hourglass | Take 3 less damage from all attacks | Floor 3+ Elite only |
-| Void Shard | Your first attack each combat can't be blocked | Floor 3+ Magic Door, Elite |
-| Crimson Pact | Gain 3 Strength but max HP reduced by 20 | Floor 3+ Event only |
-| Ancient Rune | Once per combat, return a played card to hand | Floor 3+ Shop only |
-| Shadow Cloak | First hit each combat deals 0 damage (absorbed) | Floor 3+ Boss reward |
-| Dragon's Scale | Reflect 3 damage to attacker when hit | Floor 3+ Magic Door |
-| Soul Lantern | See one extra room ahead on the path map | Floor 3+ Shop only |
-
----
+Relics provide passive bonuses for the rest of the run. Collected from boss rewards, elites, shops, events, and Magic Doors.
 
 ### True Ending Relics (Boss Rewards Only)
 
-These four relics are required for the True Ending. One drops from each floor boss reward pool.
-
-| Relic | Floor | Effect |
+| Relic | Floor | Effect in Aldric fight |
 |---|---|---|
-| The Fractured Crown | Floor 1 Boss | In Phase 3 vs. King, your first attack always crits |
-| The King's Sword | Floor 2 Boss | In Phase 3 vs. King, deal +15 damage on all attacks |
-| The Royal Sigil | Floor 3 Boss | In Phase 3 vs. King, Fading Light deals half damage |
-| The Knight's Vow | Floor 4 Boss | Unlocks the 'Use the Relics' option in Phase 3 |
+| The Fractured Crown | Floor 1 Boss | Aldric loses all Strength permanently |
+| The King's Sword | Floor 2 Boss | Aldric's damage halved for the fight |
+| The Royal Sigil | Floor 3 Boss | Fading Light disabled — stop losing HP each turn |
+| The Knight's Vow | Floor 4 Boss | Aldric stops attacking entirely. Fight ends without killing blow. |
+
+### Common Relics
+
+| Relic | Effect |
+|---|---|
+| Bloodsoaked Rag | Heal 3 HP after each combat win |
+| Iron Vambrace | Start every combat with 6 Block |
+| Rusted Chain | Enemies start combat with 1 Vulnerable |
+| Phantom Blade | First attack each combat deals +8 damage |
+| Ivory Die | Add one d8 to your dice pool |
+| Ash Pendant | Gain 1 Soul after every battle |
+| Cracked Hourglass | Reroll restored at start of every combat |
+| Iron Ration | Heal 5 HP after elite fights |
+| Lucky Rabbit Foot | Once per run, survive a killing blow at 1 HP |
+| Tarnished Coin | Gain 5 bonus gold after every combat |
+
+### Uncommon Relics (Floor 2+)
+
+| Relic | Effect |
+|---|---|
+| Torn Page | Draw 1 extra card at start of each turn |
+| Loaded Gauntlet | Minimum dice roll is always 2 |
+| Lucky Coin | Roll affinity number exactly → draw 1 card |
+| Bone Dice | Reroll result can never be lower than original |
+| Grave Robber | Gain 8 Gold after each elite fight |
+| Gilded Quill | Every 10th card played deals double damage |
+| Scholar's Lens | See 1 extra card option on every reward screen |
+| Bone Key | Every 4th room has a chance to contain a hidden chest |
+| Twinned Die | Roll twice on initial roll, take the higher result. Does not apply to rerolls. |
+| Soulbound Tome | Gain 1 Energy when you play 3+ cards in one turn |
+
+### Rare Relics (Floor 3+)
+
+**Pure upside:**
+
+| Relic | Effect |
+|---|---|
+| Soulbound Gauntlet | First card each turn costs 0 energy |
+| Ashen Crown | Gain 1 extra energy at start of every combat |
+| Shattered Mirror | When enemy copies/mirrors you, they take 10 damage |
+| Void Compass | After every elite, choose 1 of 3 relics instead of 1 |
+| Crimson Phylactery | Survive a killing blow at 1 HP once per run |
+
+**Trade-offs:**
+
+| Relic | Effect | Cost |
+|---|---|---|
+| Cursed Hourglass | Draw 2 extra cards per turn | Hand limit drops from 5 to 4 |
+| Hollow Throne | Start every combat with 20 Block | Lose 8 max HP permanently |
+| The Pale Contract | All cards deal +4 damage | Healing is 50% less effective |
+| Fractured Die | Roll twice, take higher result | Lose reroll for the rest of the run |
+| King's Debt | Gain 60 gold immediately | Every shop costs 25% more all run |
+
+### Character Relics (Floor 3+, Boss reward only)
+
+**Barbarian** (missing: healing, card draw, odd-roll value)
+
+| Relic | Effect |
+|---|---|
+| Warlord's Bandage | Heal 4 HP every time you play an Attack on an odd roll |
+| Battle Drum | Draw 1 extra card at turn start if last roll was odd |
+| Berserker's Scar | Taking damage grants 1 Rage stack |
+
+**Mage** (missing: block, low-roll value, survivability)
+
+| Relic | Effect |
+|---|---|
+| Stone Grimoire | Gain 4 Block every time you cast a spell, regardless of roll |
+| Frost Seal | Low rolls (3 or under) apply Chill 1 to enemy instead of nothing |
+| Ley Line Crystal | Once per combat, set your dice roll to 6 |
+
+**Thief** (missing: burst damage, block generation)
+
+| Relic | Effect |
+|---|---|
+| Assassin's Edge | Every 4th card played in a turn deals double damage |
+| Shadow Wrap | Start every combat with 5 Block |
+| Venomfang | Poison stacks deal 1 extra damage per tick |
+
+**Vampire** (missing: middle-roll consistency)
+
+| Relic | Effect |
+|---|---|
+| Crimson Lens | Middle rolls (2–5) count as half-affinity — lifesteal at 50% value |
+| Blood Pact | Spending HP to play cards counts as a drain — triggers lifesteal |
+| Midnight Hunger | If you didn't hit affinity this turn, next roll gets +2 added |
+
+**Gambler** (missing: damage scaling, non-d6 options)
+
+| Relic | Effect |
+|---|---|
+| Loaded Coat | Once per combat, swap active die for any die type |
+| Devil's Ledger | Every 20 gold spent adds +1 damage this run, cap at +8 |
+| The House Always Wins | Roll max 2 turns in a row → next card costs 0. Shows streak tracker. |
+
+### Boss Reward Flow
+After each floor boss: choose 1 of 3 relics — 1 Common, 1 Rare, 1 Character-specific.
 
 ---
 
-## 9. Card System
+## 10. Card System
 
 ### Deck Rules
 - All characters start with 10 cards (2 Strikes, 2 Defends, 6 class-specific)
 - After each combat, choose 1 of 3 card rewards OR skip and take 50 gold
 - Cards can be removed at Rest Stops (costs 75 gold), Shops (costs 100 gold), or certain Events
-- Upgrades available at Rest Stops (one per stop) or Shops
+- Upgrades available at Rest Stops (one per stop) or Shops (costs 80 gold)
+- Every card has exactly one upgrade version (base → +)
 
 ### Card Types
 
@@ -516,328 +546,21 @@ These four relics are required for the True Ending. One drops from each floor bo
 | Power | Played once. Passive effect for rest of combat. Exhausted on play. |
 | Curse | Negative cards added to deck by enemies or events. No cost, no benefit. |
 
-### Card Rarity
-Cards in the reward pool are grouped into three rarity tiers. Rarity affects how frequently a card appears as a reward option.
-
-| Rarity | Appearance Rate | Notes |
-|---|---|---|
-| Common | High | Appears frequently in early and mid floors |
-| Uncommon | Medium | Appears from Floor 2 onwards more regularly |
-| Rare | Low | Rare drops — high impact, build-defining cards |
-
-All starter deck cards are Common. Reward pool cards are drawn from the character's rarity pool weighted by floor.
-
-### Affinity-Gated Cards
-Many character cards have two modes — a base effect and an enhanced effect that only activates when the die result matches the character's affinity on the turn the card is played. Cards always do something useful in base mode. The affinity bonus is a meaningful upgrade, not the only way a card functions.
-
 ### Exhaust
-Some cards are Exhausted on use — removed from combat for the rest of the fight. Exhausted cards return to the deck at the start of the next combat. Power cards are always Exhausted when played.
+Exhausted cards are removed from combat for the rest of the fight. They return to your deck after combat ends (when the reward screen opens). Power cards are always Exhausted when played. Exhausted cards are visible in the Deck Viewer during combat.
 
 ### Curse Cards
 
 | Curse | Effect |
 |---|---|
-| Curse of Weakness | When drawn, lose 1 Energy this turn |
-| Curse of Pain | When drawn, take 4 damage |
-| Curse of Doubt | When drawn, discard a random card from hand |
-| Void Rift | Unplayable. Counts as a card draw blocker. |
-
----
-
-## 10. Character Card Pools
-
----
-
-### ⚔️ Barbarian — Full Card Pool
-
-**Design identity:** Heavy consistent hits. Even rolls unlock stronger damage and block values. Self-damage cards enable low-HP payoffs. Three Power cards define the build: Berserker's Oath (damage-to-block), Warlord's Presence (flat damage boost), Rage Fuel (Strength).
-
-**Playtesting flags:** Entrench + Berserker's Oath sustain loop. Death Rattle requires reliable self-damage access — Blood Price (Common) is the safety valve.
-
-#### 🟢 Common (15 cards — 10 starters + 5 reward)
-
-| Key | Name | Type | Cost | Base Effect | Even Roll Effect | Upgrade Effect |
-|---|---|---|---|---|---|---|
-| `strike` | Strike | Attack | 1 | Deal 6 dmg | — | Deal 9 dmg |
-| `strike` | Strike | Attack | 1 | Deal 6 dmg | — | Deal 9 dmg |
-| `strike` | Strike | Attack | 1 | Deal 6 dmg | — | Deal 9 dmg |
-| `defend` | Defend | Skill | 1 | Gain 5 Block | — | Gain 8 Block |
-| `defend` | Defend | Skill | 1 | Gain 5 Block | — | Gain 8 Block |
-| `heavyblow` | Heavy Blow | Attack | 2 | Deal 10 dmg | Deal 16 dmg | Deal 13 dmg. Even: Deal 19 dmg |
-| `heavyblow` | Heavy Blow | Attack | 2 | Deal 10 dmg | Deal 16 dmg | Deal 13 dmg. Even: Deal 19 dmg |
-| `warshout` | War Shout | Skill | 1 | Gain 6 Block | Gain 10 Block | Gain 8 Block. Even: Gain 14 Block |
-| `warshout` | War Shout | Skill | 1 | Gain 6 Block | Gain 10 Block | Gain 8 Block. Even: Gain 14 Block |
-| `ironbash` | Iron Bash | Attack | 1 | Deal 7 dmg | Deal 7 dmg + Vulnerable 1 | Deal 10 dmg. Even: Deal 10 dmg + Vulnerable 2 |
-| `brutalswing` | Brutal Swing | Attack | 1 | Deal 5 dmg twice | Deal 7 dmg twice | Deal 7 dmg twice. Even: Deal 8 dmg twice |
-| `shieldbreaker` | Shield Breaker | Attack | 1 | Deal 6 dmg | Deal 6 dmg + remove 5 enemy Block | Deal 9 dmg. Even: Deal 9 dmg + remove 8 enemy Block |
-| `warcry` | War Cry | Skill | 0 | Gain 3 Block | Gain 3 Block + draw 1 | Gain 5 Block. Even: Gain 5 Block + draw 1 |
-| `toughhide` | Tough Hide | Skill | 1 | Gain 7 Block | Gain 11 Block | Gain 9 Block. Even: Gain 13 Block |
-| `bloodprice` | Blood Price | Skill | 0 | Lose 5 HP. Draw 2 cards | Lose 3 HP. Draw 2 cards | Lose 3 HP. Draw 2. Even: Lose 1 HP. Draw 2 |
-
-#### 🔵 Uncommon (10 cards)
-
-| Key | Name | Type | Cost | Base Effect | Even Roll Effect | Upgrade Effect |
-|---|---|---|---|---|---|---|
-| `haymaker` | Haymaker | Attack | 2 | Deal 14 dmg | Deal 20 dmg | Deal 17 dmg. Even: Deal 24 dmg |
-| `skullcrack` | Skull Crack | Attack | 1 | Deal 8 dmg + Weak 1 | Deal 8 dmg + Weak 2 | Deal 11 dmg + Weak 1. Even: Deal 11 dmg + Weak 3 |
-| `recklesslunge` | Reckless Lunge | Attack | 1 | Deal 10 dmg, take 3 | Deal 16 dmg, take 3 | Deal 13 dmg, take 2. Even: Deal 19 dmg, take 2 |
-| `battlecry` | Battle Cry | Skill | 1 | Gain 6 Block | Gain 6 Block + draw 2 | Gain 8 Block. Even: Gain 8 Block + draw 2 |
-| `ironroar` | Iron Roar | Skill | 0 | Apply Weak 1 to enemy | Apply Weak 2 to enemy | Apply Weak 2 to enemy. Even: Apply Weak 3 to enemy |
-| `bloodlust` | Blood Lust | Skill | 1 | Heal 4 HP | Heal 8 HP | Heal 6 HP. Even: Heal 11 HP |
-| `entrench` | Entrench | Skill | 1 | Gain 8 Block, doesn't reset this turn | Gain 13 Block, doesn't reset this turn | Gain 11 Block, doesn't reset. Even: Gain 17 Block, doesn't reset |
-| `overpowerattack` | Overpower | Attack | 1 | Deal 8 dmg | Deal 8 dmg + Vulnerable 2 | Deal 11 dmg. Even: Deal 11 dmg + Vulnerable 3 |
-| `crushingblow` | Crushing Blow | Attack | 2 | Deal 12 dmg + remove 8 enemy Block | Deal 18 dmg + remove 8 enemy Block | Deal 15 dmg + remove 12 Block. Even: Deal 21 dmg + remove 12 Block |
-| `warcallecho` | War Call | Skill | 0 | Draw 1 card | Draw 1 + apply Weak 1 to enemy | Draw 2 cards. Even: Draw 2 + Weak 1 to enemy |
-
-#### 🟣 Rare (6 cards)
-
-| Key | Name | Type | Cost | Base Effect | Even Roll Effect | Upgrade Effect |
-|---|---|---|---|---|---|---|
-| `berserkersoath` | Berserker's Oath | Power | 2 | Exhausted. Each time you lose HP for any reason, gain 3 Block | Each time you lose HP for any reason, gain 5 Block | Each time you lose HP for any reason, gain 4 Block. Even: gain 7 Block |
-| `warlordspresence` | Warlord's Presence | Power | 2 | Exhausted. All attacks +2 dmg this combat | All attacks +4 dmg this combat | All attacks +3 dmg. Even: All attacks +6 dmg |
-| `ragefuel` | Rage Fuel | Skill | 1 | Exhausted. Gain 1 Strength this combat | Gain 2 Strength this combat | Gain 2 Strength. Even: Gain 3 Strength |
-| `deathrattle` | Death Rattle | Attack | 2 | Deal 16 dmg. Only playable below 50% HP | Deal 24 dmg. Only playable below 50% HP | Deal 20 dmg. Even: Deal 26 dmg (below 50% HP) |
-| `laststand` | Last Stand | Skill | 1 | Gain 10 Block. Below 30% HP: gain 20 | Gain 14 Block. Below 30% HP: gain 28 | Gain 12 Block. Below 30%: gain 24. Even: Gain 16 Block. Below 30%: gain 32 |
-| `battletrance` | Battle Trance | Skill | 1 | Gain 2 Energy. Lose 6 HP | Gain 2 Energy. Lose 4 HP | Gain 2 Energy. Lose 4 HP. Even: Gain 2 Energy. Lose 3 HP |
-
----
-
-### 🔮 Mage — Full Card Pool
-
-**Design identity:** Burn and Chill are the two damage tracks. High rolls unlock the stronger version of each card. Frost Fire and Frozen Inferno are the cross-status payoff cards. Powers choose a school: Cold Mastery (Chill as defense) or Burning Soul (Burn as damage multiplier).
-
-**Playtesting flags:** Spell Echo combos with high-roll attacks. Combustion scaling with Burning Soul active.
-
-#### 🟢 Common (14 cards — 10 starters + 4 reward)
-
-| Key | Name | Type | Cost | Base Effect | High Roll Effect | Upgrade Effect |
-|---|---|---|---|---|---|---|
-| `strike` | Strike | Attack | 1 | Deal 6 dmg | — | Deal 9 dmg |
-| `strike` | Strike | Attack | 1 | Deal 6 dmg | — | Deal 9 dmg |
-| `defend` | Defend | Skill | 1 | Gain 5 Block | — | Gain 8 Block |
-| `defend` | Defend | Skill | 1 | Gain 5 Block | — | Gain 8 Block |
-| `frostbolt` | Frost Bolt | Attack | 1 | Deal 5 dmg + 1 ❄️Chill | Deal 9 dmg + 2 ❄️Chill | Deal 7 dmg. High: Deal 13 dmg + 2 Chill |
-| `frostbolt` | Frost Bolt | Attack | 1 | Deal 5 dmg + 1 ❄️Chill | Deal 9 dmg + 2 ❄️Chill | Deal 7 dmg. High: Deal 13 dmg + 2 Chill |
-| `arcanebarrier` | Arcane Shield | Skill | 1 | Gain 4 Block | Gain 9 Block | Gain 6 Block. High: Gain 13 Block |
-| `manasurge` | Mana Surge | Skill | 0 | Next card costs 1 less | — | Next 2 cards cost 1 less |
-| `arcaneboost` | Arcane Boost | Skill | 1 | Discard 1 → +1 to die roll | — | Discard 1 → +2 die roll |
-| `voidchannel` | Void Channel | Skill | 1 | Discard 2 → set die to 5. Exhaust | — | Discard 1 → set die to 5. Exhaust |
-| `spark` | Spark | Attack | 1 | Deal 4 dmg | Deal 7 dmg + 1 🔥Burn | Deal 6 dmg. High: Deal 9 dmg + 2 Burn |
-| `flamtouch` | Flame Touch | Attack | 1 | Deal 5 dmg + 1 🔥Burn | Deal 5 dmg + 3 🔥Burn | Deal 7 dmg + 1 Burn. High: Deal 7 dmg + 4 Burn |
-| `meditate` | Meditate | Skill | 1 | Draw 2 | Draw 3 + 1 die | Draw 3. High: Draw 4 |
-| `channelfocus` | Channel Focus | Skill | 0 | Gain 1 Energy | — | Gain 1 Energy. Draw 1 |
-
-#### 🔵 Uncommon (10 cards)
-
-| Key | Name | Type | Cost | Base Effect | High Roll Effect | Upgrade Effect |
-|---|---|---|---|---|---|---|
-| `icelance` | Ice Lance | Attack | 1 | Deal 7 dmg | Deal 13 dmg if enemy has ❄️Chill | Deal 9 dmg. High: Deal 16 dmg if enemy has Chill |
-| `fireball` | Fireball | Attack | 2 | Deal 9 dmg + 2 🔥Burn | Deal 15 dmg + 4 🔥Burn | Deal 9 dmg + 2 Burn. High: Deal 15 dmg + 4 Burn |
-| `combustion` | Combustion | Attack | 1 | Deal 3 dmg + 1 per 🔥Burn stack | Deal 5 dmg + 2 per 🔥Burn stack | Deal 4 dmg + 1 per Burn stack. High: Deal 6 dmg + 3 per Burn stack |
-| `chainbolt` | Chain Bolt | Attack | 1 | Deal 5 dmg | Deal 5 dmg, hit twice | Deal 7 dmg. High: Deal 7 dmg hit twice |
-| `ignite` | Ignite | Skill | 1 | Apply 3 🔥Burn | Apply 5 🔥Burn | Apply 4 Burn. High: Apply 7 Burn |
-| `arcanerecall` | Arcane Recall | Skill | 1 | Return 1 card from discard to hand | Return 2 cards from discard | Return 2 cards from discard. High: Return 3 cards |
-| `manaweave` | Mana Weave | Skill | 1 | Next card costs 1 less | Next 2 cards cost 1 less | Next 2 cards cost 1 less. High: Next 3 cards cost 1 less |
-| `frostfire` | Frost Fire | Attack | 2 | Deal 10 dmg. Has 🔥Burn: add 2 ❄️Chill. Has ❄️Chill: add 2 🔥Burn | Deal 14 dmg. Apply both effects regardless | Deal 12 dmg. High: Deal 17 dmg. Apply both Burn and Chill effects regardless |
-| `arcanebarrage` | Arcane Barrage | Attack | 1 | Deal 3 dmg + 1 per spell played this turn | Deal 5 dmg + 1 per spell played this turn | Deal 4 dmg + 2 per spell this turn. High: Deal 6 dmg + 2 per spell |
-| `arcanesight` | Arcane Sight | Skill | 1 | Draw 2 | Draw 3 | Draw 3. High: Draw 4 |
-
-#### 🟣 Rare (6 cards)
-
-| Key | Name | Type | Cost | Base Effect | High Roll Effect | Upgrade Effect |
-|---|---|---|---|---|---|---|
-| `frozeninferno` | Frozen Inferno | Attack | 3 | Deal 18 dmg. Consumes all 🔥Burn + ❄️Chill stacks | Deal 26 dmg. Consumes all stacks | Deal 22 dmg. High: Deal 30 dmg. Consumes all Burn and Chill stacks |
-| `inferno` | Inferno | Attack | 2 | Apply 6 🔥Burn | Apply 10 🔥Burn | Apply 8 Burn. High: Apply 13 Burn |
-| `timewarp` | Time Warp | Skill | 2 | Gain 2 Energy + draw 1 | Gain 2 Energy + draw 2 | Gain 2 Energy. Draw 2. High: Gain 2 Energy. Draw 3 |
-| `spellecho` | Spell Echo | Skill | 1 | Exhaust. Next Attack card you play this turn triggers twice | Exhaust. Next 2 Attack cards you play this turn each trigger twice | Next 2 Attacks trigger twice. High: Next 3 Attacks trigger twice. Exhaust |
-| `coldmastery` | Cold Mastery | Power | 2 | Exhausted. ❄️Chill reduces enemy attack by 35% instead of 25% | — | Chill reduces enemy attack by 45% instead of 25% |
-| `burningsoul` | Burning Soul | Power | 2 | Exhausted. 🔥Burn deals +1 per stack | 🔥Burn deals +2 per stack | Burn deals +3 per stack |
-
----
-
-### 🗡️ Thief — Full Card Pool
-
-**Design identity:** Two build paths — Poison stacking and combo chaining. Odd rolls amplify both. Gold is a light secondary reward, not a primary mechanic. Cards should be played in the right sequence — Backstab only works first, Shadow Mark sets up the next card. Harder to master than other characters.
-
-**Playtesting flags:** Blade Dance + Lethal Rhythm + Poison Master. Shadow Artist card cost reduction pattern.
-
-**0-cost cards:** Swift Jab, Slip Away. Keep at 2 maximum additional beyond these.
-
-#### 🟢 Common (15 cards — 10 starters + 5 reward)
-
-| Key | Name | Type | Cost | Base Effect | Odd Roll Effect | Upgrade Effect |
-|---|---|---|---|---|---|---|
-| `strike` | Strike | Attack | 1 | Deal 6 dmg | — | Deal 9 dmg |
-| `strike` | Strike | Attack | 1 | Deal 6 dmg | — | Deal 9 dmg |
-| `defend` | Defend | Skill | 1 | Gain 5 Block | — | Gain 8 Block |
-| `defend` | Defend | Skill | 1 | Gain 5 Block | — | Gain 8 Block |
-| `quickstrike` | Quick Strike | Attack | 1 | Deal 4 dmg twice | Deal 5 dmg twice | Deal 6 dmg twice. Odd: Deal 8 dmg twice |
-| `quickstrike` | Quick Strike | Attack | 1 | Deal 4 dmg twice | Deal 5 dmg twice | Deal 6 dmg twice. Odd: Deal 8 dmg twice |
-| `shadowstep` | Shadow Step | Skill | 1 | Gain 4 Block | Gain 7 Block + draw 1 | Gain 6 Block. Odd: Gain 10 Block + draw 1 |
-| `poisonblade` | Poison Blade | Attack | 2 | Deal 6 dmg | Deal 6 dmg + apply 3 Poison | Deal 9 dmg. Odd: Deal 9 dmg + 4 Poison |
-| `pickpocket` | Pick Pocket | Skill | 1 | Draw 2 | Draw 2 + gain 5 Gold | Draw 3. Odd: Draw 3 + 8 Gold |
-| `smokescreen` | Smoke Screen | Skill | 1 | Gain 6 Block. Discard 1, draw 1 | — | Gain 9 Block. Discard 1 draw 1 |
-| `swiftjab` | Swift Jab | Attack | 0 | Deal 3 dmg | Deal 5 dmg | Deal 4 dmg. Odd: Deal 6 dmg |
-| `slipaway` | Slip Away | Skill | 0 | Draw 1 card | Draw 1 + gain 3 Block | Draw 1 + 2 Block. Odd: Draw 2 + 2 Block |
-| `cheapshot` | Cheap Shot | Attack | 1 | Deal 5 dmg + Weak 1 | Deal 5 dmg + Weak 2 | Deal 7 dmg + Weak 1. Odd: Deal 7 dmg + Weak 2 |
-| `coinflick` | Coin Flick | Skill | 1 | Gain 4 Gold | Gain 4 Gold + draw 1 | Gain 8 Gold. Odd: Gain 8 Gold + draw 1 |
-| `nimblepace` | Nimble Pace | Skill | 1 | Draw 2. Discard 1 | Draw 3. Discard 1 | Draw 3. Discard 1. Odd: Draw 4. Discard 1 |
-
-#### 🔵 Uncommon (10 cards)
-
-| Key | Name | Type | Cost | Base Effect | Odd Roll Effect | Upgrade Effect |
-|---|---|---|---|---|---|---|
-| `envenomdagger` | Envenom | Attack | 1 | Deal 4 dmg + 2 Poison | Deal 4 dmg + 4 Poison | Deal 6 dmg + 2 Poison. Odd: Deal 6 dmg + 5 Poison |
-| `backstab` | Backstab | Attack | 1 | Deal 10 dmg. Only playable as first card this turn | Deal 14 dmg. Only playable as first card this turn | Deal 13 dmg. First card only. Odd: Deal 18 dmg. First card only |
-| `cripple` | Cripple | Skill | 1 | Apply Weak 2 + Vulnerable 1 | Apply Weak 2 + Vulnerable 2 | Apply Weak 3 + Vulnerable 1. Odd: Apply Weak 3 + Vulnerable 2 |
-| `shadowmark` | Shadow Mark | Skill | 1 | Mark enemy — next attack deals +5 dmg | Mark enemy — next attack deals +8 dmg | Next attack +7 dmg. Odd: Next attack +10 dmg |
-| `poisoncloud` | Poison Cloud | Skill | 1 | Apply 4 Poison | Apply 6 Poison | Apply 6 Poison. Odd: Apply 8 Poison |
-| `thiefsgambit` | Thief's Gambit | Attack | 1 | Deal 3 dmg. Draw 1. Gain 5 Gold | Deal 5 dmg. Draw 1. Gain 5 Gold | Deal 5 dmg. Draw 1. 8 Gold. Odd: Deal 7 dmg. Draw 1. 8 Gold |
-| `bladedance` | Blade Dance | Attack | 1 | Deal 3 dmg three times | Deal 4 dmg three times | Deal 4 dmg three times. Odd: Deal 5 dmg three times |
-| `disappear` | Disappear | Skill | 1 | Gain 6 Block. Next card costs 0 | Gain 8 Block. Next 2 cards cost 0 | Gain 7 Block. Next card costs 0. Odd: Gain 7 Block. Next 2 cards cost 0 |
-| `concoction` | Concoction | Skill | 1 | Apply 2 Poison. Draw 1 | Apply 3 Poison. Draw 2 | Apply 3 Poison. Draw 1. Odd: Apply 4 Poison. Draw 2 |
-| `gutpunch` | Gut Punch | Attack | 1 | Deal 4 dmg + 1 Poison | Deal 4 dmg + 2 Poison | Deal 6 dmg + 1 Poison. Odd: Deal 6 dmg + 3 Poison |
-
-#### 🟣 Rare (6 cards)
-
-| Key | Name | Type | Cost | Base Effect | Odd Roll Effect | Upgrade Effect |
-|---|---|---|---|---|---|---|
-| `deathmark` | Death Mark | Skill | 1 | Double current Poison stacks on enemy. Exhaust | Double Poison stacks. Draw 1. Exhaust | Double Poison stacks. Draw 1. Exhaust. Odd: Triple Poison stacks. Draw 1. Exhaust |
-| `shadowartist` | Shadow Artist | Power | 2 | Exhausted. 2nd and 4th card you play each turn cost 0 | Exhausted. 2nd, 3rd and 4th card you play each turn cost 0 | 2nd, 3rd, and 4th card cost 0 |
-| `poisonmaster` | Poison Master | Power | 2 | Exhausted. Poison deals +1 dmg per stack | Exhausted. Poison deals +2 dmg per stack | Poison deals +2 per stack |
-| `lethalrhythm` | Lethal Rhythm | Power | 1 | Exhausted. Each time you play 2 cards in a turn, deal 3 dmg | Exhausted. Each time you play 2 cards, deal 5 dmg | Every 2 cards played deal 5 dmg |
-| `assassinate` | Assassinate | Attack | 2 | Deal 14 dmg. If enemy has 5+ Poison: deal 22 instead | Deal 18 dmg. If enemy has 5+ Poison: deal 28 instead | Deal 17 dmg. 5+ Poison: deal 26. Odd: Deal 21 dmg. 5+ Poison: deal 32 |
-| `goldenstrike` | Golden Strike | Attack | 1 | Deal dmg equal to Gold ÷ 10 (max 15) | Deal dmg equal to Gold ÷ 8 (max 20) | Deal dmg = Gold ÷ 8 (max 20). Odd: Deal dmg = Gold ÷ 6 (max 25) |
-
----
-
-### 🧛 Vampire — Full Card Pool
-
-**Design identity:** Extreme rolls (1 or max) have the lowest trigger rate (~33% on d6) so base effects are strong independently. Extreme bonuses are the biggest single-card swings in the game. Two build paths: Regen sustain (stack Regen, use Eternal Hunger to convert it to damage) or Glass Cannon (spend HP aggressively, use Fly defensively, burst with Soul Rend).
-
-**Playtesting flags:** Blood Bank efficiency in Floor 3-4. Regen soft cap at 10 stacks must be enforced. Blood Tide + Eternal Hunger execute window.
-
-#### 🟢 Common (15 cards — 10 starters + 5 reward)
-
-| Key | Name | Type | Cost | Base Effect | Extreme Roll Effect | Upgrade Effect |
-|---|---|---|---|---|---|---|
-| `strike` | Strike | Attack | 1 | Deal 6 dmg | — | Deal 9 dmg |
-| `strike` | Strike | Attack | 1 | Deal 6 dmg | — | Deal 9 dmg |
-| `defend` | Defend | Skill | 1 | Gain 5 Block | — | Gain 8 Block |
-| `defend` | Defend | Skill | 1 | Gain 5 Block | — | Gain 8 Block |
-| `blooddrain` | Blood Drain | Attack | 1 | Deal 6 dmg | Deal 6 dmg + heal 8 HP | Deal 9 dmg. Extreme: Deal 9 dmg + heal 13 HP |
-| `blooddrain` | Blood Drain | Attack | 1 | Deal 6 dmg | Deal 6 dmg + heal 8 HP | Deal 9 dmg. Extreme: Deal 9 dmg + heal 13 HP |
-| `nightshroud` | Night Shroud | Skill | 1 | Gain 5 Block | Gain 10 Block | Gain 8 Block. Extreme: Gain 15 Block |
-| `lifeleech` | Life Leech | Attack | 2 | Deal 9 dmg | Deal 9 dmg + drain 12 Block | Deal 13 dmg. Extreme: Deal 13 dmg + drain 18 Block |
-| `crimsonbite` | Crimson Bite | Attack | 1 | Deal 5 dmg + 1 Regen | Deal 7 dmg + 3 Regen | Deal 7 dmg + 2 Regen. Extreme: Deal 9 dmg + 4 Regen |
-| `darkembrace` | Dark Embrace | Skill | 1 | Lose 4 HP. Gain 8 Block | — | Lose 3 HP. Gain 11 Block |
-| `bloodpulse` | Blood Pulse | Skill | 1 | Gain 2 Regen | Gain 4 Regen | Gain 4 Regen. Extreme: Gain 6 Regen |
-| `draintouch` | Drain Touch | Attack | 1 | Deal 5 dmg | Deal 5 dmg + heal 5 HP | Deal 7 dmg. Extreme: Deal 7 dmg + heal 10 HP |
-| `nightveil` | Night Veil | Skill | 1 | Gain 6 Block | Gain 6 Block + 2 Regen | Gain 8 Block. Extreme: Gain 8 Block + 3 Regen |
-| `darkblood` | Dark Blood | Skill | 0 | Lose 3 HP. Draw 2 cards | — | Lose 2 HP. Draw 2 |
-| `swoopdown` | Swoop Down | Skill | 1 | Gain Fly this turn. Damage taken halved | Gain Fly + 4 Block | Gain Fly + 3 Block. Extreme: Gain Fly + 6 Block |
-
-#### 🔵 Uncommon (10 cards)
-
-| Key | Name | Type | Cost | Base Effect | Extreme Roll Effect | Upgrade Effect |
-|---|---|---|---|---|---|---|
-| `sanguinestrike` | Sanguine Strike | Attack | 1 | Deal 8 dmg + 1 Regen | Deal 10 dmg + 3 Regen | Deal 10 dmg + 2 Regen. Extreme: Deal 13 dmg + 4 Regen |
-| `crimsonpact` | Crimson Pact | Skill | 1 | Lose 6 HP. Gain 3 Regen + draw 2 | Lose 4 HP. Gain 5 Regen + draw 2 | Lose 4 HP. Gain 4 Regen + draw 2. Extreme: Lose 3 HP. Gain 6 Regen + draw 2 |
-| `bloodbank` | Blood Bank | Skill | 1 | Convert 10 HP into 10 Block | Convert 8 HP into 14 Block | Convert 8 HP into 14 Block. Extreme: Convert 6 HP into 18 Block |
-| `drainlife` | Drain Life | Attack | 2 | Deal 12 dmg. Heal HP equal to half dmg dealt | Deal 12 dmg. Heal HP equal to full dmg dealt | Deal 15 dmg. Heal half dmg. Extreme: Deal 15 dmg. Heal full dmg |
-| `batform` | Bat Form | Skill | 1 | Gain Fly this turn + draw 1 | Gain Fly + draw 2 + 2 Regen | Gain Fly + draw 2. Extreme: Gain Fly + draw 2 + 3 Regen |
-| `shadowfeast` | Shadow Feast | Attack | 1 | Deal 6 dmg. If Regen active: deal 10 instead | Deal 10 dmg. If Regen active: deal 15 instead | Deal 8 dmg. Regen active: deal 13. Extreme: Deal 12 dmg. Regen active: deal 18 |
-| `darkrite` | Dark Rite | Skill | 1 | Lose 8 HP. Gain 12 Block + 2 Regen | Lose 5 HP. Gain 16 Block + 3 Regen | Lose 6 HP. Gain 15 Block + 2 Regen. Extreme: Lose 4 HP. Gain 19 Block + 4 Regen |
-| `bloodrush` | Blood Rush | Skill | 0 | Spend 5 HP. Next attack deals +6 dmg | Spend 3 HP. Next attack deals +9 dmg | Spend 3 HP. Next attack +9 dmg. Extreme: Spend 2 HP. Next attack +12 dmg |
-| `nightstalk` | Night Stalk | Attack | 1 | Deal 5 dmg twice | Deal 7 dmg twice + 2 Regen | Deal 6 dmg twice. Extreme: Deal 8 dmg twice + 3 Regen |
-| `cursedveins` | Cursed Veins | Skill | 1 | Gain 3 Regen. Next card costs 0 | Gain 5 Regen. Next Skill card costs 0 | Gain 4 Regen. Next card costs 0. Extreme: Gain 6 Regen. Next Skill costs 0 |
-
-#### 🟣 Rare (6 cards)
-
-| Key | Name | Type | Cost | Base Effect | Extreme Roll Effect | Upgrade Effect |
-|---|---|---|---|---|---|---|
-| `bloodlord` | Blood Lord | Power | 2 | Exhausted. Heal 2 HP each time you deal damage | Heal 3 HP each time you deal damage | Heal 4 HP each time you deal damage |
-| `eternalhunger` | Eternal Hunger | Power | 2 | Exhausted. Each Regen tick also deals 2 dmg to enemy | Each Regen tick deals 3 dmg to enemy | Each Regen tick deals 4 dmg to enemy |
-| `vampiricform` | Vampiric Form | Power | 2 | Exhausted. Fly activates automatically on turns you roll 1 or max | Fly activates + gain 3 Regen on those turns | Fly activates + 4 Regen on rolls of 1 or max |
-| `darkascension` | Dark Ascension | Skill | 2 | Lose 15 HP. Gain 20 Block + 5 Regen | Lose 10 HP. Gain 28 Block + 7 Regen | Lose 12 HP. Gain 24 Block + 6 Regen. Extreme: Lose 8 HP. Gain 32 Block + 8 Regen |
-| `soulrend` | Soul Rend | Attack | 2 | Deal 15 dmg. Heal HP equal to dmg dealt | Deal 22 dmg. Heal HP equal to dmg dealt | Deal 19 dmg. Heal equal to dmg. Extreme: Deal 26 dmg. Heal equal to dmg |
-| `bloodtide` | Blood Tide | Skill | 1 | Exhaust. Double current Regen stacks | Exhaust. Double Regen + heal 5 HP | Double Regen + heal 5 HP. Exhaust. Extreme: Triple Regen + heal 8 HP. Exhaust |
-
----
-
-### 🎲 Gambler — Full Card Pool
-
-**Design identity:** Cards read the actual die value — the number matters, not just a yes/no affinity check. Min roll is always 2 (never rolls a 1). Max roll = lucky streak state. Three build paths: High Roller (manipulate toward max, stack max-roll payoffs), Consistency (keep die in 3-5, medium-roll cards), Chaos (embrace variance, Double or Nothing).
-
-**Playtesting flags:** Risk Taker + Lucky Streak Power chain. Gold accumulation into Betting It All. Die-setting once-per-turn rule must be enforced.
-
-**Design rules specific to Gambler:**
-- Cards read actual die value, not yes/no affinity
-- Die can only be set to a specific value once per turn
-- Energy cannot be affinity gated
-
-#### 🟢 Common (15 cards — 10 starters + 5 reward)
-
-| Key | Name | Type | Cost | Base Effect | Max Roll Effect | Upgrade Effect |
-|---|---|---|---|---|---|---|
-| `strike` | Strike | Attack | 1 | Deal 6 dmg | — | Deal 9 dmg |
-| `strike` | Strike | Attack | 1 | Deal 6 dmg | — | Deal 9 dmg |
-| `defend` | Defend | Skill | 1 | Gain 5 Block | — | Gain 8 Block |
-| `defend` | Defend | Skill | 1 | Gain 5 Block | — | Gain 8 Block |
-| `highorlow` | High or Low | Attack | 1 | Roll 4-6: deal 12. Roll 2-3: deal 5 | — | Roll 4-6: deal 18. Roll 2-3: deal 8 |
-| `highorlow` | High or Low | Attack | 1 | Roll 4-6: deal 12. Roll 2-3: deal 5 | — | Roll 4-6: deal 18. Roll 2-3: deal 8 |
-| `doubledown` | Double Down | Skill | 0 | Flip: win → double roll (capped at max). Lose → drop to 2 | — | Flip: win → set die to max. Lose → keep current |
-| `luckystrike` | Lucky Strike | Attack | 2 | Deal 8 dmg | Deal 20 dmg | Deal 12 dmg. Max: Deal 28 dmg |
-| `hedgebet` | Hedge Bet | Skill | 1 | Gain Block equal to current roll | Gain Block equal to roll × 2 | Gain Block = roll + 2. Max: Gain Block = roll × 2 + 2 |
-| `wildcard` | Wild Card | Attack | 1 | Deal dmg equal to roll × 2 | Deal dmg equal to roll × 3 | Deal dmg = roll × 2 + 2. Max: Deal dmg = roll × 3 + 2 |
-| `longshot` | Long Shot | Attack | 1 | Roll 4-6: deal 10. Roll 2-3: deal 4 | Deal 16 dmg | Roll 4-6: deal 14. Roll 2-3: deal 6. Max: Deal 20 dmg |
-| `safepull` | Safe Pull | Skill | 1 | Gain 4 Block. Set die to 4 (once per turn) | Gain 6 Block. Set die to 5 (once per turn) | Gain 6 Block. Set die to 5. Max: Gain 8 Block. Set die to 5 |
-| `risktaker` | Risk Taker | Skill | 0 | Reroll die. Draw 1 card | Reroll die. Draw 2 cards | Reroll die. Draw 2. Max: Reroll die. Draw 2 + 3 Block |
-| `oddscheck` | Odds Check | Skill | 1 | Draw 2. If roll is 4+: draw 3 instead | Draw 3. Gain 5 Gold | Draw 3. Roll 4+: draw 4. Max: Draw 3. Gain 8 Gold |
-| `chipsin` | Chips In | Skill | 1 | Gain 5 Gold | Gain 5 Gold + draw 1 | Gain 8 Gold. Max: Gain 8 Gold + draw 1 |
-
-#### 🔵 Uncommon (10 cards)
-
-| Key | Name | Type | Cost | Base Effect | Max Roll Effect | Upgrade Effect |
-|---|---|---|---|---|---|---|
-| `allin` | All In | Attack | 2 | Deal dmg equal to roll × 4 | Deal dmg equal to roll × 5 | Deal dmg = roll × 4 + 4. Max: Deal dmg = roll × 6 |
-| `loadeddie` | Loaded Die | Skill | 1 | Set die to any value 3-5 (once per turn) | Set die to any value 3-6 (once per turn) | Set die to any value 3-6. Max: Set die to any value 4-6 |
-| `pocketaces` | Pocket Aces | Skill | 1 | Next attack deals +roll dmg | Next attack deals +(roll × 2) dmg | Next attack +(roll + 2) dmg. Max: Next attack +(roll × 2 + 2) dmg |
-| `doubleornothing` | Double or Nothing | Attack | 1 | Deal 6 dmg. 50/50: deal 14 or take 6 dmg | Deal 6 dmg. 50/50: deal 20 or take 3 dmg | Deal 8 dmg. 50/50: deal 20 or take 4. Max: Deal 8 dmg. 50/50: deal 26 or take 2 |
-| `counttheodds` | Count the Odds | Skill | 0 | Look at top 2 cards. Keep 1 discard 1 | Look at top 3 cards. Keep 2 discard 1 | Look at top 3. Keep 2 discard 1. Max: Look at top 4. Keep 3 discard 1 |
-| `highstakes` | High Stakes | Skill | 1 | Gain Gold equal to roll × 3 | Gain Gold equal to roll × 5 | Gain Gold = roll × 4. Max: Gain Gold = roll × 6 + draw 1 |
-| `bluff` | Bluff | Skill | 1 | Apply Weak 2 to enemy | Apply Weak 2 + Vulnerable 1 to enemy | Apply Weak 3 to enemy. Max: Apply Weak 3 + Vulnerable 2 |
-| `wildcardcombo` | Wild Combo | Attack | 1 | Deal 3 dmg. Draw 1. Reroll die | Deal 5 dmg. Draw 2. Reroll die | Deal 5 dmg. Draw 2. Reroll. Max: Deal 7 dmg. Draw 2. Reroll |
-| `pressyourluck` | Press Your Luck | Attack | 2 | Deal 10 dmg. Reroll — if higher deal 6 more | Deal 14 dmg. Reroll — if higher deal 10 more | Deal 13 dmg. Reroll — higher: +8. Max: Deal 17 dmg. Reroll — higher: +12 |
-| `jackpot` | Jackpot | Skill | 1 | Gain Gold equal to roll × 4. Exhaust | Gain 40 Gold. Exhaust | Gain Gold = roll × 5. Exhaust. Max: Gain 50 Gold + draw 1. Exhaust |
-
-#### 🟣 Rare (6 cards)
-
-| Key | Name | Type | Cost | Base Effect | Max Roll Effect | Upgrade Effect |
-|---|---|---|---|---|---|---|
-| `houseedge` | House Edge | Power | 2 | Exhausted. Min die roll raised to 3 this combat | Min die roll raised to 4 this combat | Min die roll raised to 4 |
-| `luckystreak` | Lucky Streak | Power | 1 | Exhausted. Each max roll draws 1 card | Each max roll draws 1 card + deals 4 dmg | Each max roll draws 1 card + 6 dmg |
-| `gamblersfallacy` | Gambler's Fallacy | Power | 2 | Exhausted. After 3 non-max rolls in a row, next roll is guaranteed max | After 2 non-max rolls, next roll is guaranteed max | After 2 non-max rolls, next is guaranteed max |
-| `bettingitall` | Betting It All | Attack | 3 | Deal dmg equal to Gold ÷ 5 (max 30). Exhaust | Deal dmg equal to Gold ÷ 4 (max 40). Exhaust | Deal dmg = Gold ÷ 4 (max 40). Exhaust. Max: Deal dmg = Gold ÷ 3 (max 50). Exhaust |
-| `loadedhouse` | Loaded House | Skill | 1 | Exhaust. Next 2 dice rolls are automatically max | Exhaust. Next 3 dice rolls are automatically max | Next 3 rolls auto max. Exhaust. Max: Next 4 rolls auto max. Exhaust |
-| `devilsdeal` | Devil's Deal | Skill | 1 | Gain 3 Energy. Lose Gold equal to roll × 10. Min cost 1 | Gain 3 Energy. Lose Gold equal to roll × 5. Min cost 1 | Gain 3 Energy. Lose Gold = roll × 8. Min cost 1. Max: Gain 3 Energy. Lose Gold = roll × 4. Min cost 1 |
-
-### Shared Pool
-
-| Key | Name | Type | Cost | Base Effect | Upgrade Effect |
-|---|---|---|---|---|---|
-| `ragefuel` | Rage Fuel | Skill | 1 | Gain Strength. All attacks +1 dmg this combat | Attacks deal +3 dmg this turn. Draw 1 |
-| `blizzard` | Blizzard | Attack | 2 | Deal 5 dmg 3 times | Deal 8 dmg 3 times |
-| `stealheal` | Steal & Heal | Attack | 2 | Deal 10 dmg, heal 5 HP | Deal 14 dmg. Heal 9 HP |
-| `curseddice` | Cursed Die | Skill | 0 | Reroll the die. Take 3 damage | Reroll die. Take 1 damage |
-| `ironwall` | Iron Wall | Skill | 2 | Gain 14 Block | Gain 20 Block |
-| `soulsteal` | Soul Steal | Attack | 1 | Deal 7 dmg. Gain 1 Soul | Deal 10 dmg. Heal 5 HP. Draw 1 |
+| Curse of Weakness | Does nothing. A dead weight in your deck. |
+| Curse of Debt | Unplayable. Takes 3 damage at start of combat. |
+| Curse of Confusion | Unplayable. A random card in hand costs +2 each turn. |
+| Curse of Binding | Unplayable. One card permanently costs 2 more. |
 
 ---
 
 ## 11. Global Design Rules
-
-These rules govern card and system design across all characters. They were established during card pool development and must be respected when adding new cards or systems.
 
 **Energy rules:**
 - Cards that generate Energy have flat fixed values
@@ -847,21 +570,27 @@ These rules govern card and system design across all characters. They were estab
 **Combat rules:**
 - All combat is single-target — no AoE cards
 - Regen has a hard cap of 10 stacks
+- Block resets at start of player turn (Entrench exception: leftover block carries once)
 
 **Dice rules:**
 - Die can only be set to a specific value once per turn
 - Twinned Die relic applies to initial roll only, not rerolls
 - Gambler cards read actual die value, not yes/no affinity
 
+**Status timing rules:**
+- Burn ticks before enemy acts
+- Poison ticks after enemy acts
+- Chill only consumes a stack when the enemy attacks
+- Vulnerable ticks down at end of turn, not per hit
+
 **Card cost rules:**
-- Shadow Artist card cost reductions cannot reduce cards below 1 Energy (Philosopher's Stone applies separately)
-- Devil's Deal has a minimum cost of 1 Energy regardless of discounts
+- Shadow Artist cost reductions cannot reduce cards below 0 Energy
+- Devil's Deal has a minimum gold cost of 1 regardless of discounts
+- Die can only be set once per turn — Loaded Die, Safe Pull, and Void Channel all share this limit
 
 ---
 
 ## 12. Event System
-
-Events are randomized room encounters with choices. Each event has 2-3 options with meaningful trade-offs. Some events can add curse cards to your deck.
 
 | Event | Options |
 |---|---|
@@ -916,7 +645,6 @@ Events are randomized room encounters with choices. Each event has 2-3 options w
 | Remove a card (rest stop) | 75 gold |
 | Remove a card (shop) | 100 gold |
 | Upgrade a card (shop) | 80 gold |
-| Soul Market — +5 max HP | 3 Souls |
 
 ---
 
@@ -935,15 +663,13 @@ One-time use items consumed during combat or from inventory. Carry up to 3 at a 
 | Dice Stabilizer | Lock your die at its current result for 2 turns | Shop, Magic Door | Floor 2+ |
 | Gold Pouch | Gain 40 gold instantly | Event, Magic Door | Any |
 | Block Stone | Gain 15 Block immediately | Shop, Event | Any |
-| Chaos Potion | Apply random status to enemy (Poison, Burn, Weak, or Vulnerable) | Event, Magic Door | Floor 3+ |
+| Chaos Potion | Apply random status to enemy | Event, Magic Door | Floor 3+ |
 
 ---
 
 ## 15. Meta Progression
 
-Between runs, Souls are spent on permanent upgrades. The Soul tree is organized in 3 branches.
-
-### Soul Tree Branches
+Between runs, Souls are spent on permanent upgrades.
 
 **Power Branch**
 - Start each run with +5 max HP (Cost: 2 Souls)
@@ -951,7 +677,7 @@ Between runs, Souls are spent on permanent upgrades. The Soul tree is organized 
 - Starter deck includes 1 additional class card (Cost: 4 Souls)
 
 **Knowledge Branch**
-- See room types 1 room ahead on the path (Cost: 2 Souls)
+- See room types 1 room ahead on path (Cost: 2 Souls)
 - Shop shows 1 extra item per visit (Cost: 3 Souls)
 - Card rewards show 4 options instead of 3 (Cost: 5 Souls)
 
@@ -960,30 +686,33 @@ Between runs, Souls are spent on permanent upgrades. The Soul tree is organized 
 - Elite fights drop 1 consumable in addition to normal reward (Cost: 3 Souls)
 - Once per run, reroll a relic choice for free (Cost: 4 Souls)
 
-⚠ TBD: Full Soul tree to be expanded in future update
+⚠ TBD: Full Soul tree to be expanded. Soul drop rates not yet set.
 
 ---
 
 ## 16. Open Design Questions
 
 ### Story
-- ⚠ TBD: Names and lore for Companions 2, 3, and 4 (floor bosses)
+- ⚠ TBD: Names and lore for the four corrupted companions (floor bosses 1–4 random assignment)
 - ⚠ TBD: Sir Crimson's full backstory — who was he before the castle took him?
 
 ### Gameplay
-- ⚠ TBD: Card upgrade effects for all cards (upgraded versions not yet defined)
 - ⚠ TBD: Balancing — enemy HP and damage values need playtesting
 - ⚠ TBD: Boss debuff system (Balatro-style carry-forward debuffs) — designed, not implemented
+- ⚠ TBD: Card rarity system (Common/Uncommon/Rare reward odds) — can tune late
+- ⚠ TBD: Hand size — fixed 5 or per character (default 5 works as placeholder)
+- ⚠ TBD: Core passive bonuses — what do Cores DO mid-run?
+- ⚠ TBD: Magic Door exclusive event pool
 
 ### Systems
 - ⚠ TBD: Full Soul meta-progression tree (branches outlined, details TBD)
-- ⚠ TBD: Magic Door exclusive event pool — designed, not built
 - ⚠ TBD: Consumable inventory UI and interaction
+- ⚠ TBD: Relic system in combat (35+ relics designed, none active yet)
+- ⚠ TBD: Boss reward relic choice screen
 
 ### Platform / Technical
-- ⚠ TBD: Mobile white screen fix on local Chrome file
+- ⚠ TBD: Background art per floor (dungeon, catacombs, shadow realm, throne room)
 - ⚠ TBD: Deck color theming per character
-- ⚠ TBD: Background art per floor (dungeon, crypt, library, throne room)
 
 ---
 
@@ -1010,22 +739,24 @@ Between runs, Souls are spent on permanent upgrades. The Soul tree is organized 
 - Exhaust removes a card from combat for that fight only — it returns next combat
 - Power cards are always Exhausted on play
 
+## Status Timing Rules (CRITICAL)
+- Burn ticks BEFORE enemy acts (end of player turn)
+- Poison ticks AFTER enemy acts
+- Chill only consumes a stack on enemy attack turns (not defend turns)
+- Vulnerable ticks down at end of turn (not per hit)
+- Regen ticks BEFORE enemy acts
+
 ## UI PRIORITIES (VERY IMPORTANT)
 - Combat area is the main focus of the screen
 - Player and enemy must always be visible and aligned
 - Health bars must always be visible and readable
 - Dice panel must NOT dominate screen space
 - Mobile layout should feel like desktop (landscape style)
-- Important stats (HP, Block) should never be hidden
+- Important stats (HP, Block, Energy) should never be hidden
+- Energy displayed as single number — can exceed max temporarily
 
 ## CODE RULES
 - Do NOT break existing combat logic
 - Prefer small targeted changes over full rewrites
 - Keep functions readable and modular
 - Avoid introducing unnecessary complexity
-
-## CURRENT KNOWN ISSUES
-- Dice panel too large on mobile
-- Player/enemy alignment issues
-- Defense stat visibility is weak
-- UI layout needs restructuring for clarity
