@@ -2727,6 +2727,23 @@ body {
     <!-- Shop items -->
     <div class="shop-items" id="shop-items"></div>
 
+    <!-- Relics for sale -->
+    <div class="rest-deck-section" id="shop-relics-section" style="width:min(700px,95vw);">
+      <div class="rest-deck-title"><span>RELICS</span></div>
+      <div id="shop-relics-grid" class="shop-items" style="justify-content:center;"></div>
+    </div>
+
+    <!-- Die for sale -->
+    <div class="rest-deck-section" id="shop-die-section" style="width:min(700px,95vw);">
+      <div class="rest-deck-title"><span>DICE</span></div>
+      <div id="shop-die-grid" class="shop-items" style="justify-content:center;"></div>
+    </div>
+
+    <!-- Card services -->
+    <div style="display:flex;gap:0.8rem;width:min(700px,95vw);justify-content:center;">
+      <button id="shop-remove-btn" class="btn" style="flex:1;font-size:0.85rem;" onclick="showShopRemove()">🗑 Remove Card (75🪙)</button>
+    </div>
+
     <!-- Deck viewer -->
     <div class="rest-deck-section" style="width:min(700px,95vw);">
       <div class="rest-deck-title">
@@ -2737,6 +2754,26 @@ body {
     </div>
 
     <button class="btn shop-leave" onclick="leavShop()">Leave Shop</button>
+
+    <!-- Card removal modal -->
+    <div id="shop-remove-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:200;overflow-y:auto;padding:1.5rem 1rem;">
+      <div style="max-width:580px;margin:0 auto;">
+        <h3 style="font-family:'Cinzel',serif;color:var(--gold);text-align:center;margin-bottom:0.4rem;">REMOVE A CARD</h3>
+        <p style="color:var(--text2);text-align:center;font-size:0.85rem;margin-bottom:1rem;">Tap a card to permanently remove it. Cost: 75 🪙</p>
+        <div id="shop-remove-grid" class="rest-deck-grid"></div>
+        <button class="btn" onclick="closeShopModal('shop-remove-modal')" style="margin-top:1rem;width:100%;">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Card upgrade modal -->
+    <div id="shop-upgrade-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:200;overflow-y:auto;padding:1.5rem 1rem;">
+      <div style="max-width:580px;margin:0 auto;">
+        <h3 style="font-family:'Cinzel',serif;color:var(--gold);text-align:center;margin-bottom:0.4rem;">UPGRADE A CARD</h3>
+        <p style="color:var(--text2);text-align:center;font-size:0.85rem;margin-bottom:1rem;">Tap a card to upgrade it. Cost: 80 🪙</p>
+        <div id="shop-upgrade-grid" class="rest-deck-grid"></div>
+        <button class="btn" onclick="closeShopModal('shop-upgrade-modal')" style="margin-top:1rem;width:100%;">Cancel</button>
+      </div>
+    </div>
   </div>
 
   <!-- EVENT -->
@@ -3479,7 +3516,6 @@ const SHOP_ITEMS = [
   { emoji:'❤️',  name:'Healing Potion',  desc:'Restore 20 HP',     cost:50, effect:(g)=>{ healPlayer(g,20); showMsg('Restored 20 HP.'); } },
   { emoji:'🗡️',  name:'Sharp Card',      desc:'Add Blizzard to deck', cost:60, effect:(g)=>{ g.deck.push('blizzard'); showMsg('Blizzard added to deck!'); } },
   { emoji:'🎲',  name:'Hunter Die (d8)', desc:'Equip the d8 — odd rolls deal +2 dmg', cost:55, effect:(g)=>{ g.activeDie='d8'; g.diceMax=8; showMsg('Hunter Die (d8) equipped!'); } },
-  { emoji:'🧹',  name:'Card Removal',   desc:'Remove a card from deck', cost:75, effect:(g)=>removeCardFromDeck(g) },
   { emoji:'💜',  name:'Life Leech',     desc:'Add Life Leech to deck',  cost:70, effect:(g)=>{ g.deck.push('lifeleech'); showMsg('Life Leech added!'); } },
   { emoji:'🧱',  name:'Iron Wall',      desc:'Add Iron Wall to deck',   cost:65, effect:(g)=>{ g.deck.push('ironwall'); showMsg('Iron Wall added!'); } },
 ];
@@ -3506,6 +3542,8 @@ function newGame(charKey) {
     hp: ch.hp, maxHp: ch.hp,
     block: 0, energy: 3, maxEnergy: 3,
     gold: 30, souls: 0,
+    relics: [], rareOffset: 0, lastFightWasElite: false, phantomBladeFired: false,
+    extraDraw: 0, handLimit: 5, _noReroll: false, cardsPlayedThisCombat: 0,
     deck: [...ch.starterDeck],
     drawPile: [], discardPile: [], hand: [],
     activeDie: 'd6',  // single active die — type string key into DICE_TYPES
@@ -3657,8 +3695,9 @@ function showDoors(nextIsBoss) {
 
   // ── MAGIC DOOR present — show two choices ──
   if (hasMagic) {
-    const magicTypes = ['battle','elite','event','shop','rest'];
-    const magicType = rand(magicTypes);
+    const magicType = Math.random() < 0.25
+      ? 'die_reward'
+      : rand(['battle','elite','event','shop','rest']);
     const isHidden = G.currentFloor >= 2 ? Math.random() < 0.6 : false;
     const hint = isHidden ? getMagicHint(magicType, G.currentFloor) : null;
     const lbl = isHidden ? '???' : roomLabel(magicType);
@@ -3801,12 +3840,17 @@ function chooseDoor(id) {
   } else if (id === 'pathC') {
     floor.currentPath = 'C';
   } else if (id.startsWith('magic:')) {
-    // Replace current room with the magic room type
-    // Clear hasMagic so it doesn't loop
     const type = id.split(':')[1];
     const cp = floor.currentPath;
     const idx = currentRoomIndex();
     const pathArr = floor[`path${cp}`];
+    if (type === 'die_reward') {
+      // Don't replace the room — clear magic flag and show die reward screen
+      if (pathArr[idx]) pathArr[idx].hasMagic = false;
+      showDieReward();
+      return;
+    }
+    // Replace current room with the magic room type
     if (pathArr[idx]) {
       pathArr[idx] = { type, hasMagic: false, cleared: false };
     }
@@ -4223,6 +4267,19 @@ function startCombat(isElite) {
   G.statuses = { player: [], enemy: [] };
   G.exhaustedPile = [];
   G.inBoss = false;
+  G.lastFightWasElite = !!isElite;
+  G.phantomBladeFired = false;
+  G.extraDraw = 0;
+  G.handLimit = 5;
+  G.cardsPlayedThisCombat = 0;
+  G._ashenCrownFired = false;
+  // Relic hooks — start of combat
+  if (hasRelic('iron_vambrace')) G.block += 6;
+  if (hasRelic('cracked_hourglass')) G.rerollUsed = false;
+  if (hasRelic('rusted_chain')) G.statuses.enemy.push({ name:'🫗Vulnerable', stacks:1 });
+  if (hasRelic('torn_page')) G.extraDraw += 1;
+  if (hasRelic('cursed_hourglass')) { G.extraDraw += 2; G.handLimit = 4; }
+  if (hasRelic('hollow_throne')) G.block += 20;
 
   updateCombatSprites(G.charKey, null);
   document.getElementById('player-name').textContent = G.char.name.toUpperCase();
@@ -4243,6 +4300,18 @@ function startBossFight() {
   G.statuses = { player: [], enemy: [] };
   G.exhaustedPile = [];
   G.inBoss = true;
+  G.phantomBladeFired = false;
+  G.extraDraw = 0;
+  G.handLimit = 5;
+  G.cardsPlayedThisCombat = 0;
+  G._ashenCrownFired = false;
+  // Relic hooks — start of combat
+  if (hasRelic('iron_vambrace')) G.block += 6;
+  if (hasRelic('cracked_hourglass')) G.rerollUsed = false;
+  if (hasRelic('rusted_chain')) G.statuses.enemy.push({ name:'🫗Vulnerable', stacks:1 });
+  if (hasRelic('torn_page')) G.extraDraw += 1;
+  if (hasRelic('cursed_hourglass')) { G.extraDraw += 2; G.handLimit = 4; }
+  if (hasRelic('hollow_throne')) G.block += 20;
 
   showScreen('combat-screen');
   document.getElementById('player-sprite').textContent = G.char.emoji;
@@ -4264,6 +4333,8 @@ function startTurn() {
   const hasMomentum = G.statuses.player.find(s => s.name === '✨Momentum');
   G._momentumCap = hasMomentum ? 3 : 0;
   G.energy = G.maxEnergy;
+  // Ashen Crown — +1 energy on first turn of each combat
+  if (hasRelic('ashen_crown') && !G._ashenCrownFired) { G.energy++; G._ashenCrownFired = true; }
   if (G._entrenchActive) { G._entrenchActive = false; } else { G.block = 0; }
   G._spellsThisTurn = 0;
   G._manaSurge = false; // reset each turn
@@ -4280,12 +4351,14 @@ function startTurn() {
   G._fallacyCount = G._fallacyCount || 0;
   G._shadowArtistDiscount = 0;
   G._hungerDmgThisTurn = 0;
+  G._soulboundTomeFired = false;
+  G._firstCardFree = false;
 
   // Use active die
   G.currentDieType = getDie(G.activeDie);
   G.diceMax = G.currentDieType.max;
 
-  rollDice(G);
+  rollDice(G, true);
 
   // Apply die bonus effects after roll
   const activeDieData = getDie(G.activeDie);
@@ -4295,18 +4368,18 @@ function startTurn() {
     showMsg(activeDieData.emoji + ' Arcane Die — even roll restores 1 energy!');
   }
   if (activeDieData.bonus === 'max_draw' && roll === activeDieData.max) {
-    drawCards(G, 6); // draw 6 instead of 5 — extra card
+    drawCards(G, 6 + (G.extraDraw || 0));
     renderAll();
     updateIntent();
     return;
   }
 
-  drawCards(G, 5);
+  drawCards(G, 5 + (G.extraDraw || 0));
   renderAll();
   updateIntent();
 }
 
-function rollDice(g) {
+function rollDice(g, isInitial = false) {
   let roll = Math.floor(Math.random() * g.diceMax) + 1;
 
   // Guaranteed max from Loaded House
@@ -4320,6 +4393,13 @@ function rollDice(g) {
   const activeDieObj = getDie(g.activeDie);
   if (activeDieObj.bonus === 'min3' && roll < 3) roll = 3;
 
+  // Twinned Die / Fractured Die — initial roll only: roll twice, take higher
+  if (isInitial && (hasRelic('twinned_die') || hasRelic('fractured_die'))) {
+    let roll2 = Math.floor(Math.random() * g.diceMax) + 1;
+    if (roll2 < minRoll) roll2 = minRoll;
+    if (roll2 > roll) roll = roll2;
+  }
+
   // Gambler's Fallacy tracking
   if (g._fallacyCount !== undefined) {
     if (roll === g.diceMax) { g._fallacyCount = 0; }
@@ -4332,6 +4412,15 @@ function rollDice(g) {
 
   g.currentDie = roll;
   g.diceRolled = true;
+
+  // Lucky Coin — affinity exact match draws 1 card (Gambler excluded)
+  if (hasRelic('lucky_coin') && g.charKey !== 'gambler') {
+    const lcMatch = g.charKey === 'mage' ? roll === 6 : checkAffinity(g, roll, g.char.diceAffinity);
+    if (lcMatch) {
+      drawCards(g, 1);
+      showMsg('🍀 Lucky Coin — affinity match! Draw 1!');
+    }
+  }
 
   // Lucky Streak — max roll draws 1 card + deals 4 dmg
   const luckyStreak = G.statuses.player.find(s => s.name === '⭐LuckyStreak');
@@ -4387,12 +4476,25 @@ function checkAffinity(g, roll, affinity) {
 }
 
 function useReroll() {
+  if (G._noReroll) { showMsg('💔 Fractured Die — no rerolls this run!'); return; }
   if (G.rerollUsed && !G.aldricInfiniteReroll) return;
   if (!G.aldricInfiniteReroll) {
     G.rerollUsed = true;
     document.getElementById('reroll-btn').disabled = true;
   }
-  rollDice(G);
+  const preRerollValue = G.currentDie;
+  rollDice(G, false);
+  // Bone Dice — reroll can never land lower than the original roll
+  if (hasRelic('bone_dice')) {
+    setTimeout(() => {
+      if (G.currentDie < preRerollValue) {
+        G.currentDie = preRerollValue;
+        const die = document.getElementById('current-die');
+        if (die) { die.textContent = preRerollValue; checkAffinityHighlight(G, preRerollValue); }
+        showMsg('🦴 Bone Dice — held at ' + preRerollValue + '!');
+      }
+    }, 450);
+  }
   if (G.aldricInfiniteReroll) {
     showMsg('🔱 The Sigil — infinite rerolls active!');
   } else {
@@ -4423,12 +4525,23 @@ function playCard(cardKey) {
     actualCost = Math.max(0, card.cost - 1);
     G._manaSurge = false; // consume the effect
   }
+  // Soulbound Gauntlet — first card each turn costs 0
+  if (!G._firstCardFree && hasRelic('soulbound_gauntlet')) { actualCost = 0; G._firstCardFree = true; }
 
   if (G.energy < actualCost) { showMsg('Not enough energy!'); return; }
   if (!G.enemy && card.type === 'Attack') { showMsg('No enemy to attack!'); return; }
 
   G.energy -= actualCost;
   G._cardsPlayedThisTurn = (G._cardsPlayedThisTurn || 0) + 1;
+  G.cardsPlayedThisCombat = (G.cardsPlayedThisCombat || 0) + 1;
+  // Gilded Quill — every 10th card played deals double damage
+  if (G.cardsPlayedThisCombat % 10 === 0 && hasRelic('gilded_quill')) G._gildedQuillActive = true;
+  // Soulbound Tome — playing 3+ cards in a turn grants 1 energy (once per turn)
+  if (G._cardsPlayedThisTurn === 3 && hasRelic('soulbound_tome') && !G._soulboundTomeFired) {
+    G.energy++;
+    G._soulboundTomeFired = true;
+    showMsg('📚 Soulbound Tome — +1 Energy!');
+  }
 
 // Shadow Mark bonus
 if (G._shadowMark > 0 && card.type === 'Attack') {
@@ -4688,6 +4801,11 @@ function dealDamage(g, target, amount) {
   const enemyEl = document.getElementById('enemy-combatant');
 
   if (target === 'enemy' && g.enemy) {
+    // Phantom Blade — first attack this combat deals +8
+    if (!g.phantomBladeFired && hasRelic('phantom_blade')) {
+      amount += 8;
+      g.phantomBladeFired = true;
+    }
     // Apply player Strength/Rage bonus to all attacks
     const playerRage = g.statuses.player.find(s => s.name === '💢Rage');
     if (playerRage && playerRage.stacks > 0) {
@@ -4710,6 +4828,10 @@ function dealDamage(g, target, amount) {
     if (enemyVuln && enemyVuln.stacks > 0) {
     amount = Math.floor(amount * 1.5);
 }
+    // Pale Contract — all player attacks deal +4 damage
+    if (hasRelic('pale_contract')) amount += 4;
+    // Gilded Quill — 10th card played this combat deals double damage
+    if (g._gildedQuillActive) { amount *= 2; g._gildedQuillActive = false; showMsg('🪶 Gilded Quill — double damage!'); }
     const pen = Math.max(0, amount - g.enemy.block);
     g.enemy.block = Math.max(0, g.enemy.block - amount);
     g.enemy.hp -= pen;
@@ -4743,6 +4865,20 @@ function dealDamage(g, target, amount) {
     const pen = Math.max(0, amount - g.block);
     g.block = Math.max(0, g.block - amount);
     g.hp -= pen;
+    // Lucky Rabbit Foot — survive killing blow at 1 HP (fires first)
+    if (g.hp <= 0 && hasRelic('lucky_rabbit_foot')) {
+      g.hp = 1;
+      const rfIdx = g.relics.indexOf('lucky_rabbit_foot');
+      if (rfIdx !== -1) g.relics.splice(rfIdx, 1);
+      showMsg('🐇 Lucky Rabbit Foot — survived at 1 HP!');
+    }
+    // Crimson Phylactery — survive killing blow at 1 HP (fires if Rabbit Foot already gone)
+    if (g.hp <= 0 && hasRelic('crimson_phylactery')) {
+      g.hp = 1;
+      const cpIdx = g.relics.indexOf('crimson_phylactery');
+      if (cpIdx !== -1) g.relics.splice(cpIdx, 1);
+      showMsg('💎 Crimson Phylactery — survived at 1 HP!');
+    }
 
     playAttackAnimation({
       attackerEl: enemyEl,
@@ -4766,6 +4902,7 @@ function gainBlock(g, target, amount) {
 }
 
 function healPlayer(g, amount) {
+  if (hasRelic('pale_contract')) amount = Math.max(1, Math.floor(amount * 0.5));
   g.hp = Math.min(g.maxHp, g.hp + amount);
   floatDamage('player-combatant', amount, 'heal');
   renderAll();
@@ -4780,7 +4917,9 @@ function applyStatus(g, target, name, stacks) {
 }
 
 function drawCards(g, n) {
+  const limit = g.handLimit || 5;
   for (let i = 0; i < n; i++) {
+    if (g.hand.length >= limit) break;
     if (g.drawPile.length === 0) {
       if (g.discardPile.length > 0) {
         const exh = g.exhaustedPile || [];
@@ -4813,6 +4952,12 @@ function checkCombatEnd() {
     G.gold += G.enemy.reward;
     G.souls += G.enemy.souls;
     G.runSouls += G.enemy.souls;
+    // Relic hooks — post-combat
+    if (hasRelic('bloodsoaked_rag')) healPlayer(G, 3);
+    if (hasRelic('ash_pendant'))   { G.souls += 1; G.runSouls += 1; }
+    if (hasRelic('tarnished_coin')) G.gold += 5;
+    if (G.lastFightWasElite && hasRelic('iron_ration')) healPlayer(G, 5);
+    if (G.lastFightWasElite && hasRelic('grave_robber')) { G.gold += 8; showMsg('⚰️ Grave Robber — +8 Gold!'); }
 
     document.getElementById('enemy-sprite').classList.add('dying');
 
@@ -5011,6 +5156,51 @@ function renderRestDeck(mode) {
   });
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// RELICS
+// ═══════════════════════════════════════════════════════════════════
+
+const RELICS = {
+  bloodsoaked_rag:   { name:'Bloodsoaked Rag',   emoji:'🩹', rarity:'common', desc:'Heal 3 HP after each combat win.',              effect:'heal_after_combat',      value:3 },
+  iron_vambrace:     { name:'Iron Vambrace',      emoji:'🛡', rarity:'common', desc:'Start every combat with 6 Block.',              effect:'start_block',            value:6 },
+  rusted_chain:      { name:'Rusted Chain',       emoji:'⛓', rarity:'common', desc:'Enemies start combat with 1 Vulnerable.',       effect:'enemy_start_vulnerable', value:1 },
+  phantom_blade:     { name:'Phantom Blade',      emoji:'👻', rarity:'common', desc:'First attack each combat deals +8 damage.',     effect:'first_attack_bonus',     value:8 },
+  ash_pendant:       { name:'Ash Pendant',        emoji:'💀', rarity:'common', desc:'Gain 1 Soul after every battle.',               effect:'soul_after_combat',      value:1 },
+  cracked_hourglass: { name:'Cracked Hourglass',  emoji:'⌛', rarity:'common', desc:'Reroll restored at start of every combat.',     effect:'restore_reroll' },
+  iron_ration:       { name:'Iron Ration',        emoji:'🍖', rarity:'common', desc:'Heal 5 HP after elite fights.',                 effect:'heal_after_elite',       value:5 },
+  lucky_rabbit_foot: { name:'Lucky Rabbit Foot',  emoji:'🐇', rarity:'common', desc:'Once per run, survive a killing blow at 1 HP.', effect:'survive_lethal' },
+  tarnished_coin:    { name:'Tarnished Coin',     emoji:'🪙', rarity:'common', desc:'Gain 5 bonus gold after every combat.',         effect:'gold_after_combat',      value:5 },
+  ivory_die:         { name:'Ivory Die',          emoji:'🎲', rarity:'common',   desc:'Your die becomes a d8 (if currently below d8).', effect:'upgrade_die' },
+
+  // ── UNCOMMON ──
+  torn_page:         { name:'Torn Page',          emoji:'📄', rarity:'uncommon', desc:'Draw 1 extra card at start of each turn.',                    effect:'extra_draw',          value:1 },
+  loaded_gauntlet:   { name:'Loaded Gauntlet',    emoji:'🥊', rarity:'uncommon', desc:'Minimum dice roll is always 2.',                              effect:'min_roll',            value:2 },
+  lucky_coin:        { name:'Lucky Coin',          emoji:'🍀', rarity:'uncommon', desc:'Rolling your exact affinity number draws 1 card.',            effect:'affinity_exact_draw' },
+  bone_dice:         { name:'Bone Dice',           emoji:'🦴', rarity:'uncommon', desc:'Reroll result can never be lower than original.',             effect:'reroll_floor' },
+  grave_robber:      { name:'Grave Robber',        emoji:'⚰️', rarity:'uncommon', desc:'Gain 8 Gold after each elite fight.',                        effect:'gold_after_elite',    value:8 },
+  gilded_quill:      { name:'Gilded Quill',        emoji:'🪶', rarity:'uncommon', desc:'Every 10th card played deals double damage.',                 effect:'tenth_card_double' },
+  scholars_lens:     { name:"Scholar's Lens",      emoji:'🔍', rarity:'uncommon', desc:'See 1 extra card option on every reward screen.',            effect:'extra_reward_card' },
+  bone_key:          { name:'Bone Key',            emoji:'🗝️', rarity:'uncommon', desc:'Every 4th room has a chance to contain a hidden chest.',     effect:'bone_key_chest' },
+  twinned_die:       { name:'Twinned Die',          emoji:'⚖️', rarity:'uncommon', desc:'Roll twice on initial roll, take the higher result.',        effect:'twinned_die' },
+  soulbound_tome:    { name:'Soulbound Tome',      emoji:'📚', rarity:'uncommon', desc:'Gain 1 Energy when you play 3+ cards in one turn.',          effect:'energy_on_three_cards' },
+
+  // ── RARE ──
+  soulbound_gauntlet: { name:'Soulbound Gauntlet', emoji:'🧤', rarity:'rare',     desc:'First card each turn costs 0 energy.',                       effect:'first_card_free' },
+  ashen_crown:        { name:'Ashen Crown',         emoji:'👑', rarity:'rare',     desc:'Gain 1 extra energy at start of every combat.',              effect:'combat_start_energy', value:1 },
+  shattered_mirror:   { name:'Shattered Mirror',    emoji:'🪞', rarity:'rare',     desc:'When an enemy copies your card, they take 10 damage.',       effect:'mirror_damage',       value:10 },
+  void_compass:       { name:'Void Compass',         emoji:'🧭', rarity:'rare',     desc:'After every elite, choose 1 of 3 relics instead of 1.',     effect:'triple_elite_relic' },
+  crimson_phylactery: { name:'Crimson Phylactery',  emoji:'💎', rarity:'rare',     desc:'Survive a killing blow at 1 HP once per run.',              effect:'survive_lethal' },
+  cursed_hourglass:   { name:'Cursed Hourglass',    emoji:'⏳', rarity:'rare',     desc:'Draw 2 extra cards per turn. Hand limit drops to 4.',        effect:'cursed_draw',         value:2 },
+  hollow_throne:      { name:'Hollow Throne',        emoji:'🪑', rarity:'rare',     desc:'Start every combat with 20 Block. Lose 8 max HP.',          effect:'hollow_throne' },
+  pale_contract:      { name:'The Pale Contract',    emoji:'📜', rarity:'rare',     desc:'All cards deal +4 damage. Healing is 50% less effective.',  effect:'pale_contract' },
+  fractured_die:      { name:'Fractured Die',        emoji:'💔', rarity:'rare',     desc:'Roll twice on initial roll, take higher result. Lose reroll for the run.', effect:'fractured_die' },
+  kings_debt:         { name:"King's Debt",           emoji:'💰', rarity:'rare',     desc:'Gain 60 gold immediately. All shop prices cost 25% more.', effect:'kings_debt',          value:60 }
+};
+
+function hasRelic(key) { return G.relics && G.relics.includes(key); }
+
+function shopCost(n) { return Math.ceil(n * (hasRelic('kings_debt') ? 1.25 : 1)); }
+
 function showShop() {
   showScreen('shop-screen');
 
@@ -5025,6 +5215,10 @@ function showShop() {
   // Gold
   document.getElementById('shop-gold-display').textContent = G.gold;
 
+  // Update remove button label with current price (kings_debt aware)
+  const removeBtnEl = document.getElementById('shop-remove-btn');
+  if (removeBtnEl) removeBtnEl.textContent = `🗑 Remove Card (${shopCost(75)}🪙)`;
+
   // Items
   const items = document.getElementById('shop-items');
   items.innerHTML = '';
@@ -5033,12 +5227,13 @@ function showShop() {
     const el = document.createElement('div');
     el.className = 'shop-item';
     el.id = `shop-item-${i}`;
-    const canAfford = G.gold >= item.cost;
+    const itemCost = shopCost(item.cost);
+    const canAfford = G.gold >= itemCost;
     if (!canAfford) el.style.opacity = '0.5';
-    el.innerHTML = `<span class="shop-item-emoji">${item.emoji}</span><div class="shop-item-name">${item.name}</div><div class="shop-item-desc">${item.desc}</div><div class="shop-item-cost" style="color:${canAfford ? 'var(--energy)' : 'var(--red2)'}">🪙 ${item.cost}</div>`;
+    el.innerHTML = `<span class="shop-item-emoji">${item.emoji}</span><div class="shop-item-name">${item.name}</div><div class="shop-item-desc">${item.desc}</div><div class="shop-item-cost" style="color:${canAfford ? 'var(--energy)' : 'var(--red2)'}">🪙 ${itemCost}</div>`;
     el.onclick = () => {
-      if (G.gold < item.cost) { showMsg('Not enough gold!'); return; }
-      G.gold -= item.cost;
+      if (G.gold < itemCost) { showMsg('Not enough gold!'); return; }
+      G.gold -= itemCost;
       item.effect(G);
       document.getElementById(`shop-item-${i}`).classList.add('sold');
       // refresh gold and HP displays
@@ -5054,6 +5249,174 @@ function showShop() {
   });
 
   renderShopDeck();
+  renderShopRelics();
+  renderShopDie();
+}
+
+function renderShopRelics() {
+  const grid = document.getElementById('shop-relics-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  // Floor 1-2: common pool. Floor 3+: 50% chance uncommon (not yet added — always common for now).
+  const available = Object.entries(RELICS).filter(([k]) => !G.relics.includes(k));
+  const shopRelics = shuffle([...available]).slice(0, 2);
+
+  shopRelics.forEach(([key, relic]) => {
+    const cost = shopCost(80);
+    const canAfford = G.gold >= cost;
+    const el = document.createElement('div');
+    el.className = 'shop-item';
+    if (!canAfford) el.style.opacity = '0.5';
+    el.innerHTML = `<span class="shop-item-emoji">${relic.emoji}</span><div class="shop-item-name">${relic.name}</div><div class="shop-item-desc">${relic.desc}</div><div class="shop-item-cost" style="color:${canAfford ? 'var(--energy)' : 'var(--red2)'}">🪙 ${cost}</div>`;
+    el.onclick = () => {
+      if (G.gold < cost) { showMsg('Not enough gold!'); return; }
+      if (G.relics.includes(key)) { showMsg('Already have this relic!'); return; }
+      G.gold -= cost;
+      G.relics.push(key);
+      // Pickup side effects
+      if (key === 'ivory_die' && G.diceMax < 8) {
+        G.activeDie = 'd8'; G.diceMax = 8;
+        showMsg('🎲 Ivory Die — die upgraded to d8!');
+      } else if (key === 'loaded_gauntlet') {
+        G._minRoll = Math.max(G._minRoll || 1, 2);
+        showMsg('🥊 Loaded Gauntlet — minimum roll is now 2!');
+      } else if (key === 'hollow_throne') {
+        G.maxHp -= 8; G.hp = Math.min(G.hp, G.maxHp);
+        showMsg('🪑 Hollow Throne — max HP -8, but you start combats with 20 Block!');
+      } else if (key === 'fractured_die') {
+        G._noReroll = true;
+        showMsg('💔 Fractured Die — reroll lost for the run. Initial roll is doubled.');
+      } else if (key === 'kings_debt') {
+        G.gold += 60;
+        document.getElementById('shop-gold-display').textContent = G.gold;
+        showMsg("💰 King's Debt — +60 Gold! Shop prices now cost 25% more.");
+      } else {
+        showMsg(`${relic.emoji} ${relic.name} acquired!`);
+      }
+      el.classList.add('sold');
+      document.getElementById('shop-gold-display').textContent = G.gold;
+      updateHUD();
+    };
+    grid.appendChild(el);
+  });
+}
+
+function renderShopDie() {
+  const grid = document.getElementById('shop-die-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  const diceFloor = G.currentFloor;
+  const available = Object.values(DICE_TYPES).filter(d => {
+    if (d.type === G.activeDie) return false;
+    if (d.type === 'd6') return false;
+    if (d.type === 'd20') return diceFloor >= 3;
+    if (d.type === 'd12') return diceFloor >= 2;
+    if (d.type === 'd10') return diceFloor >= 1;
+    return true;
+  });
+
+  if (available.length === 0) { grid.innerHTML = '<div style="color:var(--text3);font-size:0.85rem;padding:0.5rem;">No upgrades available.</div>'; return; }
+
+  const dieOpt = rand(available);
+  const currentDieData = getDie(G.activeDie);
+  const cost = shopCost(80);
+  const canAfford = G.gold >= cost;
+
+  const el = document.createElement('div');
+  el.className = 'shop-item';
+  el.id = 'shop-die-item';
+  if (!canAfford) el.style.opacity = '0.5';
+  el.innerHTML = `<span class="shop-item-emoji">${dieOpt.emoji}</span><div class="shop-item-name">${dieOpt.name}</div><div class="shop-item-desc">${dieOpt.desc} Replaces your ${currentDieData.type}.</div><div class="shop-item-cost" style="color:${canAfford ? 'var(--energy)' : 'var(--red2)'}">🪙 ${cost}</div>`;
+  el.onclick = () => {
+    if (G.gold < shopCost(80)) { showMsg('Not enough gold!'); return; }
+    G.gold -= shopCost(80);
+    G.activeDie = dieOpt.type;
+    G.diceMax = dieOpt.max;
+    el.classList.add('sold');
+    document.getElementById('shop-gold-display').textContent = G.gold;
+    updateHUD();
+    showMsg(dieOpt.emoji + ' ' + dieOpt.name + ' equipped!');
+  };
+  grid.appendChild(el);
+}
+
+function showShopRemove() {
+  if (G.gold < shopCost(75)) { showMsg(`Not enough gold! (${shopCost(75)} 🪙)`); return; }
+  const removable = G.deck.filter(k => k !== 'strike' && k !== 'defend');
+  if (removable.length === 0) { showMsg('No removable cards in deck!'); return; }
+
+  const grid = document.getElementById('shop-remove-grid');
+  grid.innerHTML = '';
+  const counts = {};
+  removable.forEach(k => counts[k] = (counts[k] || 0) + 1);
+  [...new Set(removable)].forEach(key => {
+    const c = CARDS[key];
+    if (!c) return;
+    const el = document.createElement('div');
+    el.className = 'rest-deck-card';
+    el.style.cursor = 'pointer';
+    el.innerHTML = `
+      <span class="rest-deck-card-emoji">${c.emoji}</span>
+      <div>
+        <div class="rest-deck-card-name">${c.name}${counts[key] > 1 ? ` ×${counts[key]}` : ''}</div>
+        <div class="rest-deck-card-type">${c.type} · Cost ${c.cost}</div>
+      </div>
+    `;
+    el.onclick = () => {
+      G.gold -= shopCost(75);
+      const idx = G.deck.indexOf(key);
+      G.deck.splice(idx, 1);
+      document.getElementById('shop-gold-display').textContent = G.gold;
+      updateHUD();
+      showMsg(`${c.name} removed from deck.`);
+      closeShopModal('shop-remove-modal');
+      renderShopDeck();
+    };
+    grid.appendChild(el);
+  });
+  document.getElementById('shop-remove-modal').style.display = 'block';
+}
+
+function showShopUpgrade() {
+  if (G.gold < 80) { showMsg('Not enough gold! (80 🪙)'); return; }
+  const upgradeable = [...new Set(G.deck.filter(k => !k.endsWith('+') && CARDS[k + '+']))];
+  if (upgradeable.length === 0) { showMsg('No upgradeable cards!'); return; }
+
+  const grid = document.getElementById('shop-upgrade-grid');
+  grid.innerHTML = '';
+  upgradeable.forEach(key => {
+    const c = CARDS[key];
+    const cu = CARDS[key + '+'];
+    if (!c || !cu) return;
+    const el = document.createElement('div');
+    el.className = 'rest-deck-card';
+    el.style.cursor = 'pointer';
+    el.innerHTML = `
+      <span class="rest-deck-card-emoji">${c.emoji}</span>
+      <div>
+        <div class="rest-deck-card-name">${c.name} → <span style="color:var(--gold)">${cu.name}</span></div>
+        <div class="rest-deck-card-type">${c.type} · Cost ${c.cost}</div>
+      </div>
+    `;
+    el.onclick = () => {
+      G.gold -= 80;
+      const idx = G.deck.indexOf(key);
+      G.deck.splice(idx, 1, key + '+');
+      document.getElementById('shop-gold-display').textContent = G.gold;
+      updateHUD();
+      showMsg(`✨ ${cu.name} — upgraded!`);
+      closeShopModal('shop-upgrade-modal');
+      renderShopDeck();
+    };
+    grid.appendChild(el);
+  });
+  document.getElementById('shop-upgrade-modal').style.display = 'block';
+}
+
+function closeShopModal(id) {
+  document.getElementById(id).style.display = 'none';
 }
 
 function renderShopDeck() {
@@ -5115,17 +5478,34 @@ function removeCardFromDeck(g) {
 // REWARD
 // ═══════════════════════════════════════════════════════════════════
 
-// Per-character reward card pools — only these appear as rewards for that character
+// Per-character reward card pools — rarity bucketed
 const CHAR_REWARD_POOLS = {
-  barbarian: ['ragefuel','heavyblow','warshout','ironbash','brutalswing','shieldbreaker','warcry','toughhide','bloodprice','haymaker','skullcrack','recklesslunge','battlecry','ironroar','bloodlust','entrench','overpowerattack','crushingblow','warcallecho','berserkersoath','warlordspresence','deathrattle','laststand','battletrance'],
-  mage: ['fireball','frostbolt','arcanebarrier','spark','flametouch','meditate','channelfocus','icelance','combustion','chainbolt','ignite','arcanerecall','manaweave','frostfire','arcanebarrage','frozeninferno','inferno','timewarp','spellecho','coldmastery','burningsoul','arcanesight','arcanemomentum','arcaneboost','voidchannel','blizzard','soulsteal'],
-thief: ['quickstrike','shadowstep','poisonblade','pickpocket','smokescreen','swiftjab','slipaway','cheapshot','coinflick','nimblepace','envenomdagger','backstab','cripple','shadowmark','poisoncloud','bladedance','disappear','concoction','deathmark','shadowartist','poisonmaster','lethalrhythm','assassinate','soulsteal','stealheal','curseddice'],
- gambler: ['highorlow','doubldown','luckystrike','hedgebet','wildcard','longshot','safepull','risktaker','oddscheck','chipsin','allin','loadeddie','pocketaces','doubleornothing','counttheodds','highstakes','bluff','houseedge','luckystreak','gamblersfallacy','bettingitall','loadedhouse','devilsdeal','curseddice','soulsteal','stealheal'],
-  vampire: ['blooddrain','nightshroud','lifeleech','crimsonbite','darkembrace','bloodpulse','draintouch','nightveil','darkblood','swoopdown','sanguinestrike','crimsonpact','bloodbank','drainlife','batform','shadowfeast','darkrite','bloodrush','nightstalk','bloodlord','eternalhunger','vampiricform','darkascension','soulrend','bloodtide','stealheal','soulsteal','ironwall'],
+  barbarian: {
+    common:   ['brutalswing','shieldbreaker','warcry','toughhide','bloodprice','heavyblow','warshout','ironbash'],
+    uncommon: ['haymaker','skullcrack','recklesslunge','battlecry','ironroar','bloodlust','entrench','overpowerattack','crushingblow','warcallecho','soulsteal','stealheal','ironwall'],
+    rare:     ['ragefuel','berserkersoath','warlordspresence','deathrattle','laststand','battletrance']
+  },
+  mage: {
+    common:   ['spark','flametouch','meditate','channelfocus','frostbolt','arcanebarrier','manasurge','arcaneboost','voidchannel','fireball','blizzard'],
+    uncommon: ['icelance','combustion','chainbolt','ignite','arcanerecall','manaweave','frostfire','arcanebarrage','arcanesight','arcanemomentum','soulsteal','ironwall'],
+    rare:     ['frozeninferno','inferno','timewarp','spellecho','coldmastery','burningsoul']
+  },
+  thief: {
+    common:   ['swiftjab','slipaway','cheapshot','coinflick','nimblepace','quickstrike','shadowstep','poisonblade','pickpocket','smokescreen'],
+    uncommon: ['envenomdagger','backstab','cripple','shadowmark','poisoncloud','bladedance','disappear','concoction','soulsteal','stealheal'],
+    rare:     ['deathmark','shadowartist','poisonmaster','lethalrhythm','assassinate']
+  },
+  vampire: {
+    common:   ['bloodpulse','draintouch','nightveil','darkblood','swoopdown','blooddrain','nightshroud','lifeleech','crimsonbite','darkembrace'],
+    uncommon: ['sanguinestrike','crimsonpact','bloodbank','drainlife','batform','shadowfeast','darkrite','bloodrush','nightstalk','ironwall','soulsteal','stealheal'],
+    rare:     ['bloodlord','eternalhunger','vampiricform','darkascension','soulrend','bloodtide']
+  },
+  gambler: {
+    common:   ['longshot','safepull','risktaker','oddscheck','chipsin','highorlow','doubldown','luckystrike','hedgebet','wildcard'],
+    uncommon: ['allin','loadeddie','pocketaces','doubleornothing','counttheodds','highstakes','bluff','soulsteal','stealheal'],
+    rare:     ['houseedge','luckystreak','gamblersfallacy','bettingitall','loadedhouse','devilsdeal']
+  }
 };
-
-// Universal cards that can appear for any character (rare slots)
-const UNIVERSAL_REWARD_CARDS = ['ironwall','soulsteal','stealheal','curseddice'];
 
 function showReward() {
 
@@ -5142,28 +5522,61 @@ function showReward() {
   const pool = document.getElementById('reward-choices');
   pool.innerHTML = '';
 
-  // Build reward pool: 2 class-specific + 1 universal
-  const classPool = (CHAR_REWARD_POOLS[G.charKey] || []).filter(k => {
-    if (!CARDS[k]) return false;
-    if (G.char.starterDeck.includes(k)) return false;
-    return true;
-  });
+  // Rarity-weighted card selection
+  const charPool = CHAR_REWARD_POOLS[G.charKey] || { common: [], uncommon: [], rare: [] };
+  const isEliteReward = G.lastFightWasElite;
 
-  const allPicks = shuffle([...classPool]).slice(0, 3);
+  // Determine rare% (with pity timer, cap bonus at 30 → max rare% = 35)
+  const rarePity = isEliteReward ? 0 : Math.min(G.rareOffset, 30);
+  const rareChance = (isEliteReward ? 10 : 5) + rarePity;
+  const uncommonChance = isEliteReward ? 35 : 25;
+
+  // Roll rarity
+  const rarityRoll = Math.random() * 100;
+  let rolledRarity;
+  if (rarityRoll < rareChance) {
+    rolledRarity = 'rare';
+    if (!isEliteReward) G.rareOffset = 0;
+  } else if (rarityRoll < rareChance + uncommonChance) {
+    rolledRarity = 'uncommon';
+  } else {
+    rolledRarity = 'common';
+    if (!isEliteReward) G.rareOffset++;
+  }
+
+  // Filter helper — valid keys not already in deck
+  function filterBucket(keys) {
+    return (keys || []).filter(k => CARDS[k] && !G.deck.includes(k));
+  }
+
+  // Build pick pool from rolled tier, fill from others if short
+  let bucket = filterBucket(charPool[rolledRarity]);
+  if (bucket.length < 3) {
+    const fallback = ['common', 'uncommon', 'rare']
+      .filter(r => r !== rolledRarity)
+      .flatMap(r => filterBucket(charPool[r]));
+    bucket = [...new Set([...bucket, ...fallback])];
+  }
+  const allPicks = shuffle([...bucket]).slice(0, hasRelic('scholars_lens') ? 4 : 3);
+
+  const rarityColor = { common: 'var(--text2)', uncommon: 'var(--energy)', rare: '#c9a84c' };
 
   allPicks.forEach(key => {
     const c = CARDS[key];
     if (!c) return;
-    const isUniversal = UNIVERSAL_REWARD_CARDS.includes(key);
+    const cardRarity = (charPool.rare || []).includes(key) ? 'rare' :
+                       (charPool.uncommon || []).includes(key) ? 'uncommon' : 'common';
     const el = document.createElement('div');
     el.className = 'reward-card';
+    if (cardRarity === 'rare') el.style.borderColor = '#c9a84c';
+    else if (cardRarity === 'uncommon') el.style.borderColor = 'var(--energy)';
     el.innerHTML = `
       <div style="position:absolute;top:6px;left:6px;width:20px;height:20px;border-radius:50%;background:var(--energy);color:var(--bg);font-family:Cinzel,serif;font-size:0.7rem;font-weight:900;display:flex;align-items:center;justify-content:center;">${c.cost}</div>
       <span class="reward-card-emoji">${c.emoji}</span>
       <div class="reward-card-name">${c.name}</div>
-      <div class="reward-card-type">${c.type}${isUniversal ? ' · Universal' : ''}</div>
+      <div class="reward-card-type" style="color:${rarityColor[cardRarity]}">${c.type} · ${cardRarity.charAt(0).toUpperCase() + cardRarity.slice(1)}</div>
       <div class="reward-card-desc">${c.desc}</div>
-`;
+    `;
     el.onclick = () => {
       G.deck.push(key);
       showMsg(`${c.name} added to deck!`);
@@ -5173,36 +5586,57 @@ function showReward() {
     pool.appendChild(el);
   });
 
-  // die option — floor scales die quality
-  // Dice rewards are rare — only appear on elite/boss floors or by chance
+}
+
+function showDieReward() {
   const diceFloor = G.currentFloor;
-  const availableDice = Object.values(DICE_TYPES).filter(d => {
-    if (d.type === 'd6') return false; // always have d6, no point rewarding it
-    if (d.type === 'd20') return diceFloor >= 3; // legendary only floor 4
+  const available = Object.values(DICE_TYPES).filter(d => {
+    if (d.type === G.activeDie) return false;
+    if (d.type === 'd6') return false;
+    if (d.type === 'd20') return diceFloor >= 3;
     if (d.type === 'd12') return diceFloor >= 2;
     if (d.type === 'd10') return diceFloor >= 1;
     return true;
   });
-  const dieOpt = rand(availableDice) || getDie('d8');
+
+  // Fallback: if no upgrades available just proceed
+  if (available.length === 0) { proceedDoors(); return; }
+
+  const picks = shuffle([...available]).slice(0, 2);
   const currentDieData = getDie(G.activeDie);
 
-  const dieEl = document.createElement('div');
-  dieEl.className = 'reward-card';
-  dieEl.style.borderColor = '#b8860b';
-  dieEl.innerHTML = `
-    <span class="reward-card-emoji">${dieOpt.emoji}</span>
-    <div class="reward-card-name">${dieOpt.name}</div>
-    <div class="reward-card-type">${dieOpt.type} · Rare · Replaces your ${currentDieData.type}</div>
-    <div class="reward-card-desc">${dieOpt.desc}<br><br><span style="color:var(--text3);font-size:0.85em">Rolls 1–${dieOpt.max}. Your current die: ${currentDieData.type} (1–${currentDieData.max})</span></div>
-  `;
-  dieEl.onclick = () => {
-    G.activeDie = dieOpt.type;
-    G.diceMax = dieOpt.max;
-    showMsg(dieOpt.emoji + ' ' + dieOpt.name + ' equipped!');
-    if (G.needsPathSelect) { G.needsPathSelect = false; showPathSelect(); }
-    else proceedDoors();
-  };
-  pool.appendChild(dieEl);
+  document.getElementById('reward-hp').textContent = G.hp + '/' + G.maxHp;
+  document.getElementById('reward-gold').textContent = G.gold;
+  document.getElementById('reward-souls').textContent = G.souls;
+  showScreen('reward-screen');
+
+  const pool = document.getElementById('reward-choices');
+  pool.innerHTML = '';
+
+  // Header label
+  const hdr = document.createElement('div');
+  hdr.style.cssText = 'width:100%;text-align:center;font-family:Cinzel,serif;color:var(--gold);font-size:0.9rem;letter-spacing:0.05em;margin-bottom:0.4rem;';
+  hdr.textContent = '✨ Magic Door — Choose a Die';
+  pool.appendChild(hdr);
+
+  picks.forEach(dieOpt => {
+    const el = document.createElement('div');
+    el.className = 'reward-card';
+    el.style.borderColor = '#b8860b';
+    el.innerHTML = `
+      <span class="reward-card-emoji">${dieOpt.emoji}</span>
+      <div class="reward-card-name">${dieOpt.name}</div>
+      <div class="reward-card-type" style="color:#b8860b">${dieOpt.type} · Replaces your ${currentDieData.type}</div>
+      <div class="reward-card-desc">${dieOpt.desc}<br><br><span style="color:var(--text3);font-size:0.85em">Rolls 1–${dieOpt.max}. Current: ${currentDieData.type} (1–${currentDieData.max})</span></div>
+    `;
+    el.onclick = () => {
+      G.activeDie = dieOpt.type;
+      G.diceMax = dieOpt.max;
+      showMsg(dieOpt.emoji + ' ' + dieOpt.name + ' equipped!');
+      proceedDoors();
+    };
+    pool.appendChild(el);
+  });
 }
 
 function giveReward(g, type, rarity) {
