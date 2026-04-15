@@ -1,3 +1,36 @@
+﻿// TITLE & CHAR SELECT
+// ═══════════════════════════════════════════════════════════════════
+
+function hideLoader() {
+  var loader = document.getElementById('loading-indicator');
+  if (loader) loader.style.display = 'none';
+}
+
+function showCharSelect() {
+  showScreen('char-screen');
+  const grid = document.getElementById('char-grid');
+  grid.innerHTML = '';
+  Object.entries(CHARACTERS).forEach(([key, ch]) => {
+    const el = document.createElement('div');
+    el.className = 'char-card';
+    el.innerHTML = `
+      <span class="char-emoji">${ch.emoji}</span>
+      <div class="char-name">${ch.name.toUpperCase()}</div>
+      <div class="char-dice">🎲 ${ch.diceLabel}</div>
+      <div class="char-desc">${ch.desc}</div>
+    `;
+    el.style.borderTopColor = ch.color;
+    el.onclick = () => { newGame(key); };
+    grid.appendChild(el);
+  });
+}
+
+function restartGame() { showScreen('title-screen'); }
+
+// ═══════════════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════════════
+
 function shuffle(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -28,7 +61,6 @@ function rand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
     }
   } catch(e) { console.log('particle error:', e); }
 })();
-
 try {
   function setVH() {
     try {

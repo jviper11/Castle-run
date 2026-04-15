@@ -1,13 +1,8 @@
-// ═══════════════════════════════════════════════════════════════════
+﻿// ═══════════════════════════════════════════════════════════════════
 // GAME STATE
 // ═══════════════════════════════════════════════════════════════════
 
 let G = {};
-
-// DEBUG ONLY: temporary Floor 2 start shortcut for testing.
-function shouldDebugStartFloor2() {
-  return window.location.hash === '#debug-floor2';
-}
 
 function newGame(charKey) {
   const ch = CHARACTERS[charKey];
@@ -24,6 +19,8 @@ function newGame(charKey) {
     hp: ch.hp, maxHp: ch.hp,
     block: 0, energy: 3, maxEnergy: 3,
     gold: 30, souls: 0,
+    relics: [], rareOffset: 0, lastFightWasElite: false, phantomBladeFired: false,
+    extraDraw: 0, handLimit: 5, _noReroll: false, cardsPlayedThisCombat: 0,
     deck: [...ch.starterDeck],
     drawPile: [], discardPile: [], hand: [],
     activeDie: 'd6',  // single active die — type string key into DICE_TYPES
@@ -38,30 +35,13 @@ function newGame(charKey) {
     inBoss: false,
     turn: 0,
     runSouls: 0,
-    runStats: {
-      cardsPlayed: 0,
-      totalDamageDealt: 0,
-      highestBlock: 0,
-      finalBlowDamage: null,
-    },
     selectedHandIndex: null,
     selectedHandKey: null,
-    endTurnLocked: false,
   };
 
   // start with a d6 in pool
   G.activeDie = 'd6'; // start with standard d6
   G.diceMax = 6;
-
-  // DEBUG ONLY: start directly on Floor 2 when the hash is set.
-  if (shouldDebugStartFloor2()) {
-    G.currentFloor = 1;
-    G.map[0].cleared = true;
-    G.map[1].currentPath = 'A';
-    G.map[1].roomIndexA = 0;
-    G.map[1].roomIndexB = 0;
-    G.map[1].roomIndexC = 0;
-  }
 
   renderCores();
   updateHUD();
@@ -192,8 +172,9 @@ function showDoors(nextIsBoss) {
 
   // ── MAGIC DOOR present — show two choices ──
   if (hasMagic) {
-    const magicTypes = ['battle','elite','event','shop','rest'];
-    const magicType = rand(magicTypes);
+    const magicType = Math.random() < 0.25
+      ? 'die_reward'
+      : rand(['battle','elite','event','shop','rest']);
     const isHidden = G.currentFloor >= 2 ? Math.random() < 0.6 : false;
     const hint = isHidden ? getMagicHint(magicType, G.currentFloor) : null;
     const lbl = isHidden ? '???' : roomLabel(magicType);
@@ -336,12 +317,17 @@ function chooseDoor(id) {
   } else if (id === 'pathC') {
     floor.currentPath = 'C';
   } else if (id.startsWith('magic:')) {
-    // Replace current room with the magic room type
-    // Clear hasMagic so it doesn't loop
     const type = id.split(':')[1];
     const cp = floor.currentPath;
     const idx = currentRoomIndex();
     const pathArr = floor[`path${cp}`];
+    if (type === 'die_reward') {
+      // Don't replace the room — clear magic flag and show die reward screen
+      if (pathArr[idx]) pathArr[idx].hasMagic = false;
+      showDieReward();
+      return;
+    }
+    // Replace current room with the magic room type
     if (pathArr[idx]) {
       pathArr[idx] = { type, hasMagic: false, cleared: false };
     }
@@ -376,45 +362,3 @@ function useMirror(targetPath, cost, usedKey, targetHalfwayIdx) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// ALDRIC — FINAL BOSS
-// ═══════════════════════════════════════════════════════════════════
-
-const ALDRIC = {
-  name: 'King Aldric Ashborne',
-  emoji: '👑',
-  phases: [
-    {
-      num: 1,
-      label: 'PHASE 1 — THE CORRUPTED KING',
-      hp: 250,
-      damage: 15,
-      block: 30,
-      stoneHeartBase: 30,   // starting persistent block gain
-      stoneHeartMin: 2,     // minimum it can decay to
-      color: '#6a0dad'
-    },
-    {
-      num: 2,
-      label: 'PHASE 2 — THE SHATTERED RULER',
-      hp: 200,
-      damage: 8,   // hits 3 times
-      block: 0,
-      color: '#8b0000'
-    },
-    {
-      num: 3,
-      label: "PHASE 3 — THE SOUL'S BURDEN",
-      hp: 150,
-      damage: 20,  // no relics: 20/turn
-      block: 0,
-      color: '#2c3e50'
-    }
-  ]
-};
-
-const ALDRIC_RELIC_TRIGGERS = [
-  { hp: 100, icon: '👑', name: 'THE CROWN',  quote: '"I remember… the throne…"',      effect: 'Aldric loses all Strength.' },
-  { hp: 75,  icon: '⚔️', name: 'THE SWORD',  quote: '"I swore to protect..."',           effect: 'Aldric damage is halved.' },
-  { hp: 50,  icon: '🔱', name: 'THE SIGIL',  quote: '"The pact... it is breaking..."',   effect: 'Your Reroll is now infinite.' },
-  { hp: 25,  icon: '🤝', name: 'THE VOW',    quote: '"I… am still here…"',             effect: 'Aldric stops attacking.' }
-];

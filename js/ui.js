@@ -1,3 +1,655 @@
+﻿// REST / SHOP / EVENT
+// ═══════════════════════════════════════════════════════════════════
+
+function showRestStop() {
+  showScreen('rest-screen');
+
+  // HP display
+  const hpPct = Math.round(G.hp / G.maxHp * 100);
+  document.getElementById('rest-hp-text').textContent = `${Math.max(0,G.hp)} / ${G.maxHp}`;
+  document.getElementById('rest-hp-bar').style.width = hpPct + '%';
+  const pctEl = document.getElementById('rest-hp-pct');
+  pctEl.textContent = hpPct + '%';
+  pctEl.className = 'rest-hp-pct ' + (hpPct <= 30 ? 'hp-low' : hpPct <= 60 ? 'hp-mid' : 'hp-full');
+
+  // Heal amount
+  const healAmt = Math.floor(G.maxHp * 0.3);
+  const atFull = G.hp >= G.maxHp;
+
+  const opts = document.getElementById('rest-options');
+  opts.innerHTML = '';
+  const options = [
+    {
+      emoji: '❤️', name: 'Rest',
+      desc: atFull ? 'Already at full HP' : `Recover ${healAmt} HP (${Math.min(G.hp + healAmt, G.maxHp)}/${G.maxHp})`,
+      disabled: atFull,
+      action: () => { healPlayer(G, healAmt); showMsg(`Recovered ${healAmt} HP.`); setTimeout(proceedDoors, 800); }
+    },
+    {
+      emoji: '⬆️', name: 'Upgrade Card',
+      desc: 'Pick a card from your deck to upgrade',
+      action: () => startRestPick('upgrade')
+    },
+    {
+      emoji: '🗑️', name: 'Remove Card',
+      desc: 'Pick a card from your deck to remove',
+      action: () => startRestPick('remove')
+    },
+  ];
+  options.forEach(o => {
+    const el = document.createElement('div');
+    el.className = 'rest-option' + (o.disabled ? ' rest-disabled' : '');
+    el.style.opacity = o.disabled ? '0.4' : '1';
+    el.style.cursor = o.disabled ? 'not-allowed' : 'pointer';
+    el.innerHTML = `<span class="rest-option-emoji">${o.emoji}</span><div class="rest-option-name">${o.name}</div><div class="rest-option-desc">${o.desc}</div>`;
+    if (!o.disabled) el.onclick = o.action;
+    opts.appendChild(el);
+  });
+
+  renderRestDeck(null);
+}
+
+function startRestPick(mode) {
+  document.getElementById('rest-picking-label').style.display = 'block';
+  document.getElementById('rest-picking-label').textContent =
+    mode === 'upgrade' ? '✨ Click a card to upgrade it' : '🗑️ Click a card to remove it from your deck';
+  document.getElementById('rest-cancel-btn').style.display = 'inline-block';
+  // disable options while picking
+  document.querySelectorAll('.rest-option').forEach(el => {
+    el.style.opacity = '0.3';
+    el.style.pointerEvents = 'none';
+  });
+  renderRestDeck(mode);
+}
+
+function cancelRestPick() {
+  document.getElementById('rest-picking-label').style.display = 'none';
+  document.getElementById('rest-cancel-btn').style.display = 'none';
+  document.querySelectorAll('.rest-option').forEach(el => {
+    el.style.opacity = '';
+    el.style.pointerEvents = '';
+  });
+  renderRestDeck(null);
+}
+
+function renderRestDeck(mode) {
+  const grid = document.getElementById('rest-deck-grid');
+  grid.innerHTML = '';
+  document.getElementById('rest-deck-count').textContent = `${G.deck.length} cards`;
+
+  // Show every card individually — no stacking
+  G.deck.forEach((key, idx) => {
+    const c = CARDS[key];
+    if (!c) return;
+    const isSelectable = mode !== null;
+    const isDanger = mode === 'remove';
+    const isUpgraded = key.endsWith('+');
+    const canUpgrade = mode === 'upgrade' && !isUpgraded && CARD_UPGRADES[key];
+
+    const el = document.createElement('div');
+    el.className = `rest-deck-card${isSelectable ? ' selectable' : ''}${isDanger ? ' danger' : ''}`;
+    if (isSelectable && mode === 'upgrade' && !canUpgrade) {
+      el.style.opacity = '0.35';
+      el.style.cursor = 'not-allowed';
+    }
+    if (isUpgraded) el.style.borderColor = 'var(--gold)';
+
+    el.innerHTML = `
+      <span class="rest-deck-card-emoji">${c.emoji}</span>
+      <div>
+        <div class="rest-deck-card-name" style="color:${isUpgraded ? 'var(--gold2)' : ''}">${c.name}</div>
+        <div class="rest-deck-card-type">${c.type} · ⚡${c.cost}${isUpgraded ? ' · ✨' : ''}</div>
+      </div>
+    `;
+
+    if (isSelectable) {
+      const capturedIdx = idx;
+      const capturedKey = key;
+      el.onclick = () => {
+        if (mode === 'remove') {
+          G.deck.splice(capturedIdx, 1);
+          showMsg(`${c.name} removed from deck.`);
+          cancelRestPick();
+          setTimeout(proceedDoors, 600);
+        } else if (mode === 'upgrade') {
+          if (!canUpgrade) { showMsg(`${c.name} cannot be upgraded further.`); return; }
+          const success = upgradeCard(capturedKey);
+          if (success) {
+            showMsg(`✨ ${c.name} → ${(CARD_UPGRADES[capturedKey] && CARD_UPGRADES[capturedKey].name ? CARD_UPGRADES[capturedKey].name : capturedKey + '+')}!`);
+            cancelRestPick();
+            setTimeout(proceedDoors, 600);
+          } else {
+            showMsg(`${c.name} cannot be upgraded.`);
+          }
+        }
+      };
+    }
+    grid.appendChild(el);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// RELICS
+// ═══════════════════════════════════════════════════════════════════
+
+const RELICS = {
+  bloodsoaked_rag:   { name:'Bloodsoaked Rag',   emoji:'🩹', rarity:'common', desc:'Heal 3 HP after each combat win.',              effect:'heal_after_combat',      value:3 },
+  iron_vambrace:     { name:'Iron Vambrace',      emoji:'🛡', rarity:'common', desc:'Start every combat with 6 Block.',              effect:'start_block',            value:6 },
+  rusted_chain:      { name:'Rusted Chain',       emoji:'⛓', rarity:'common', desc:'Enemies start combat with 1 Vulnerable.',       effect:'enemy_start_vulnerable', value:1 },
+  phantom_blade:     { name:'Phantom Blade',      emoji:'👻', rarity:'common', desc:'First attack each combat deals +8 damage.',     effect:'first_attack_bonus',     value:8 },
+  ash_pendant:       { name:'Ash Pendant',        emoji:'💀', rarity:'common', desc:'Gain 1 Soul after every battle.',               effect:'soul_after_combat',      value:1 },
+  cracked_hourglass: { name:'Cracked Hourglass',  emoji:'⌛', rarity:'common', desc:'Reroll restored at start of every combat.',     effect:'restore_reroll' },
+  iron_ration:       { name:'Iron Ration',        emoji:'🍖', rarity:'common', desc:'Heal 5 HP after elite fights.',                 effect:'heal_after_elite',       value:5 },
+  lucky_rabbit_foot: { name:'Lucky Rabbit Foot',  emoji:'🐇', rarity:'common', desc:'Once per run, survive a killing blow at 1 HP.', effect:'survive_lethal' },
+  tarnished_coin:    { name:'Tarnished Coin',     emoji:'🪙', rarity:'common', desc:'Gain 5 bonus gold after every combat.',         effect:'gold_after_combat',      value:5 },
+  ivory_die:         { name:'Ivory Die',          emoji:'🎲', rarity:'common',   desc:'Your die becomes a d8 (if currently below d8).', effect:'upgrade_die' },
+
+  // ── UNCOMMON ──
+  torn_page:         { name:'Torn Page',          emoji:'📄', rarity:'uncommon', desc:'Draw 1 extra card at start of each turn.',                    effect:'extra_draw',          value:1 },
+  loaded_gauntlet:   { name:'Loaded Gauntlet',    emoji:'🥊', rarity:'uncommon', desc:'Minimum dice roll is always 2.',                              effect:'min_roll',            value:2 },
+  lucky_coin:        { name:'Lucky Coin',          emoji:'🍀', rarity:'uncommon', desc:'Rolling your exact affinity number draws 1 card.',            effect:'affinity_exact_draw' },
+  bone_dice:         { name:'Bone Dice',           emoji:'🦴', rarity:'uncommon', desc:'Reroll result can never be lower than original.',             effect:'reroll_floor' },
+  grave_robber:      { name:'Grave Robber',        emoji:'⚰️', rarity:'uncommon', desc:'Gain 8 Gold after each elite fight.',                        effect:'gold_after_elite',    value:8 },
+  gilded_quill:      { name:'Gilded Quill',        emoji:'🪶', rarity:'uncommon', desc:'Every 10th card played deals double damage.',                 effect:'tenth_card_double' },
+  scholars_lens:     { name:"Scholar's Lens",      emoji:'🔍', rarity:'uncommon', desc:'See 1 extra card option on every reward screen.',            effect:'extra_reward_card' },
+  bone_key:          { name:'Bone Key',            emoji:'🗝️', rarity:'uncommon', desc:'Every 4th room has a chance to contain a hidden chest.',     effect:'bone_key_chest' },
+  twinned_die:       { name:'Twinned Die',          emoji:'⚖️', rarity:'uncommon', desc:'Roll twice on initial roll, take the higher result.',        effect:'twinned_die' },
+  soulbound_tome:    { name:'Soulbound Tome',      emoji:'📚', rarity:'uncommon', desc:'Gain 1 Energy when you play 3+ cards in one turn.',          effect:'energy_on_three_cards' },
+
+  // ── RARE ──
+  soulbound_gauntlet: { name:'Soulbound Gauntlet', emoji:'🧤', rarity:'rare',     desc:'First card each turn costs 0 energy.',                       effect:'first_card_free' },
+  ashen_crown:        { name:'Ashen Crown',         emoji:'👑', rarity:'rare',     desc:'Gain 1 extra energy at start of every combat.',              effect:'combat_start_energy', value:1 },
+  shattered_mirror:   { name:'Shattered Mirror',    emoji:'🪞', rarity:'rare',     desc:'When an enemy copies your card, they take 10 damage.',       effect:'mirror_damage',       value:10 },
+  void_compass:       { name:'Void Compass',         emoji:'🧭', rarity:'rare',     desc:'After every elite, choose 1 of 3 relics instead of 1.',     effect:'triple_elite_relic' },
+  crimson_phylactery: { name:'Crimson Phylactery',  emoji:'💎', rarity:'rare',     desc:'Survive a killing blow at 1 HP once per run.',              effect:'survive_lethal' },
+  cursed_hourglass:   { name:'Cursed Hourglass',    emoji:'⏳', rarity:'rare',     desc:'Draw 2 extra cards per turn. Hand limit drops to 4.',        effect:'cursed_draw',         value:2 },
+  hollow_throne:      { name:'Hollow Throne',        emoji:'🪑', rarity:'rare',     desc:'Start every combat with 20 Block. Lose 8 max HP.',          effect:'hollow_throne' },
+  pale_contract:      { name:'The Pale Contract',    emoji:'📜', rarity:'rare',     desc:'All cards deal +4 damage. Healing is 50% less effective.',  effect:'pale_contract' },
+  fractured_die:      { name:'Fractured Die',        emoji:'💔', rarity:'rare',     desc:'Roll twice on initial roll, take higher result. Lose reroll for the run.', effect:'fractured_die' },
+  kings_debt:         { name:"King's Debt",           emoji:'💰', rarity:'rare',     desc:'Gain 60 gold immediately. All shop prices cost 25% more.', effect:'kings_debt',          value:60 }
+};
+
+function hasRelic(key) { return G.relics && G.relics.includes(key); }
+
+function shopCost(n) { return Math.ceil(n * (hasRelic('kings_debt') ? 1.25 : 1)); }
+
+function showShop() {
+  showScreen('shop-screen');
+
+  // HP display
+  const hpPct = Math.round(G.hp / G.maxHp * 100);
+  document.getElementById('shop-hp-text').textContent = `${Math.max(0, G.hp)} / ${G.maxHp}`;
+  document.getElementById('shop-hp-bar').style.width = hpPct + '%';
+  const pctEl = document.getElementById('shop-hp-pct');
+  pctEl.textContent = hpPct + '%';
+  pctEl.className = 'rest-hp-pct ' + (hpPct <= 30 ? 'hp-low' : hpPct <= 60 ? 'hp-mid' : 'hp-full');
+
+  // Gold
+  document.getElementById('shop-gold-display').textContent = G.gold;
+
+  // Update remove button label with current price (kings_debt aware)
+  const removeBtnEl = document.getElementById('shop-remove-btn');
+  if (removeBtnEl) removeBtnEl.textContent = `🗑 Remove Card (${shopCost(75)}🪙)`;
+
+  // Items
+  const items = document.getElementById('shop-items');
+  items.innerHTML = '';
+  const pool = shuffle([...SHOP_ITEMS]).slice(0, 4);
+  pool.forEach((item, i) => {
+    const el = document.createElement('div');
+    el.className = 'shop-item';
+    el.id = `shop-item-${i}`;
+    const itemCost = shopCost(item.cost);
+    const canAfford = G.gold >= itemCost;
+    if (!canAfford) el.style.opacity = '0.5';
+    el.innerHTML = `<span class="shop-item-emoji">${item.emoji}</span><div class="shop-item-name">${item.name}</div><div class="shop-item-desc">${item.desc}</div><div class="shop-item-cost" style="color:${canAfford ? 'var(--energy)' : 'var(--red2)'}">🪙 ${itemCost}</div>`;
+    el.onclick = () => {
+      if (G.gold < itemCost) { showMsg('Not enough gold!'); return; }
+      G.gold -= itemCost;
+      item.effect(G);
+      document.getElementById(`shop-item-${i}`).classList.add('sold');
+      // refresh gold and HP displays
+      document.getElementById('shop-gold-display').textContent = G.gold;
+      const newPct = Math.round(G.hp / G.maxHp * 100);
+      document.getElementById('shop-hp-text').textContent = `${Math.max(0, G.hp)} / ${G.maxHp}`;
+      document.getElementById('shop-hp-bar').style.width = newPct + '%';
+      document.getElementById('shop-hp-pct').textContent = newPct + '%';
+      renderShopDeck();
+      updateHUD();
+    };
+    items.appendChild(el);
+  });
+
+  renderShopDeck();
+  renderShopRelics();
+  renderShopDie();
+}
+
+function renderShopRelics() {
+  const grid = document.getElementById('shop-relics-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  // Floor 1-2: common pool. Floor 3+: 50% chance uncommon (not yet added — always common for now).
+  const available = Object.entries(RELICS).filter(([k]) => !G.relics.includes(k));
+  const shopRelics = shuffle([...available]).slice(0, 2);
+
+  shopRelics.forEach(([key, relic]) => {
+    const cost = shopCost(80);
+    const canAfford = G.gold >= cost;
+    const el = document.createElement('div');
+    el.className = 'shop-item';
+    if (!canAfford) el.style.opacity = '0.5';
+    el.innerHTML = `<span class="shop-item-emoji">${relic.emoji}</span><div class="shop-item-name">${relic.name}</div><div class="shop-item-desc">${relic.desc}</div><div class="shop-item-cost" style="color:${canAfford ? 'var(--energy)' : 'var(--red2)'}">🪙 ${cost}</div>`;
+    el.onclick = () => {
+      if (G.gold < cost) { showMsg('Not enough gold!'); return; }
+      if (G.relics.includes(key)) { showMsg('Already have this relic!'); return; }
+      G.gold -= cost;
+      G.relics.push(key);
+      // Pickup side effects
+      if (key === 'ivory_die' && G.diceMax < 8) {
+        G.activeDie = 'd8'; G.diceMax = 8;
+        showMsg('🎲 Ivory Die — die upgraded to d8!');
+      } else if (key === 'loaded_gauntlet') {
+        G._minRoll = Math.max(G._minRoll || 1, 2);
+        showMsg('🥊 Loaded Gauntlet — minimum roll is now 2!');
+      } else if (key === 'hollow_throne') {
+        G.maxHp -= 8; G.hp = Math.min(G.hp, G.maxHp);
+        showMsg('🪑 Hollow Throne — max HP -8, but you start combats with 20 Block!');
+      } else if (key === 'fractured_die') {
+        G._noReroll = true;
+        showMsg('💔 Fractured Die — reroll lost for the run. Initial roll is doubled.');
+      } else if (key === 'kings_debt') {
+        G.gold += 60;
+        document.getElementById('shop-gold-display').textContent = G.gold;
+        showMsg("💰 King's Debt — +60 Gold! Shop prices now cost 25% more.");
+      } else {
+        showMsg(`${relic.emoji} ${relic.name} acquired!`);
+      }
+      el.classList.add('sold');
+      document.getElementById('shop-gold-display').textContent = G.gold;
+      updateHUD();
+    };
+    grid.appendChild(el);
+  });
+}
+
+function renderShopDie() {
+  const grid = document.getElementById('shop-die-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  const diceFloor = G.currentFloor;
+  const available = Object.values(DICE_TYPES).filter(d => {
+    if (d.type === G.activeDie) return false;
+    if (d.type === 'd6') return false;
+    if (d.type === 'd20') return diceFloor >= 3;
+    if (d.type === 'd12') return diceFloor >= 2;
+    if (d.type === 'd10') return diceFloor >= 1;
+    return true;
+  });
+
+  if (available.length === 0) { grid.innerHTML = '<div style="color:var(--text3);font-size:0.85rem;padding:0.5rem;">No upgrades available.</div>'; return; }
+
+  const dieOpt = rand(available);
+  const currentDieData = getDie(G.activeDie);
+  const cost = shopCost(80);
+  const canAfford = G.gold >= cost;
+
+  const el = document.createElement('div');
+  el.className = 'shop-item';
+  el.id = 'shop-die-item';
+  if (!canAfford) el.style.opacity = '0.5';
+  el.innerHTML = `<span class="shop-item-emoji">${dieOpt.emoji}</span><div class="shop-item-name">${dieOpt.name}</div><div class="shop-item-desc">${dieOpt.desc} Replaces your ${currentDieData.type}.</div><div class="shop-item-cost" style="color:${canAfford ? 'var(--energy)' : 'var(--red2)'}">🪙 ${cost}</div>`;
+  el.onclick = () => {
+    if (G.gold < shopCost(80)) { showMsg('Not enough gold!'); return; }
+    G.gold -= shopCost(80);
+    G.activeDie = dieOpt.type;
+    G.diceMax = dieOpt.max;
+    el.classList.add('sold');
+    document.getElementById('shop-gold-display').textContent = G.gold;
+    updateHUD();
+    showMsg(dieOpt.emoji + ' ' + dieOpt.name + ' equipped!');
+  };
+  grid.appendChild(el);
+}
+
+function showShopRemove() {
+  if (G.gold < shopCost(75)) { showMsg(`Not enough gold! (${shopCost(75)} 🪙)`); return; }
+  const removable = G.deck.filter(k => k !== 'strike' && k !== 'defend');
+  if (removable.length === 0) { showMsg('No removable cards in deck!'); return; }
+
+  const grid = document.getElementById('shop-remove-grid');
+  grid.innerHTML = '';
+  const counts = {};
+  removable.forEach(k => counts[k] = (counts[k] || 0) + 1);
+  [...new Set(removable)].forEach(key => {
+    const c = CARDS[key];
+    if (!c) return;
+    const el = document.createElement('div');
+    el.className = 'rest-deck-card';
+    el.style.cursor = 'pointer';
+    el.innerHTML = `
+      <span class="rest-deck-card-emoji">${c.emoji}</span>
+      <div>
+        <div class="rest-deck-card-name">${c.name}${counts[key] > 1 ? ` ×${counts[key]}` : ''}</div>
+        <div class="rest-deck-card-type">${c.type} · Cost ${c.cost}</div>
+      </div>
+    `;
+    el.onclick = () => {
+      G.gold -= shopCost(75);
+      const idx = G.deck.indexOf(key);
+      G.deck.splice(idx, 1);
+      document.getElementById('shop-gold-display').textContent = G.gold;
+      updateHUD();
+      showMsg(`${c.name} removed from deck.`);
+      closeShopModal('shop-remove-modal');
+      renderShopDeck();
+    };
+    grid.appendChild(el);
+  });
+  document.getElementById('shop-remove-modal').style.display = 'block';
+}
+
+function showShopUpgrade() {
+  if (G.gold < 80) { showMsg('Not enough gold! (80 🪙)'); return; }
+  const upgradeable = [...new Set(G.deck.filter(k => !k.endsWith('+') && CARDS[k + '+']))];
+  if (upgradeable.length === 0) { showMsg('No upgradeable cards!'); return; }
+
+  const grid = document.getElementById('shop-upgrade-grid');
+  grid.innerHTML = '';
+  upgradeable.forEach(key => {
+    const c = CARDS[key];
+    const cu = CARDS[key + '+'];
+    if (!c || !cu) return;
+    const el = document.createElement('div');
+    el.className = 'rest-deck-card';
+    el.style.cursor = 'pointer';
+    el.innerHTML = `
+      <span class="rest-deck-card-emoji">${c.emoji}</span>
+      <div>
+        <div class="rest-deck-card-name">${c.name} → <span style="color:var(--gold)">${cu.name}</span></div>
+        <div class="rest-deck-card-type">${c.type} · Cost ${c.cost}</div>
+      </div>
+    `;
+    el.onclick = () => {
+      G.gold -= 80;
+      const idx = G.deck.indexOf(key);
+      G.deck.splice(idx, 1, key + '+');
+      document.getElementById('shop-gold-display').textContent = G.gold;
+      updateHUD();
+      showMsg(`✨ ${cu.name} — upgraded!`);
+      closeShopModal('shop-upgrade-modal');
+      renderShopDeck();
+    };
+    grid.appendChild(el);
+  });
+  document.getElementById('shop-upgrade-modal').style.display = 'block';
+}
+
+function closeShopModal(id) {
+  document.getElementById(id).style.display = 'none';
+}
+
+function renderShopDeck() {
+  const grid = document.getElementById('shop-deck-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  document.getElementById('shop-deck-count').textContent = `${G.deck.length} cards`;
+  const counts = {};
+  G.deck.forEach(k => counts[k] = (counts[k] || 0) + 1);
+  [...new Set(G.deck)].forEach(key => {
+    const c = CARDS[key];
+    if (!c) return;
+    const el = document.createElement('div');
+    el.className = 'rest-deck-card';
+    const isUpgraded = key.endsWith('+');
+    el.innerHTML = `
+      <span class="rest-deck-card-emoji">${c.emoji}</span>
+      <div>
+        <div class="rest-deck-card-name" style="color:${isUpgraded ? 'var(--gold2)' : ''}">${c.name}${counts[key] > 1 ? ` x${counts[key]}` : ''}${isUpgraded ? '' : ''}</div>
+        <div class="rest-deck-card-type">${c.type} · Cost ${c.cost}${isUpgraded ? ' · <span style="color:var(--gold)">✨ Upgraded</span>' : ''}</div>
+      </div>
+    `;
+    grid.appendChild(el);
+  });
+}
+
+function leavShop() { proceedDoors(); }
+
+function showEvent() {
+  const ev = rand(EVENTS);
+  showScreen('event-screen');
+  document.getElementById('event-icon').textContent = ev.icon;
+  document.getElementById('event-title').textContent = ev.title;
+  document.getElementById('event-desc').textContent = ev.desc;
+  const ch = document.getElementById('event-choices');
+  ch.innerHTML = '';
+  ev.choices.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'event-choice';
+    el.innerHTML = `${c.text}${c.risk ? `<div class="event-choice-risk">⚠ ${c.risk}</div>` : ''}`;
+    el.onclick = () => c.effect(G);
+    ch.appendChild(el);
+  });
+}
+
+function removeCardFromDeck(g) {
+  // called from shop — removes a random non-essential card (shop has no card picker UI)
+  if (g.deck.length <= 3) { showMsg('Deck too small to remove cards!'); return; }
+  const removable = g.deck.filter(k => k !== 'strike' && k !== 'defend');
+  if (removable.length === 0) { showMsg('No cards to remove!'); return; }
+  const toRemove = rand(removable);
+  const idx = g.deck.indexOf(toRemove);
+  g.deck.splice(idx, 1);
+  showMsg(`${(CARDS[toRemove] && CARDS[toRemove].name ? CARDS[toRemove].name : toRemove)} removed from deck.`);
+  setTimeout(proceedDoors, 800);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// REWARD
+// ═══════════════════════════════════════════════════════════════════
+
+// Per-character reward card pools — rarity bucketed
+const CHAR_REWARD_POOLS = {
+  barbarian: {
+    common:   ['brutalswing','shieldbreaker','warcry','toughhide','bloodprice','heavyblow','warshout','ironbash'],
+    uncommon: ['haymaker','skullcrack','recklesslunge','battlecry','ironroar','bloodlust','entrench','overpowerattack','crushingblow','warcallecho','soulsteal','stealheal','ironwall'],
+    rare:     ['ragefuel','berserkersoath','warlordspresence','deathrattle','laststand','battletrance']
+  },
+  mage: {
+    common:   ['spark','flametouch','meditate','channelfocus','frostbolt','arcanebarrier','manasurge','arcaneboost','voidchannel','fireball','blizzard'],
+    uncommon: ['icelance','combustion','chainbolt','ignite','arcanerecall','manaweave','frostfire','arcanebarrage','arcanesight','arcanemomentum','soulsteal','ironwall'],
+    rare:     ['frozeninferno','inferno','timewarp','spellecho','coldmastery','burningsoul']
+  },
+  thief: {
+    common:   ['swiftjab','slipaway','cheapshot','coinflick','nimblepace','quickstrike','shadowstep','poisonblade','pickpocket','smokescreen'],
+    uncommon: ['envenomdagger','backstab','cripple','shadowmark','poisoncloud','bladedance','disappear','concoction','soulsteal','stealheal'],
+    rare:     ['deathmark','shadowartist','poisonmaster','lethalrhythm','assassinate']
+  },
+  vampire: {
+    common:   ['bloodpulse','draintouch','nightveil','darkblood','swoopdown','blooddrain','nightshroud','lifeleech','crimsonbite','darkembrace'],
+    uncommon: ['sanguinestrike','crimsonpact','bloodbank','drainlife','batform','shadowfeast','darkrite','bloodrush','nightstalk','ironwall','soulsteal','stealheal'],
+    rare:     ['bloodlord','eternalhunger','vampiricform','darkascension','soulrend','bloodtide']
+  },
+  gambler: {
+    common:   ['longshot','safepull','risktaker','oddscheck','chipsin','highorlow','doubldown','luckystrike','hedgebet','wildcard'],
+    uncommon: ['allin','loadeddie','pocketaces','doubleornothing','counttheodds','highstakes','bluff','soulsteal','stealheal'],
+    rare:     ['houseedge','luckystreak','gamblersfallacy','bettingitall','loadedhouse','devilsdeal']
+  }
+};
+
+function showReward() {
+
+   // Return exhausted cards to deck after combat
+  if (G.exhaustedPile && G.exhaustedPile.length > 0) {
+    G.deck.push(...G.exhaustedPile);
+    G.exhaustedPile = [];
+  }
+
+  document.getElementById('reward-hp').textContent = G.hp + '/' + G.maxHp;
+  document.getElementById('reward-gold').textContent = G.gold;
+  document.getElementById('reward-souls').textContent = G.souls;
+  showScreen('reward-screen');
+  const pool = document.getElementById('reward-choices');
+  pool.innerHTML = '';
+
+  // Rarity-weighted card selection
+  const charPool = CHAR_REWARD_POOLS[G.charKey] || { common: [], uncommon: [], rare: [] };
+  const isEliteReward = G.lastFightWasElite;
+
+  // Determine rare% (with pity timer, cap bonus at 30 → max rare% = 35)
+  const rarePity = isEliteReward ? 0 : Math.min(G.rareOffset, 30);
+  const rareChance = (isEliteReward ? 10 : 5) + rarePity;
+  const uncommonChance = isEliteReward ? 35 : 25;
+
+  // Roll rarity
+  const rarityRoll = Math.random() * 100;
+  let rolledRarity;
+  if (rarityRoll < rareChance) {
+    rolledRarity = 'rare';
+    if (!isEliteReward) G.rareOffset = 0;
+  } else if (rarityRoll < rareChance + uncommonChance) {
+    rolledRarity = 'uncommon';
+  } else {
+    rolledRarity = 'common';
+    if (!isEliteReward) G.rareOffset++;
+  }
+
+  // Filter helper — valid keys not already in deck
+  function filterBucket(keys) {
+    return (keys || []).filter(k => CARDS[k] && !G.deck.includes(k));
+  }
+
+  // Build pick pool from rolled tier, fill from others if short
+  let bucket = filterBucket(charPool[rolledRarity]);
+  if (bucket.length < 3) {
+    const fallback = ['common', 'uncommon', 'rare']
+      .filter(r => r !== rolledRarity)
+      .flatMap(r => filterBucket(charPool[r]));
+    bucket = [...new Set([...bucket, ...fallback])];
+  }
+  const allPicks = shuffle([...bucket]).slice(0, hasRelic('scholars_lens') ? 4 : 3);
+
+  const rarityColor = { common: 'var(--text2)', uncommon: 'var(--energy)', rare: '#c9a84c' };
+
+  allPicks.forEach(key => {
+    const c = CARDS[key];
+    if (!c) return;
+    const cardRarity = (charPool.rare || []).includes(key) ? 'rare' :
+                       (charPool.uncommon || []).includes(key) ? 'uncommon' : 'common';
+    const el = document.createElement('div');
+    el.className = 'reward-card';
+    if (cardRarity === 'rare') el.style.borderColor = '#c9a84c';
+    else if (cardRarity === 'uncommon') el.style.borderColor = 'var(--energy)';
+    el.innerHTML = `
+      <div style="position:absolute;top:6px;left:6px;width:20px;height:20px;border-radius:50%;background:var(--energy);color:var(--bg);font-family:Cinzel,serif;font-size:0.7rem;font-weight:900;display:flex;align-items:center;justify-content:center;">${c.cost}</div>
+      <span class="reward-card-emoji">${c.emoji}</span>
+      <div class="reward-card-name">${c.name}</div>
+      <div class="reward-card-type" style="color:${rarityColor[cardRarity]}">${c.type} · ${cardRarity.charAt(0).toUpperCase() + cardRarity.slice(1)}</div>
+      <div class="reward-card-desc">${c.desc}</div>
+    `;
+    el.onclick = () => {
+      G.deck.push(key);
+      showMsg(`${c.name} added to deck!`);
+      if (G.needsPathSelect) { G.needsPathSelect = false; showPathSelect(); }
+      else proceedDoors();
+    };
+    pool.appendChild(el);
+  });
+
+}
+
+function showDieReward() {
+  const diceFloor = G.currentFloor;
+  const available = Object.values(DICE_TYPES).filter(d => {
+    if (d.type === G.activeDie) return false;
+    if (d.type === 'd6') return false;
+    if (d.type === 'd20') return diceFloor >= 3;
+    if (d.type === 'd12') return diceFloor >= 2;
+    if (d.type === 'd10') return diceFloor >= 1;
+    return true;
+  });
+
+  // Fallback: if no upgrades available just proceed
+  if (available.length === 0) { proceedDoors(); return; }
+
+  const picks = shuffle([...available]).slice(0, 2);
+  const currentDieData = getDie(G.activeDie);
+
+  document.getElementById('reward-hp').textContent = G.hp + '/' + G.maxHp;
+  document.getElementById('reward-gold').textContent = G.gold;
+  document.getElementById('reward-souls').textContent = G.souls;
+  showScreen('reward-screen');
+
+  const pool = document.getElementById('reward-choices');
+  pool.innerHTML = '';
+
+  // Header label
+  const hdr = document.createElement('div');
+  hdr.style.cssText = 'width:100%;text-align:center;font-family:Cinzel,serif;color:var(--gold);font-size:0.9rem;letter-spacing:0.05em;margin-bottom:0.4rem;';
+  hdr.textContent = '✨ Magic Door — Choose a Die';
+  pool.appendChild(hdr);
+
+  picks.forEach(dieOpt => {
+    const el = document.createElement('div');
+    el.className = 'reward-card';
+    el.style.borderColor = '#b8860b';
+    el.innerHTML = `
+      <span class="reward-card-emoji">${dieOpt.emoji}</span>
+      <div class="reward-card-name">${dieOpt.name}</div>
+      <div class="reward-card-type" style="color:#b8860b">${dieOpt.type} · Replaces your ${currentDieData.type}</div>
+      <div class="reward-card-desc">${dieOpt.desc}<br><br><span style="color:var(--text3);font-size:0.85em">Rolls 1–${dieOpt.max}. Current: ${currentDieData.type} (1–${currentDieData.max})</span></div>
+    `;
+    el.onclick = () => {
+      G.activeDie = dieOpt.type;
+      G.diceMax = dieOpt.max;
+      showMsg(dieOpt.emoji + ' ' + dieOpt.name + ' equipped!');
+      proceedDoors();
+    };
+    pool.appendChild(el);
+  });
+}
+
+function giveReward(g, type, rarity) {
+  if (type === 'die') {
+    const availDice = Object.values(DICE_TYPES).filter(d => d.type !== 'd6' && d.type !== G.activeDie);
+    const dieOpt = rand(availDice) || getDie('d8');
+    G.activeDie = dieOpt.type;
+    G.diceMax = dieOpt.max;
+    showMsg(dieOpt.emoji + ' ' + dieOpt.name + ' equipped!');
+    setTimeout(proceedDoors, 800);
+  } else {
+    showReward();
+  }
+}
+
+function skipReward() {
+  if (G.needsPathSelect) { G.needsPathSelect = false; showPathSelect(); }
+  else proceedDoors();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// BOSS INTRO
+// ═══════════════════════════════════════════════════════════════════
+
+function launchFinalBoss() {
+  showScreen('combat-screen');
+  startAldricFight();
+}
+
+function showBossIntro(boss) {
+  showScreen('boss-intro-screen');
+  document.getElementById('boss-intro-sprite').textContent = boss.emoji;
+  document.getElementById('boss-intro-name').textContent = boss.name.toUpperCase();
+  document.getElementById('boss-intro-subtitle').textContent = boss.title;
+  document.getElementById('boss-intro-hint').textContent = boss.hint;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════════
+
 function renderAll() {
   renderHP();
   renderHand();
@@ -5,7 +657,6 @@ function renderAll() {
   renderStatuses();
   updateHUD();
   updateIntent();
-  syncMobileDice();
 }
 
 function renderHP() {
@@ -14,8 +665,8 @@ function renderHP() {
   const enemyBlockValue = document.querySelector('#enemy-block-display .block-display-value') || document.getElementById('enemy-block-text');
   document.getElementById('player-hp-text').textContent = `${Math.max(0,G.hp)}/${G.maxHp}`;
   document.getElementById('player-hp-bar').style.width = pct(G.hp / G.maxHp * 100);
-  const playerBlockDisplay = document.getElementById('player-block-display');
   if (playerBlockValue) playerBlockValue.textContent = G.block;
+  const playerBlockDisplay = document.getElementById('player-block-display');
   if (playerBlockDisplay) {
     playerBlockDisplay.classList.toggle('is-empty', G.block <= 0);
     playerBlockDisplay.setAttribute('aria-label', `Block ${G.block}`);
@@ -24,8 +675,8 @@ function renderHP() {
   if (G.enemy) {
     document.getElementById('enemy-hp-text').textContent = `${Math.max(0,G.enemy.hp)}/${G.enemy.maxHp}`;
     document.getElementById('enemy-hp-bar').style.width = pct(G.enemy.hp / G.enemy.maxHp * 100);
-    const enemyBlockDisplay = document.getElementById('enemy-block-display');
     if (enemyBlockValue) enemyBlockValue.textContent = G.enemy.block;
+    const enemyBlockDisplay = document.getElementById('enemy-block-display');
     if (enemyBlockDisplay) {
       const hasBlock = G.enemy.block > 0;
       enemyBlockDisplay.hidden = !hasBlock;
@@ -130,19 +781,6 @@ function ensureMobileCardPreview() {
   return preview;
 }
 
-function ensureCombatChoiceOverlay() {
-  let overlay = document.getElementById('combat-choice-overlay');
-  if (!overlay) {
-    const combatScreen = document.getElementById('combat-screen');
-    if (!combatScreen) return null;
-    overlay = document.createElement('div');
-    overlay.id = 'combat-choice-overlay';
-    overlay.className = 'combat-choice-overlay';
-    combatScreen.appendChild(overlay);
-  }
-  return overlay;
-}
-
 function getAffinityPreviewLabel(affinityBonus) {
   const labels = {
     odd: 'Odd roll bonus',
@@ -159,14 +797,9 @@ function renderHand() {
   // remove old cards
   area.querySelectorAll('.card').forEach(c => c.remove());
   const preview = ensureMobileCardPreview();
-  const choiceOverlay = ensureCombatChoiceOverlay();
   if (preview) {
     preview.classList.remove('active');
     preview.innerHTML = '';
-  }
-  if (choiceOverlay) {
-    choiceOverlay.classList.remove('active');
-    choiceOverlay.innerHTML = '';
   }
 
   const mobileLandscape = !!(window.matchMedia && window.matchMedia('(max-width: 1100px) and (orientation: landscape)').matches);
@@ -181,14 +814,6 @@ function renderHand() {
   }
 
   const roll = G.currentDie || 1;
-  const pendingDiscard = G.pendingCombatChoice && G.pendingCombatChoice.type === 'discard';
-  if (pendingDiscard && choiceOverlay) {
-    const indicator = document.createElement('div');
-    indicator.className = 'hand-choice-indicator';
-    indicator.textContent = G.pendingCombatChoice.prompt || 'Choose a card to discard.';
-    choiceOverlay.appendChild(indicator);
-    choiceOverlay.classList.add('active');
-  }
   let selectedEl = null;
   G.hand.forEach((key, index) => {
     const c = CARDS[key];
@@ -206,53 +831,75 @@ function renderHand() {
     if (!canPlay) el.classList.add('unplayable');
 
     // Build dynamic description
-const weakStatus2 = G.statuses?.player?.find(s => s.name === '😵Weak');
-const isWeak2 = c.type === 'Attack' && weakStatus2 && weakStatus2.stacks > 0;
-
-let displayDesc = c.desc;
-
-if (c.type === 'Attack') {
-  displayDesc = c.desc.replace(/\b(deal)\s+(\d+)/gi, (match, verb, num) => {
-    const base = parseInt(num, 10);
-    const shown = getModifiedPlayerAttackDamage(G, base);
-
-    if (shown === base) {
-      return `${verb} ${shown}`;
-    }
-
-    const color = shown > base ? '#e74c3c' : '#7fb3d3';
-    return `${verb} <span style="color:${color};font-weight:bold">${shown}</span> <span style="text-decoration:line-through;opacity:0.5;font-size:0.85em">${base}</span>`;
-  });
-}
-
-const weakIndicator = isWeak2
-  ? '<div style="font-size:0.5rem;color:#7fb3d3;text-align:center;margin-top:0.1rem;">😵 WEAK</div>'
-  : '';
-
+    const rageStatus = G.statuses && G.statuses.player && G.statuses.player.find(s => s.name === '💢Rage');
+    const rageBonus = (c.type === 'Attack' && rageStatus && rageStatus.stacks > 0) ? rageStatus.stacks : 0;
+    const weakStatus2 = G.statuses && G.statuses.player && G.statuses.player.find(s => s.name === '😵Weak');
+    const isWeak2 = c.type === 'Attack' && weakStatus2 && weakStatus2.stacks > 0;
+    const vulnStatus = G.statuses && G.statuses.enemy && G.statuses.enemy.find(s => s.name === '🫗Vulnerable');
+    const isVuln = c.type === 'Attack' && vulnStatus && vulnStatus.stacks > 0;
+    let displayDesc = c.desc;
     const compactSummary = getCompactCardSummary(c);
     const previewConditionText = c.dice ? `🎲 ${getAffinityPreviewLabel(c.affinityBonus)}` : '';
     const previewBonusText = c.dice
-      ? (affinityActive ? 'Bonus Active on this roll' : 'Bonus inactive on this roll')
+      ? `🎲 ${affinityActive ? 'Bonus Active!' : `${String(c.affinityBonus || '').toUpperCase()} roll bonus`}`
       : '';
     const previewPlayHint = canPlay ? 'Tap selected card again to play' : `Need ${actualCost} Energy`;
+ if (isVuln && rageBonus > 0 && !isWeak2) {
+  // Rage + Vulnerable — gold
+  displayDesc = c.desc.replace(/deal (\d+)/gi, (match, num) => {
+    const final = Math.floor((parseInt(num) + rageBonus) * 1.5);
+    return 'deal <span style="color:#e8d080;font-weight:bold">' + final + '</span>';
+  });
+} else if (isVuln && !isWeak2 && rageBonus === 0) {
+  // Vulnerable only — orange
+  displayDesc = c.desc.replace(/deal (\d+)/gi, (match, num) => {
+    const final = Math.floor(parseInt(num) * 1.5);
+    return 'deal <span style="color:#e67e22;font-weight:bold">' + final + '</span>';
+  });
+} else if (rageBonus > 0 && !isWeak2 && !isVuln) {
+  // Rage only — red
+  displayDesc = c.desc.replace(/deal (\d+)/gi, (match, num) => {
+    const boosted = parseInt(num) + rageBonus;
+    return 'deal <span style="color:#e74c3c;font-weight:bold">' + boosted + '</span>';
+  });
+} else if (isWeak2 && rageBonus === 0) {
+  // Weak only — blue with strikethrough
+  displayDesc = c.desc.replace(/deal (\d+)/gi, (match, num) => {
+    const reduced = Math.floor(parseInt(num) * 0.75);
+    return 'deal <span style="color:#7fb3d3;font-weight:bold">' + reduced + '</span> <span style="text-decoration:line-through;opacity:0.5;font-size:0.85em">' + num + '</span>';
+  });
+} 
+else if (isWeak2 && rageBonus > 0) {
+  // Weak + Rage — blue (weak wins visually)
+  displayDesc = c.desc.replace(/deal (\d+)/gi, (match, num) => {
+    const final = Math.floor((parseInt(num) + rageBonus) * 0.75);
+    return 'deal <span style="color:#7fb3d3;font-weight:bold">' + final + '</span>';
+  });
+}
+
+if (key === 'arcanebarrage' || key === 'arcanebarrage+') {
+  const spells = G._spellsThisTurn || 0;
+  const isHigh = checkAffinity(G, roll, 'high');
+  const isPlus = key === 'arcanebarrage+';
+  const base = isPlus ? (isHigh ? 6 : 4) : (isHigh ? 5 : 3);
+  const perSpell = isPlus ? 2 : 1;
+  const total = base + (spells * perSpell);
+  const color = spells > 0 ? '#e8d080' : 'inherit';
+  displayDesc = `Deal <span style="color:${color};font-weight:bold">${total}</span> dmg <span style="color:var(--text3);font-size:0.85em">(+${perSpell} × ${spells} Skill/Power)</span>. ${isHigh ? '✨ High active.' : 'High: deal more.'}`;
+}
+
+    const weakIndicator = isWeak2 ? '<div style="font-size:0.5rem;color:#7fb3d3;text-align:center;margin-top:0.1rem;">😵 WEAK</div>' : '';
     el.innerHTML = `
-  <div class="card-cost" style="${costStyle}">${actualCost}</div>
-  <span class="card-emoji">${c.emoji}</span>
-  <div class="card-name">${c.name}</div>
-  <div class="card-compact-summary">${compactSummary}</div>
-  <div class="card-type">${c.type}</div>
-  <div class="card-desc">${displayDesc}</div>
-  ${weakIndicator}
-  ${c.dice ? `<div class="card-dice-req">🎲 ${affinityActive ? '✨ Bonus Active!' : c.affinityBonus + ' roll'}</div>` : ''}
-`;
-    if (pendingDiscard) {
-      el.classList.remove('unplayable');
-      el.classList.add('discard-select');
-      el.style.cursor = 'pointer';
-      G.selectedHandIndex = null;
-      G.selectedHandKey = null;
-      el.onclick = () => choosePendingCombatCard(key);
-    } else if (G._voidChannelSelecting) {
+      <div class="card-cost" style="${costStyle}">${actualCost}</div>
+      <span class="card-emoji">${c.emoji}</span>
+      <div class="card-name">${c.name}</div>
+      <div class="card-compact-summary">${compactSummary}</div>
+      <div class="card-type">${c.type}</div>
+      <div class="card-desc">${displayDesc}</div>
+      ${weakIndicator}
+      ${c.dice ? `<div class="card-dice-req">🎲 ${affinityActive ? '✨ Bonus Active!' : c.affinityBonus + ' roll'}</div>` : ''}
+    `;
+    if (G._voidChannelSelecting) {
       // In void channel discard mode — every card is clickable to discard
       el.classList.remove('unplayable');
       el.style.borderColor = '#8b0000';
@@ -278,7 +925,7 @@ const weakIndicator = isWeak2
       el.onclick = () => playCard(key);
     }
     if (isSelected) selectedEl = el;
-    if (isSelected && preview && !pendingDiscard && !G._voidChannelSelecting) {
+    if (isSelected && preview && !G._voidChannelSelecting) {
       preview.classList.add('active');
       preview.innerHTML = `
         <div class="mobile-card-preview-inner${affinityActive ? ' affinity-active' : ''}">
@@ -305,42 +952,20 @@ const weakIndicator = isWeak2
 }
 
 function renderEnergy() {
-  // Energy in HUD
-  const hudEnergy = document.getElementById('hud-energy-val');
-  if (hudEnergy) hudEnergy.textContent = `${G.energy}/${G.maxEnergy}`;
-  // Draw/discard in HUD
-  const hudDraw = document.getElementById('hud-draw-val');
-  const hudDisc = document.getElementById('hud-disc-val');
-  if (hudDraw) hudDraw.textContent = G.drawPile ? G.drawPile.length : 0;
-  if (hudDisc) hudDisc.textContent = G.discardPile ? G.discardPile.length : 0;
+  const energyEl = document.getElementById('energy-text');
+  const overMax = G.energy > G.maxEnergy;
+  energyEl.textContent = G.energy;
+  energyEl.style.color = overMax ? '#e8d080' : 'var(--gold)';
 
   const rerollBtn = document.getElementById('reroll-btn');
   rerollBtn.disabled = G.rerollUsed;
   const rerollsLeft = G.rerollUsed ? 0 : 1;
   rerollBtn.innerHTML = `🎲 REROLL <span style="font-size:0.7em;opacity:0.8">(${rerollsLeft})</span>`;
   renderDicePool();
-}
-
-function syncMobileDice() {
-  const srcDie = document.getElementById('current-die');
-  const mDie = document.getElementById('m-current-die');
-  if (mDie && srcDie) {
-    mDie.textContent = srcDie.textContent;
-    // copy affinity-match only — skip 'rolling' to prevent layout shake on mobile
-    mDie.className = 'die' + (srcDie.classList.contains('affinity-match') ? ' affinity-match' : '');
-  }
-  const srcLabel = document.getElementById('affinity-label');
-  const mLabel = document.getElementById('m-affinity-label');
-  if (mLabel && srcLabel) mLabel.textContent = srcLabel.textContent;
-  const srcPool = document.getElementById('dice-pool-display');
-  const mPool = document.getElementById('m-dice-pool');
-  if (mPool && srcPool) mPool.innerHTML = srcPool.innerHTML;
-  const srcReroll = document.getElementById('reroll-btn');
-  const mReroll = document.getElementById('m-reroll-btn');
-  if (mReroll && srcReroll) {
-    mReroll.disabled = srcReroll.disabled;
-    mReroll.innerHTML = srcReroll.innerHTML;
-  }
+  const drawEl = document.getElementById('draw-count');
+  const discardEl = document.getElementById('discard-count');
+  if (drawEl) drawEl.textContent = G.drawPile ? G.drawPile.length : 0;
+  if (discardEl) discardEl.textContent = G.discardPile ? G.discardPile.length : 0;
 }
 
 function renderDicePool() {
@@ -355,38 +980,108 @@ function renderDicePool() {
   el.appendChild(pip);
 }
 
+const STATUS_DESCRIPTIONS = {
+  '💢Rage':          'Strength — attacks deal +1 dmg per stack.',
+  '😵Weak':          'Attacks deal 25% less damage. Ticks down each turn.',
+  '🫗Vulnerable':    'Takes 50% more damage from attacks. Ticks down each turn.',
+  '🔥Burn':          'Takes stacks × 2 damage at end of turn. Ticks down.',
+  '❄️Chill':         'Attack reduced by 25%. Ticks down each turn.',
+  '☠️Poison':        'Takes stacks damage at end of turn. Ticks down.',
+  '💚Regen':         'Heals stacks HP at end of turn. Ticks down.',
+  '🦇Fly':           'Damage taken is halved this turn.',
+  '🔥BerserkOath':   'HP loss grants Block.',
+  '❄️ColdMastery':   'Chill reduces enemy attack by more.',
+  '🔥BurningSoul':   'Burn deals bonus damage per stack.',
+  '🎭ShadowArtist':  'Certain cards cost less this turn.',
+  '☠️PoisonMaster':  'Poison deals bonus damage per stack.',
+  '🥁LethalRhythm':  'Every 2 cards played deals bonus damage.',
+  '✨Momentum':      'Each Skill/Power played adds +1 to dice roll (max +3).',
+  '⭐LuckyStreak':   'Max rolls draw a card and deal bonus damage.',
+  '🏠HouseEdge':     'Minimum dice roll is raised this combat.',
+  '🎯GamblerFallacy':'After enough non-max rolls, next roll is guaranteed max.',
+  '👑BloodLord':     'Heal HP each time you play an Attack.',
+  '🦷EternalHunger': 'Regen ticks also deal damage to enemy.',
+  '🧛VampiricForm':  'Extreme rolls automatically grant Fly.',
+};
+
+function showStatusTooltip(e, statusName) {
+  const tooltip = document.getElementById('status-tooltip');
+  const desc = STATUS_DESCRIPTIONS[statusName] || statusName;
+  tooltip.textContent = desc;
+  tooltip.classList.add('visible');
+
+  const clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+  const clientY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+  const x = Math.min(clientX, window.innerWidth - 220);
+  const y = clientY - 60;
+  tooltip.style.left = x + 'px';
+  tooltip.style.top = Math.max(10, y) + 'px';
+
+  clearTimeout(tooltip._hideTimer);
+  tooltip._hideTimer = setTimeout(() => tooltip.classList.remove('visible'), 2000);
+}
+
+function hideStatusTooltip() {
+  const tooltip = document.getElementById('status-tooltip');
+  clearTimeout(tooltip._hideTimer);
+  tooltip.classList.remove('visible');
+}
+
 function renderStatuses() {
   const STATUS_ICONS = {
-    '☠️Poison': '☠',
-    '🔥Burn': '🔥',
-    '❄️Chill': '❄',
-    '😵Weak': '😵',
-    '🫗Vulnerable': '🫗',
-    '💢Strength': '💢',
-    '💚Regen': '💚',
-    '🦇Fly': '🦇'
-  };
+  '☠️Poison':        '☠',
+  '🔥Burn':          '🔥',
+  '❄️Chill':         '❄',
+  '😵Weak':          '😵',
+  '🫗Vulnerable':    '🫗',
+  '💢Strength':      '💢',
+  '💢Rage':          '💢',
+  '💚Regen':         '💚',
+  '🦇Fly':           '🦇',
+  '🔥BerserkOath':   '🔥',
+  '❄️ColdMastery':   '❄',
+  '🔥BurningSoul':   '🔥',
+  '🎭ShadowArtist':  '🎭',
+  '☠️PoisonMaster':  '☠',
+  '🥁LethalRhythm':  '🥁',
+  '✨Momentum':      '✨',
+  '⭐LuckyStreak':   '⭐',
+  '🏠HouseEdge':     '🏠',
+  '🎯GamblerFallacy':'🎯',
+  '👑BloodLord':     '👑',
+  '🦷EternalHunger': '🦷',
+  '🧛VampiricForm':  '🧛',
+};
+
   ['player','enemy'].forEach(t => {
     const el = document.getElementById(`${t}-status`);
     if (!el) return;
-    el.innerHTML = G.statuses[t].map(s => {
+    el.innerHTML = '';
+    G.statuses[t].forEach(s => {
       const glyph = STATUS_ICONS[s.name] || (s.name ? s.name.split(/[\sA-Z]/)[0] : '?');
       const label = `${s.name.replace(/^[^\p{L}\p{N}]+/u, '').trim()} ${s.stacks}`.trim();
-      return `<span class="status-icon" aria-label="${label}" title="${label}"><span class="status-icon-glyph">${glyph}</span><span class="status-icon-value">${s.stacks}</span></span>`;
-    }).join('');
+      const span = document.createElement('span');
+      span.className = 'status-icon';
+      span.setAttribute('aria-label', label);
+      span.style.cursor = 'help';
+      span.innerHTML = `<span class="status-icon-glyph">${glyph}</span><span class="status-icon-value">${s.stacks}</span>`;
+      span.addEventListener('click', (e) => showStatusTooltip(e, s.name));
+      span.addEventListener('touchstart', (e) => { e.preventDefault(); showStatusTooltip(e, s.name); });
+      span.addEventListener('mouseleave', hideStatusTooltip);
+      el.appendChild(span);
+    });
   });
 }
 
 function renderCores() {
   const el = document.getElementById('cores-display');
   el.innerHTML = '';
-  if (!G.cores || G.cores.length === 0) return;
-  G.cores.forEach(charKey => {
+  const allBosses = BOSSES.filter(b => b.charKey !== G.charKey);
+  allBosses.forEach(b => {
     const span = document.createElement('span');
-    span.className = 'core-icon collected';
-    span.textContent = (CHARACTERS[charKey] && CHARACTERS[charKey].emoji ? CHARACTERS[charKey].emoji : '💠');
-    const boss = BOSSES.find(b => b.charKey === charKey);
-    span.title = boss ? `Core: ${boss.name}` : 'Core';
+    span.className = `core-icon${G.cores.includes(b.charKey) ? ' collected' : ''}`;
+    span.textContent = (CHARACTERS[b.charKey] && CHARACTERS[b.charKey].emoji ? CHARACTERS[b.charKey].emoji : '💠');
+    span.title = `Core: ${b.name}`;
     el.appendChild(span);
   });
 }
@@ -459,10 +1154,6 @@ function floatDamage(parentId, amount, type) {
 // ═══════════════════════════════════════════════════════════════════
 
 function toggleMap() {
-  if (G.pendingCombatChoice) {
-    showMsg('Choose a card to discard first!');
-    return;
-  }
   const overlay = document.getElementById('map-overlay');
   overlay.classList.toggle('active');
   if (overlay.classList.contains('active')) renderMap();
@@ -471,9 +1162,6 @@ function toggleMap() {
 function showPathSelect() {
   const floor = G.map[G.currentFloor];
   showScreen('path-screen');
-  const canGoBackToHeroes = G.currentFloor === 0 && G.turn === 0 && !G.enemy;
-  const backBtn = document.getElementById('path-back-btn');
-  if (backBtn) backBtn.style.display = canGoBackToHeroes ? 'inline-flex' : 'none';
 
   document.getElementById('path-floor-label').textContent = `FLOOR ${G.currentFloor + 1}`;
   document.getElementById('path-subtitle').textContent =
@@ -587,7 +1275,7 @@ function pickVoidChannelCard(g, key, el, needed) {
   if (G._voidChannelPicked.length >= needed) {
     // Done — double the dice
     G._voidChannelSelecting = false;
-    G.currentDie = Math.max(1, Math.min((G.currentDie || 1) * 2, G.diceMax));
+    G.currentDie = (G.currentDie || 1) * 2;
     const dieEl = document.getElementById('current-die');
     if (dieEl) {
       dieEl.classList.remove('rolling');
@@ -635,8 +1323,8 @@ function updateCombatSprites(charKey, enemyKey) {
     playerEl.style.backgroundRepeat = 'no-repeat';
     playerEl.style.backgroundPosition = 'center bottom';
     playerEl.style.fontSize = '0';
-    playerEl.style.width = '';
-    playerEl.style.height = '';
+    playerEl.style.width = '320px';
+    playerEl.style.height = '400px';
   } else {
     var ch = CHARACTERS[charKey];
     playerEl.style.backgroundImage = 'none';
@@ -657,20 +1345,15 @@ function updateCombatSprites(charKey, enemyKey) {
     enemyEl.style.width = '160px';
     enemyEl.style.height = '200px';
   } else if (!enemyKey) {
-    // Regular enemy — reset to emoji, size based on viewport
-    const mobile = window.innerWidth <= 1100;
+    // Regular enemy — reset to emoji
     enemyEl.style.backgroundImage = 'none';
-    enemyEl.style.fontSize = mobile ? '3rem' : '5rem';
-    enemyEl.style.width = mobile ? '70px' : '110px';
-    enemyEl.style.height = mobile ? '65px' : '95px';
+    enemyEl.style.fontSize = '';
+    enemyEl.style.width = '';
+    enemyEl.style.height = '';
   }
 }
 
 function toggleMenu() {
-  if (G.pendingCombatChoice) {
-    showMsg('Choose a card to discard first!');
-    return;
-  }
   const menu = document.getElementById('menu-overlay');
   menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
 }
@@ -727,10 +1410,6 @@ document.addEventListener('click', (e) => {
 });
 
 function toggleDeckViewer() {
-  if (G.pendingCombatChoice) {
-    showMsg('Choose a card to discard first!');
-    return;
-  }
   const overlay = document.getElementById('deck-overlay');
   const isOpen = overlay.style.display === 'flex';
   overlay.style.display = isOpen ? 'none' : 'flex';
@@ -738,10 +1417,6 @@ function toggleDeckViewer() {
 }
 
 function renderDeckViewer() {
-  const rewardMode = document.getElementById('reward-screen')?.classList.contains('active');
-  const discardSection = document.getElementById('dv-discard-section');
-  const battleSummary = document.getElementById('dv-battle-summary');
-
   function renderGrid(gridId, cards, countId, label) {
     const grid = document.getElementById(gridId);
     const countEl = document.getElementById(countId);
@@ -776,17 +1451,10 @@ function renderDeckViewer() {
   // Full deck (draw + hand + discard combined)
   const fullDeck = [...G.deck];
   renderGrid('dv-deck-grid', fullDeck, 'dv-deck-count', 'DECK');
-
-  if (rewardMode) {
-    if (discardSection) discardSection.style.display = 'none';
-    if (battleSummary) battleSummary.style.display = 'none';
-  } else {
-    if (discardSection) discardSection.style.display = '';
-    if (battleSummary) battleSummary.style.display = '';
-    renderGrid('dv-discard-grid', G.discardPile, 'dv-discard-count', 'DISCARD');
-    document.getElementById('dv-draw-count').textContent =
-      `Draw pile: ${G.drawPile.length} · Hand: ${G.hand.length} · Discard: ${G.discardPile.length}`;
-  }
+  renderGrid('dv-discard-grid', G.discardPile, 'dv-discard-count', 'DISCARD');
+  renderGrid('dv-exhaust-grid', G.exhaustedPile || [], 'dv-exhaust-count', 'EXHAUSTED');
+  document.getElementById('dv-draw-count').textContent =
+    `Draw pile: ${G.drawPile.length} · Hand: ${G.hand.length} · Discard: ${G.discardPile.length}`;
 }
 
 function confirmNewRun() {
@@ -874,7 +1542,6 @@ function showCombatScreen() { showScreen('combat-screen'); }
 function showAldricEnding() {
   const hasTrueEnding = G.aldricHasRelics;
   const vs = document.getElementById('victory-screen');
-  SFX.victory();
   showScreen('victory-screen');
 
   // Override victory text based on ending
@@ -890,36 +1557,9 @@ function showAldricEnding() {
   }
 }
 
-function getRunLossSummary() {
-  const floor = G.map ? G.map[G.currentFloor] : null;
-  const path = floor && floor.currentPath ? floor.currentPath : 'A';
-  const roomIdx = floor ? (path === 'A' ? floor.roomIndexA : path === 'B' ? floor.roomIndexB : (floor.roomIndexC || 0)) : 0;
-  const roomLabel = G.inBoss ? `Boss Room · Path ${path}` : `Room ${roomIdx + 1} · Path ${path}`;
-
-  return [
-    { label: 'Hero', value: G.char ? G.char.name : 'Unknown' },
-    { label: 'Reached', value: `Floor ${G.currentFloor + 1} · ${roomLabel}` },
-    { label: 'Enemy', value: G.enemy ? G.enemy.name : 'Unknown' },
-    { label: 'Turns', value: String(G.turn || 0) },
-    { label: 'Final Blow', value: G.runStats && G.runStats.finalBlowDamage != null ? `${G.runStats.finalBlowDamage}` : '—' },
-    { label: 'Damage Dealt', value: String((G.runStats && G.runStats.totalDamageDealt) || 0) },
-    { label: 'Peak Block', value: String((G.runStats && G.runStats.highestBlock) || 0) },
-    { label: 'Cards Played', value: String((G.runStats && G.runStats.cardsPlayed) || 0) },
-  ];
-}
-
 function showGameOver() {
   showScreen('gameover-screen');
   document.getElementById('gameover-souls').textContent = G.runSouls;
-  const summary = document.getElementById('gameover-summary');
-  if (summary) {
-    summary.innerHTML = getRunLossSummary().map(item => (
-      `<div class="gameover-stat">
-        <span class="gameover-stat-label">${item.label}</span>
-        <span class="gameover-stat-value">${item.value}</span>
-      </div>`
-    )).join('');
-  }
 }
 
 function showMsg(txt) {
@@ -1009,39 +1649,3 @@ function spawnProjectileVFX(fromEl, toEl) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// TITLE & CHAR SELECT
-// ═══════════════════════════════════════════════════════════════════
-
-function hideLoader() {
-  var loader = document.getElementById('loading-indicator');
-  if (loader) loader.style.display = 'none';
-}
-
-function showCharSelect() {
-  showScreen('char-screen');
-  const grid = document.getElementById('char-grid');
-  grid.innerHTML = '';
-  Object.entries(CHARACTERS).forEach(([key, ch]) => {
-    const el = document.createElement('div');
-    el.className = 'char-card';
-    el.innerHTML = `
-      <span class="char-emoji">${ch.emoji}</span>
-      <div class="char-name">${ch.name.toUpperCase()}</div>
-      <div class="char-dice">🎲 ${ch.diceLabel}</div>
-      <div class="char-desc">${ch.desc}</div>
-    `;
-    el.style.borderTopColor = ch.color;
-    el.onclick = () => { newGame(key); };
-    grid.appendChild(el);
-  });
-}
-
-function backToCharSelect() {
-  const canGoBackToHeroes = G && G.currentFloor === 0 && G.turn === 0 && !G.enemy;
-  if (!canGoBackToHeroes) return;
-  cancelPathConfirm();
-  G = {};
-  showCharSelect();
-}
-
-function restartGame() { showScreen('title-screen'); }

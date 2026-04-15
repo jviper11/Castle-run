@@ -1,7 +1,6 @@
-  /* Fallback fonts if Google Fonts blocked */
+﻿  /* Fallback fonts if Google Fonts blocked */
   @font-face { font-family: 'Cinzel'; src: local('Georgia'); }
   @font-face { font-family: 'Crimson Pro'; src: local('Georgia'); }
-
 :root {
   --vh: 1vh; /* overridden by JS for Chrome mobile */
   --bg: #0a0809;
@@ -44,20 +43,7 @@ body {
   user-select: none;
 }
 
-#game {
-  width: 100%;
-  height: calc(var(--vh, 1vh) * 100);
-  height: 100dvh;
-  min-height: 100vh;
-  min-height: 100dvh;
-  position: relative;
-  background-image:
-    linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.85) 100%),
-    url('../assets/floor1.png');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-}
+#game { width: 100%; height: calc(var(--vh, 1vh) * 100); height: 100dvh; min-height: 100dvh; position: relative; overflow: hidden; }
 
 .screen { display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
 .screen.active { display: flex; z-index: 10; }
@@ -199,17 +185,6 @@ body {
   background: transparent;
   /* Vignette corners for atmosphere */
   box-shadow: inset 0 0 120px rgba(0,0,0,0.7);
-  min-height: 0;
-}
-
-#combat-screen.active {
-  display: flex !important;
-  flex-direction: column;
-  min-height: 100dvh;
-  max-height: 100dvh;
-  height: 100dvh;
-  overflow: hidden;
-  overscroll-behavior: none;
 }
 
 .floor-bg {
@@ -224,7 +199,7 @@ body {
 .floor-1-bg {
   background-image:
     linear-gradient(180deg, rgba(0,0,0,0.58) 0%, rgba(0,0,0,0.82) 100%),
-    url('../assets/floor1.png');
+    url('assets/floor1.png');
 }
 .floor-2-bg { background: linear-gradient(180deg, #080a0e 0%, #06080a 100%); }
 .floor-3-bg { background: linear-gradient(180deg, #09060f 0%, #070510 100%); }
@@ -260,25 +235,16 @@ body {
   position: relative;
   z-index: 10;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 1.2rem;
   background: rgba(10,8,9,0.9);
   border-bottom: 1px solid var(--border);
 }
-.hud-main-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.1rem 0.5rem;
-  width: 100%;
-  box-sizing: border-box;
-  flex-wrap: nowrap;
-  gap: 0.15rem;
-}
-.hud-floor { font-family: 'Cinzel', serif; font-size: 0.68rem; color: var(--gold); letter-spacing: 0.1em; }
-.hud-room { font-size: 0.62rem; color: var(--text2); font-style: italic; }
-.hud-map-btn { font-size: 0.55rem; padding: 0.08rem 0.22rem; min-height: unset; height: auto; line-height: 1.2; border-width: 1px; }
-.hud-combat-stats { display: flex; flex-direction: row; align-items: center; gap: 0.4rem; font-size: 0.62rem; }
-.hud-menu-btn { font-size: 0.62rem; padding: 0.08rem 0.22rem; min-height: unset; height: auto; line-height: 1.2; border-width: 1px; border-color: var(--border2); color: var(--text2); }
+.hud-floor { font-family: 'Cinzel', serif; font-size: 0.85rem; color: var(--gold); letter-spacing: 0.1em; }
+.hud-room { font-size: 0.8rem; color: var(--text2); font-style: italic; }
+.hud-map-btn { font-size: 0.75rem; padding: 0.3rem 0.8rem; }
+.hud-menu-btn { font-size: 0.9rem; padding: 0.3rem 0.6rem; border-color: var(--border2); color: var(--text2); }
 .hud-menu-btn:hover { color: var(--bg); }
 .hud-menu-btn::before { background: var(--text2); }
 
@@ -286,15 +252,11 @@ body {
 .combat-arena {
   position: relative;
   z-index: 5;
-  flex: 1 1 auto;
-  min-height: 0;
+  flex: 1;
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-around;
-  padding: 0 2%;
-  gap: 0;
-  margin-top: -4px;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 12% 1rem;
   /* Atmospheric floor line */
   background:
     linear-gradient(0deg, rgba(0,0,0,0.5) 0%, transparent 20%),
@@ -329,30 +291,17 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  gap: 0.3rem;
+  gap: 0.6rem;
   position: relative;
-  min-width: 90px;
-  min-height: 0;
+  min-width: 200px;
 }
 
 .combatant-sprite {
-  font-size: 4.5rem;
+  font-size: 7rem;
   line-height: 1;
   filter: drop-shadow(0 4px 8px rgba(0,0,0,0.8));
   transition: transform 0.1s;
   position: relative;
-  width: 90px;
-  height: 110px;
-  max-width: 90px;
-  max-height: 110px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  background-size: contain;
-  background-position: center bottom;
-  background-repeat: no-repeat;
 }
 .combatant-sprite.shake {
   animation: shake 0.3s ease;
@@ -374,53 +323,22 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.2rem;
+  gap: 0.4rem;
   width: 100%;
-  flex: unset;
-  min-width: 0;
 }
 .combatant-name {
   font-family: 'Cinzel', serif;
-  font-size: 0.72rem;
+  font-size: 0.9rem;
   color: var(--gold);
   letter-spacing: 0.05em;
 }
 
-.hp-bar-wrap { width: 88px; }
-.bar-label { font-size: 0.62rem; color: var(--text2); display: flex; justify-content: space-between; margin-bottom: 2px; }
-.bar-track { height: 7px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; }
+.hp-bar-wrap { width: 160px; }
+.bar-label { font-size: 0.7rem; color: var(--text2); display: flex; justify-content: space-between; margin-bottom: 2px; }
+.bar-track { height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; }
 .bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
 .hp-fill { background: linear-gradient(90deg, var(--hp), #e74c3c); }
 .block-fill { background: linear-gradient(90deg, var(--block), #5dade2); }
-.block-display {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.28rem;
-  padding: 0.16rem 0.48rem;
-  border-radius: 999px;
-  border: 1px solid rgba(93, 173, 226, 0.45);
-  background: linear-gradient(180deg, rgba(93, 173, 226, 0.18), rgba(20, 34, 54, 0.68));
-  color: #d9efff;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
-  transition: opacity 0.2s ease, border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
-}
-.block-display.is-empty {
-  border-color: rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.05);
-  color: var(--text2);
-  opacity: 0.72;
-}
-.block-display-icon {
-  font-size: 0.72rem;
-  line-height: 1;
-}
-.block-display-value {
-  font-family: 'Cinzel', serif;
-  font-size: 0.76rem;
-  font-weight: 700;
-  line-height: 1;
-  min-width: 1ch;
-}
 
 .combat-stat-row {
   display: flex;
@@ -460,86 +378,40 @@ body {
   line-height: 1;
   min-width: 1ch;
 }
-
-#player-combatant .hp-bar-wrap:has(#player-block-display),
-#enemy-combatant .hp-bar-wrap:has(#enemy-block-display),
-#player-combatant .hp-bar-wrap:has(#player-status),
-#enemy-combatant .hp-bar-wrap:has(#enemy-status) {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.28rem;
-  flex-wrap: wrap;
-}
-
-#player-combatant .hp-bar-wrap:has(#player-block-display) .bar-label,
-#enemy-combatant .hp-bar-wrap:has(#enemy-block-display) .bar-label,
-#player-combatant .hp-bar-wrap:has(#player-status) .bar-label,
-#enemy-combatant .hp-bar-wrap:has(#enemy-status) .bar-label,
-#player-combatant .hp-bar-wrap:has(#player-block-display) .bar-track,
-#enemy-combatant .hp-bar-wrap:has(#enemy-block-display) .bar-track,
-#player-combatant .hp-bar-wrap:has(#player-status) .bar-track,
-#enemy-combatant .hp-bar-wrap:has(#enemy-status) .bar-track {
-  display: none;
-}
-
-/* ── Passive ability badge (player combatant) ── */
-.passive-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.2rem;
-  background: rgba(18, 14, 15, 0.82);
-  border: 1px solid rgba(90, 58, 60, 0.55);
-  border-radius: 3px;
-  padding: 0.1rem 0.3rem;
-  font-size: 0.52rem;
-  color: rgba(232, 221, 208, 0.82);
-  letter-spacing: 0.03em;
-  font-family: 'Cinzel', serif;
-  white-space: nowrap;
-  position: relative;
-  cursor: default;
-  /* mobile tap target: vertical padding makes the hit area ~44px */
-  min-height: 44px;
-  box-sizing: border-box;
-}
-.passive-badge:empty { display: none; }
-/* CSS tooltip — desktop hover only */
-.passive-badge::after {
-  content: attr(data-tip);
-  display: none;
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--panel);
-  border: 1px solid var(--border2);
-  color: var(--text2);
-  font-family: 'Crimson Pro', serif;
-  font-size: 0.72rem;
-  letter-spacing: normal;
-  padding: 0.35rem 0.55rem;
-  white-space: normal;
-  width: 160px;
-  text-align: center;
-  line-height: 1.4;
-  z-index: 50;
+.status-tooltip {
+  position: fixed;
+  background: #1a1410;
+  border: 1px solid var(--gold);
+  color: #f0e6c8;
+  font-size: 0.75rem;
+  padding: 0.5rem 0.8rem;
+  border-radius: 6px;
+  max-width: 180px;
+  z-index: 99999;
   pointer-events: none;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+  opacity: 0;
+  transition: opacity 0.15s;
+  font-family: var(--font-body);
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.8);
 }
-.passive-badge:not(:empty):hover::after { display: block; }
+.status-tooltip.visible {
+  opacity: 1;
+}
+#player-combatant .hp-bar-wrap:has(#player-status),
+#enemy-combatant .hp-bar-wrap:has(#enemy-block-bar),
+#enemy-combatant .combatant-info > .status-icons#enemy-status {
+  display: none;
+}
 
 .intent-box {
   background: rgba(26,18,20,0.9);
   border: 1px solid var(--border);
-  padding: 0.18rem 0.3rem;
-  font-size: 0.58rem;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.8rem;
   color: var(--text2);
   text-align: center;
-  max-width: 92px;
-  margin-bottom: 2px;
+  max-width: 180px;
   cursor: pointer;
 }
 .intent-box:hover { border-color: var(--border2); }
@@ -564,6 +436,20 @@ body {
 .eip-ability-name  { font-size: 0.8rem; color: var(--purple2); font-weight: 600; margin-bottom: 0.2rem; }
 .eip-ability-desc  { font-size: 0.75rem; color: var(--text2); line-height: 1.4; font-style: italic; }
 .eip-hint { font-size: 0.65rem; color: var(--text3); margin-top: 0.5rem; text-align: center; }
+
+/* dice panel */
+.dice-panel {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(10,8,9,0.85);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
 
 .dice-display {
   display: flex;
@@ -605,29 +491,6 @@ body {
 .die-affinity-label { font-size: 0.7rem; color: var(--text2); font-style: italic; }
 
 .reroll-btn { font-size: 0.8rem; padding: 0.4rem 1rem; }
-
-/* Desktop dice strip always hidden — dice-corner used on all sizes */
-.combat-controls { display: none !important; }
-
-/* Dice corner — always visible, absolutely positioned in hand area */
-#dice-corner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.2rem;
-  position: absolute;
-  bottom: 0.45rem;
-  left: 0.5rem;
-  z-index: 20;
-  padding: 0.16rem 0.2rem 0.18rem;
-  border: 1px solid rgba(90,58,60,0.14);
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(18,13,15,0.52), rgba(11,8,10,0.66));
-  box-shadow: 0 4px 10px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.03);
-}
-#dice-corner .die { width: 36px; height: 36px; font-size: 1rem; border-width: 1px; min-height: unset; }
-#dice-corner .reroll-btn { font-size: 0.5rem; padding: 0.1rem 0.35rem; min-height: unset; height: auto; }
-
 .reroll-btn:disabled { opacity: 0.3; cursor: not-allowed; border-color: var(--border); color: var(--text3); }
 .reroll-btn:disabled:hover { color: var(--text3); }
 .reroll-btn:disabled::before { display: none; }
@@ -653,28 +516,19 @@ body {
 .hand-area {
   position: relative;
   z-index: 10;
-  flex: 0 0 auto;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 0.25rem;
-  padding: 0.2rem 85px 0.4rem 90px;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem 0.8rem;
   background: rgba(10,8,9,0.9);
   border-top: 1px solid rgba(90,58,60,0.55);
   box-shadow: inset 0 10px 18px rgba(0,0,0,0.22);
-  min-height: 120px;
-  max-height: 135px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  flex-wrap: nowrap;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+  min-height: 160px;
 }
-.hand-area::-webkit-scrollbar { display: none; }
 
 .card {
-  width: 68px;
-  flex: 0 0 auto;
+  width: 95px;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -694,14 +548,6 @@ body {
 .card.unplayable:hover { transform: none; border-color: var(--border); box-shadow: none; }
 .card.dice-card { border-color: var(--border2); }
 .card.dice-card.affinity-active { border-color: var(--gold); box-shadow: 0 0 8px rgba(201,168,76,0.3); }
-.card.discard-select {
-  border-color: var(--red2);
-  box-shadow: 0 0 10px rgba(192,57,43,0.22);
-}
-.card.discard-select:hover {
-  border-color: var(--red3);
-  box-shadow: 0 8px 20px rgba(0,0,0,0.6), 0 0 12px rgba(231,76,60,0.28);
-}
 
 .combat-choice-overlay {
   position: absolute;
@@ -741,23 +587,23 @@ body {
 .card-cost {
   position: absolute;
   top: 4px; left: 4px;
-  width: 15px; height: 15px;
+  width: 20px; height: 20px;
   border-radius: 50%;
   background: var(--energy);
   color: var(--bg);
   font-family: 'Cinzel', serif;
-  font-size: 0.54rem;
+  font-size: 0.7rem;
   font-weight: 900;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.card-emoji { font-size: 0.95rem; display: block; text-align: center; margin: 0.3rem 0 0.2rem; }
-.card-name { font-family: 'Cinzel', serif; font-size: 0.5rem; font-weight: 600; color: var(--gold); text-align: center; letter-spacing: 0.03em; line-height: 1.2; }
+.card-emoji { font-size: 1.4rem; display: block; text-align: center; margin: 0.3rem 0 0.2rem; }
+.card-name { font-family: 'Cinzel', serif; font-size: 0.6rem; font-weight: 600; color: var(--gold); text-align: center; letter-spacing: 0.03em; line-height: 1.2; }
 .card-type { font-size: 0.55rem; color: var(--text3); text-align: center; margin-top: 0.15rem; text-transform: uppercase; letter-spacing: 0.05em; }
 .card-compact-summary { display: none; }
-.card-desc { font-size: 0.42rem; color: var(--text2); text-align: center; margin-top: 0.3rem; line-height: 1.3; }
-.card-dice-req { font-size: 0.42rem; color: var(--gold); text-align: center; margin-top: 0.2rem; font-style: italic; }
+.card-desc { font-size: 0.6rem; color: var(--text2); text-align: center; margin-top: 0.3rem; line-height: 1.3; }
+.card-dice-req { font-size: 0.55rem; color: var(--gold); text-align: center; margin-top: 0.2rem; font-style: italic; }
 .card.mobile-compressed {
   width: 60px;
   min-height: 72px;
@@ -827,10 +673,10 @@ body {
 
 .end-turn-btn {
   position: absolute;
-  right: 0.6rem;
-  bottom: 0.6rem;
-  font-size: 0.68rem;
-  padding: 0.4rem 0.85rem;
+  right: 1rem;
+  bottom: 1rem;
+  font-size: 0.8rem;
+  padding: 0.5rem 1.2rem;
   border-color: var(--red2);
   color: var(--red2);
   background: linear-gradient(180deg, rgba(28,14,14,0.94), rgba(18,9,9,0.97));
@@ -1035,29 +881,6 @@ body {
 }
 .map-close:hover { border-color: var(--red2); color: var(--red2); }
 
-#deck-overlay > div > button {
-  top: 0.45rem !important;
-  right: 0.45rem !important;
-  width: 30px !important;
-  height: 30px !important;
-  border-radius: 999px;
-  border-color: rgba(255,255,255,0.1) !important;
-  color: rgba(245,232,199,0.68) !important;
-  background: rgba(255,255,255,0.02) !important;
-  font-size: 0.82rem !important;
-  opacity: 0.78;
-  transition: opacity 0.15s, border-color 0.15s, color 0.15s, background 0.15s;
-}
-
-#deck-overlay > div > button:hover,
-#deck-overlay > div > button:focus-visible {
-  opacity: 1;
-  border-color: var(--border2) !important;
-  color: var(--text) !important;
-  background: rgba(255,255,255,0.05) !important;
-  outline: none;
-}
-
 .map-floors { display: flex; flex-direction: column; gap: 1rem; }
 .map-floor {
   background: rgba(255,255,255,0.03);
@@ -1124,11 +947,11 @@ body {
   background: var(--panel);
   border: 1px solid var(--border2);
   border-radius: 4px;
-  position: relative;
   padding: 1rem 0.8rem;
   cursor: pointer;
   transition: all 0.2s;
   text-align: center;
+  position: relative;
 }
 .reward-card:hover {
   transform: translateY(-6px);
@@ -1139,18 +962,6 @@ body {
 .reward-card-name { font-family: 'Cinzel', serif; font-size: 0.75rem; color: var(--gold); font-weight: 600; }
 .reward-card-desc { font-size: 0.7rem; color: var(--text2); margin-top: 0.4rem; line-height: 1.4; }
 .reward-card-type { font-size: 0.6rem; color: var(--text3); margin-top: 0.3rem; text-transform: uppercase; letter-spacing: 0.05em; }
-
-.reward-actions {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.7rem;
-  flex-wrap: wrap;
-}
-.reward-deck-btn {
-  border-color: var(--gold);
-  color: var(--gold);
-}
 
 .skip-btn { font-size: 0.8rem; padding: 0.4rem 1.2rem; border-color: var(--border2); color: var(--text2); }
 
@@ -1719,42 +1530,22 @@ body {
   width: 145px;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 8px;
   padding: 1.1rem 0.8rem;
   cursor: pointer;
   transition: all 0.2s;
   text-align: center;
-  position: relative;
-  overflow: hidden;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
 }
-.rest-option::before {
-  content: '';
-  position: absolute;
-  inset: 0 auto auto 0;
-  width: 100%;
-  height: 3px;
-  background: var(--border2);
-  opacity: 0.8;
-}
-.rest-option[data-rest-action="rest"]::before { background: var(--green2); }
-.rest-option[data-rest-action="upgrade"]::before { background: var(--gold); }
-.rest-option[data-rest-action="remove"]::before { background: var(--red2); }
-.rest-option:hover { transform: translateY(-4px); border-color: var(--green2); box-shadow: 0 8px 18px rgba(0,0,0,0.35), 0 6px 16px rgba(39,174,96,0.15); }
-.rest-option:active { transform: translateY(-1px) scale(0.98); }
-.rest-option.rest-disabled:hover { transform: none; border-color: var(--border); box-shadow: inset 0 1px 0 rgba(255,255,255,0.03); }
+.rest-option:hover { transform: translateY(-4px); border-color: var(--green2); box-shadow: 0 6px 16px rgba(39,174,96,0.15); }
 .rest-option-emoji { font-size: 2rem; display: block; margin-bottom: 0.5rem; }
-.rest-option-name { font-family: 'Cinzel', serif; font-size: 0.8rem; color: var(--gold); letter-spacing: 0.04em; }
-.rest-option-desc { font-size: 0.7rem; color: var(--text2); margin-top: 0.35rem; line-height: 1.45; min-height: 3.2em; }
+.rest-option-name { font-family: 'Cinzel', serif; font-size: 0.8rem; color: var(--gold); }
+.rest-option-desc { font-size: 0.7rem; color: var(--text2); margin-top: 0.3rem; line-height: 1.4; }
 
 /* Deck viewer in rest */
 .rest-deck-section {
   width: min(700px, 95vw);
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 8px;
   padding: 0.8rem 1rem;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
 }
 .rest-deck-title {
   font-family: 'Cinzel', serif;
@@ -1765,36 +1556,27 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 0.45rem;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
 }
 .rest-deck-grid {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
-  align-items: stretch;
-  padding: 0.35rem;
-  border: 1px solid rgba(255,255,255,0.05);
-  border-radius: 6px;
-  background: rgba(255,255,255,0.02);
-  min-height: 72px;
 }
 .rest-deck-card {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03));
+  background: rgba(255,255,255,0.04);
   border: 1px solid var(--border);
-  padding: 0.38rem 0.65rem;
+  padding: 0.3rem 0.6rem;
   font-size: 0.72rem;
   color: var(--text2);
-  border-radius: 6px;
+  border-radius: 3px;
   transition: all 0.15s;
   cursor: default;
-  min-width: 122px;
 }
 .rest-deck-card.selectable { cursor: pointer; }
-.rest-deck-card.selectable:hover { transform: translateY(-2px); border-color: var(--gold); color: var(--text); background: rgba(201,168,76,0.08); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+.rest-deck-card.selectable:hover { border-color: var(--gold); color: var(--text); background: rgba(201,168,76,0.08); }
 .rest-deck-card.selectable.danger:hover { border-color: var(--red2); color: var(--red3); background: rgba(192,57,43,0.08); }
 .rest-deck-card-emoji { font-size: 1rem; }
 .rest-deck-card-name { font-family: 'Cinzel', serif; font-size: 0.65rem; color: var(--gold); }
@@ -1823,97 +1605,25 @@ body {
   padding: 1.5rem 1rem 2rem;
 }
 .shop-title { font-family: 'Cinzel', serif; font-size: 1.6rem; color: var(--gold); letter-spacing: 0.1em; }
-.shop-sub {
-  max-width: 460px;
-  margin-top: -0.35rem;
-  margin-bottom: 0.25rem;
-  font-size: 0.76rem;
-  color: var(--text2);
-  font-style: italic;
-  text-align: center;
-  line-height: 1.45;
-}
-.shop-picking-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-}
 .shop-gold { font-size: 1rem; color: var(--gold); }
 .shop-items { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
 .shop-item {
   width: 130px;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 8px;
   padding: 1rem 0.8rem;
   cursor: pointer;
   transition: all 0.2s;
   text-align: center;
-  position: relative;
-  overflow: hidden;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
 }
-.shop-item::before {
-  content: '';
-  position: absolute;
-  inset: 0 auto auto 0;
-  width: 100%;
-  height: 3px;
-  background: rgba(201,168,76,0.7);
-  opacity: 0.85;
-}
-.shop-item:hover {
-  transform: translateY(-4px);
-  border-color: var(--gold);
-  box-shadow: 0 8px 18px rgba(0,0,0,0.35), 0 4px 14px rgba(201,168,76,0.12);
-}
-.shop-item:active { transform: translateY(-1px) scale(0.985); }
+.shop-item:hover { transform: translateY(-4px); border-color: var(--gold); }
 .shop-item-emoji { font-size: 1.8rem; display: block; margin-bottom: 0.4rem; }
-.shop-item-name { font-family: 'Cinzel', serif; font-size: 0.75rem; color: var(--gold); letter-spacing: 0.04em; }
-.shop-item-desc { font-size: 0.65rem; color: var(--text2); margin-top: 0.3rem; line-height: 1.45; min-height: 4.1em; }
-.shop-item-cost { font-size: 0.75rem; color: var(--energy); margin-top: 0.45rem; font-weight: 600; }
-.shop-item-state {
-  margin-top: 0.3rem;
-  font-size: 0.62rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--green2);
-}
-.shop-item--locked {
-  border-color: rgba(192,57,43,0.35);
-  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(192,57,43,0.03));
-}
-.shop-item--locked::before { background: rgba(192,57,43,0.8); }
-.shop-item--locked .shop-item-cost,
-.shop-item--locked .shop-item-state { color: var(--red2); }
-.shop-item--locked:hover {
-  transform: none;
-  border-color: rgba(192,57,43,0.45);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
-}
-.shop-item.sold,
-.shop-item.sold:hover {
-  transform: none;
-  border-color: var(--border);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
-}
-.shop-item.sold { opacity: 0.38; cursor: not-allowed; }
+.shop-item-name { font-family: 'Cinzel', serif; font-size: 0.75rem; color: var(--gold); }
+.shop-item-desc { font-size: 0.65rem; color: var(--text2); margin-top: 0.3rem; line-height: 1.4; }
+.shop-item-cost { font-size: 0.75rem; color: var(--energy); margin-top: 0.4rem; font-weight: 600; }
+.shop-item.sold { opacity: 0.3; cursor: not-allowed; }
 .shop-item.sold:hover { transform: none; border-color: var(--border); }
 .shop-leave { font-size: 0.8rem; padding: 0.4rem 1.2rem; }
-
-#shop-screen .rest-hp-panel.shop-hp-danger {
-  border-color: rgba(192,57,43,0.7);
-  box-shadow: 0 0 0 1px rgba(192,57,43,0.18), inset 0 0 18px rgba(192,57,43,0.08);
-}
-#shop-screen .rest-hp-panel.shop-hp-danger .rest-hp-bar-track {
-  background: rgba(192,57,43,0.12);
-}
-#shop-screen .rest-hp-panel.shop-hp-danger .rest-hp-label span:first-child,
-#shop-screen .rest-hp-panel.shop-hp-danger #shop-hp-text {
-  color: var(--red3);
-}
 
 /* ── EVENT ── */
 #event-screen {
@@ -1972,32 +1682,6 @@ body {
 .gameover-sub { font-size: 1rem; color: var(--text2); font-style: italic; }
 .gameover-souls { font-size: 1.1rem; color: var(--text); }
 .gameover-souls span { color: var(--gold); font-weight: 600; }
-.gameover-summary {
-  width: min(100%, 420px);
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.65rem;
-}
-.gameover-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  padding: 0.75rem 0.85rem;
-  border: 1px solid var(--border);
-  background: rgba(16, 14, 18, 0.82);
-  box-shadow: 0 10px 24px rgba(0,0,0,0.22);
-}
-.gameover-stat-label {
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text2);
-}
-.gameover-stat-value {
-  font-size: 0.98rem;
-  color: var(--text);
-  font-weight: 600;
-}
 
 /* ── VICTORY ── */
 #victory-screen {
@@ -2055,187 +1739,18 @@ body {
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border2); }
 
-@media (min-width: 1101px) {
-  .combat-hud {
-    border-bottom-width: 2px;
-  }
-  .hud-main-row {
-    padding: 0.45rem 1.2rem;
-    gap: 0.8rem;
-  }
-  .hud-floor {
-    font-size: 0.95rem;
-  }
-  .hud-room {
-    font-size: 0.82rem;
-  }
-  .hud-combat-stats {
-    gap: 0.8rem;
-    font-size: 0.86rem;
-  }
-  .hud-map-btn,
-  .hud-menu-btn {
-    font-size: 0.82rem;
-    padding: 0.32rem 0.7rem;
-  }
-
-  .combat-arena {
-    padding: 0 4.5% 0.75rem;
-    gap: 1.8rem;
-    margin-top: 0;
-    align-items: flex-end;
-    justify-content: center;
-  }
-  .combatant {
-    flex: 0 0 240px;
-    min-width: 180px;
-    min-height: 310px;
-    justify-content: flex-end;
-    gap: 0.55rem;
-  }
-  .combatant-sprite {
-    width: 160px;
-    height: 200px;
-    max-width: 160px;
-    max-height: 200px;
-    font-size: 5rem;
-  }
-  .combatant-info {
-    gap: 0.35rem;
-  }
-  .combatant-name {
-    font-size: 0.95rem;
-  }
-  .hp-bar-wrap {
-    width: 160px;
-  }
-  .block-display {
-    gap: 0.38rem;
-    padding: 0.24rem 0.7rem;
-  }
-  .block-display-icon {
-    font-size: 0.9rem;
-  }
-  .block-display-value {
-    font-size: 0.95rem;
-  }
-  .bar-label {
-    font-size: 0.8rem;
-    margin-bottom: 4px;
-  }
-  .bar-track {
-    height: 10px;
-  }
-  .intent-box {
-    max-width: 180px;
-    font-size: 0.8rem;
-    padding: 0.35rem 0.6rem;
-    margin-bottom: 4px;
-  }
-  .status-icons {
-    gap: 0.35rem;
-    min-height: 22px;
-    justify-content: center;
-  }
-  .status-icon {
-    gap: 0.24rem;
-    padding: 0.16rem 0.46rem;
-  }
-  .status-icon-glyph {
-    font-size: 0.78rem;
-  }
-  .status-icon-value {
-    font-size: 0.8rem;
-  }
-  .passive-badge {
-    font-size: 0.72rem;
-    padding: 0.2rem 0.55rem;
-    min-height: unset;
-    cursor: help;
-  }
-
-  #dice-corner {
-    bottom: 0.85rem;
-    left: 0.9rem;
-    gap: 0.35rem;
-  }
-  #dice-corner .die {
-    width: 52px;
-    height: 52px;
-    font-size: 1.4rem;
-    border-width: 2px;
-  }
-  #dice-corner .reroll-btn {
-    font-size: 0.72rem;
-    padding: 0.22rem 0.75rem;
-  }
-
-  .hand-area {
-    min-height: 180px;
-    max-height: 210px;
-    gap: 0.55rem;
-    padding: 0.45rem 150px 0.9rem 130px;
-  }
-  .card {
-    width: 110px;
-    padding: 0.75rem 0.65rem;
-  }
-  .card-cost {
-    width: 24px;
-    height: 24px;
-    font-size: 0.8rem;
-    top: 6px;
-    left: 6px;
-  }
-  .card-emoji {
-    font-size: 1.45rem;
-    margin: 0.45rem 0 0.3rem;
-  }
-  .card-name {
-    font-size: 0.78rem;
-  }
-  .card-type {
-    font-size: 0.7rem;
-    margin-top: 0.22rem;
-  }
-  .card-desc {
-    font-size: 0.62rem;
-    margin-top: 0.45rem;
-  }
-  .card-dice-req {
-    font-size: 0.62rem;
-    margin-top: 0.3rem;
-  }
-  .end-turn-btn {
-    right: 1rem;
-    bottom: 0.95rem;
-    font-size: 0.9rem;
-    padding: 0.75rem 1.35rem;
-  }
-
-  .message-log {
-    bottom: 245px;
-    padding: 0.6rem 1.3rem;
-    font-size: 0.92rem;
-    max-width: min(70vw, 720px);
-  }
-}
-
 /* ═══════════════════════════════════════════════════════════════════
    MOBILE RESPONSIVE — phones and small screens
    ═══════════════════════════════════════════════════════════════════ */
 
- @media (max-width: 1100px) {
+@media (max-width: 600px) {
 
   /* Prevent tap highlight flicker on all interactive elements */
   * { -webkit-tap-highlight-color: transparent; }
 
   /* Chrome mobile viewport fix */
   body {
-    background: var(--bg);
-    touch-action: manipulation;
-    overflow-x: hidden;
-    overflow-y: hidden;
+    overflow: hidden;
     height: calc(var(--vh, 1vh) * 100);
     height: 100dvh;
     min-height: 100dvh;
@@ -2248,8 +1763,8 @@ body {
     height: 100dvh;
     min-height: 100dvh;
     width: 100%;
-    position: relative;
     overflow: hidden;
+    position: relative;
   }
 
   /* All screens — fill game container, hidden by default */
@@ -2278,6 +1793,17 @@ body {
     -webkit-overflow-scrolling: touch;
   }
 
+  /* Combat screen — flex column, no scroll */
+  #combat-screen.active {
+    display: flex !important;
+    flex-direction: column;
+    min-height: 100dvh;
+    max-height: 100dvh;
+    height: 100dvh;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
   /* ── TITLE ── */
   .title-main { font-size: 3rem; }
   .title-btn { font-size: 1rem; padding: 0.9rem 2rem; }
@@ -2287,151 +1813,76 @@ body {
   .char-card { width: 130px; padding: 1rem 0.7rem; }
   .char-title { font-size: 1.3rem; }
 
-  /* Passive badge — mobile: hide CSS tooltip, keep tap area */
-  .passive-badge::after { display: none !important; }
-  .passive-badge {
-    cursor: pointer;
-    min-height: 30px;
-    padding: 0.06rem 0.24rem;
-    font-size: 0.48rem;
-  }
+  /* ── COMBAT SCREEN ── */
+  #combat-screen { height: 100dvh; min-height: 100dvh; max-height: 100dvh; overflow: hidden; }
 
-  #combat-screen,
-  #combat-screen.active {
-    height: 100dvh;
-    min-height: 100dvh;
-    max-height: 100dvh;
-    overflow: hidden;
-    overscroll-behavior: none;
-  }
+  .combat-hud { padding: 0.5rem 0.8rem; flex-wrap: wrap; gap: 0.3rem; }
+  .hud-floor { font-size: 0.75rem; }
+  .hud-room { font-size: 0.7rem; }
+  .hud-map-btn { font-size: 0.7rem; padding: 0.25rem 0.6rem; }
+  .hud-menu-btn { font-size: 0.85rem; padding: 0.25rem 0.5rem; }
 
- /* ── COMBAT SCREEN — mobile interaction overrides only ── */
-  .block-fill { background: linear-gradient(90deg, #4fc3f7, #5dade2); }
-  .combat-hud {
-    border-bottom-color: rgba(90, 58, 60, 0.75);
-  }
-  .hud-main-row {
-    padding: 0.08rem 0.42rem;
-    gap: 0.12rem;
-  }
+  /* Arena — compact fixed height, no dead space */
   .combat-arena {
-    align-items: flex-end;
-    padding-bottom: 0.62rem;
-  }
-  .combatant {
-    flex: 1 1 0;
-    min-width: 0;
-    max-width: 46%;
-    justify-content: flex-start;
-    gap: 0.28rem;
-  }
-  .combatant-sprite {
-    flex: 0 0 110px;
-    width: 90px;
-    height: 110px;
-    max-width: 90px;
-    max-height: 110px;
-    align-self: center;
-  }
-  .combatant-info {
-    flex: 0 0 114px;
-    height: 114px;
-    justify-content: flex-start;
-    gap: 0.16rem;
-  }
-  .combat-stat-row {
-    gap: 0.18rem;
-  }
-  .status-icons {
-    gap: 0.18rem;
-  }
-  .status-icon {
-    gap: 0.14rem;
-    padding: 0.08rem 0.24rem;
-  }
-  .status-icon-glyph,
-  .status-icon-value {
-    font-size: 0.58rem;
-  }
-  #player-combatant .combatant-info {
-    align-items: center;
-    gap: 0.12rem;
-  }
-  #player-combatant .combatant-name,
-  #player-combatant .hp-bar-wrap,
-  #player-combatant .combat-stat-row,
-  #player-combatant .passive-badge {
-    width: 88px;
-    max-width: 100%;
-    align-self: center;
-  }
-  #player-combatant .combat-stat-row {
+    flex-direction: column;
+    align-items: stretch;
     justify-content: center;
-    align-items: center;
-    margin: 0;
+    padding: 0.5rem 0.8rem 0.65rem;
+    gap: 0.5rem;
+    flex: 0 0 auto;
   }
-  #player-combatant .combatant-name {
-    line-height: 1.05;
-  }
-  #player-combatant .passive-badge {
-    justify-content: center;
-    min-height: unset;
-    padding: 0.04rem 0.22rem;
-    margin-top: -0.02rem;
-    border-color: rgba(90, 58, 60, 0.42);
-    background: rgba(18, 14, 15, 0.68);
-    color: rgba(232, 221, 208, 0.72);
-  }
-  #player-combatant .status-icons {
-    justify-content: center;
-  }
-  #dice-corner .reroll-btn {
-    border-color: rgba(201,168,76,0.26);
-    background: rgba(255,255,255,0.03);
-    color: rgba(232,221,208,0.76);
-    box-shadow: none;
-  }
+
+  /* Enemy on top, player below */
+  #enemy-combatant { order: 1; }
+  #player-combatant { order: 2; }
+
+  .combatant { flex-direction: row; align-items: center; gap: 0.7rem; width: 100%; }
+  .combatant-info { align-items: flex-start; gap: 0.25rem; flex: 1; min-width: 0; }
+  .combatant-sprite { font-size: 3rem; flex-shrink: 0; line-height: 1; }
+  .combatant-name { font-size: 0.78rem; }
+  .hp-bar-wrap { width: 100%; }
+  .bar-label { font-size: 0.62rem; }
+  .bar-track { height: 6px; }
+  .intent-box { font-size: 0.68rem; padding: 0.25rem 0.4rem; max-width: 100%; }
+  .combat-stat-row { gap: 0.22rem; }
+  .status-icons { justify-content: flex-start; min-height: 14px; gap: 0.22rem; }
+  .status-icon { padding: 0.12rem 0.34rem; gap: 0.16rem; }
+  .status-icon-glyph { font-size: 0.58rem; }
+  .status-icon-value { font-size: 0.62rem; }
+
+  /* Dice panel compact */
+  .dice-panel { gap: 0.8rem; padding: 0.5rem 0.8rem; flex-wrap: wrap; justify-content: space-between; }
+  .die { width: 46px; height: 46px; font-size: 1.2rem; }
+  .die-affinity-label { font-size: 0.65rem; }
+  .reroll-btn { font-size: 0.75rem; padding: 0.35rem 0.8rem; }
+  .energy-pip { width: 12px; height: 12px; }
+  .energy-display { font-size: 0.75rem; gap: 0.3rem; }
+
+  /* Hand area — fills remaining space, cards scroll horizontally */
   .hand-area {
-    flex: 0 0 112px;
-    height: 112px;
-    min-height: 112px;
-    max-height: 112px;
-    margin-top: -2px;
-    padding: 0.14rem 76px calc(0.28rem + env(safe-area-inset-bottom, 0px)) 78px;
-    scroll-padding-left: 78px;
-    scroll-padding-right: 76px;
-    border-top: 1px solid rgba(90, 58, 60, 0.55);
-    box-shadow: inset 0 8px 16px rgba(0,0,0,0.2);
-    overflow-y: visible;
-    overscroll-behavior-x: contain;
-    overscroll-behavior-y: none;
-    touch-action: pan-x;
+    flex: 1;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0.5rem 0.5rem 0.5rem 0.5rem;
+    gap: 0.5rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    min-height: 0;
+    /* Fade right edge to hint at scrolling */
+    -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
+    mask-image: linear-gradient(to right, black 85%, transparent 100%);
   }
+  .hand-area::-webkit-scrollbar { display: none; }
+
   .card {
-    padding: 0.44rem 0.4rem;
-  }
-  .card-emoji {
-    margin: 0.24rem 0 0.16rem;
-  }
-  .card-desc {
-    margin-top: 0.24rem;
-    line-height: 1.24;
-  }
-  .card-dice-req {
-    margin-top: 0.14rem;
-  }
-  #dice-corner {
-    top: auto;
-    bottom: calc(0.28rem + env(safe-area-inset-bottom, 0px));
-    left: 0.38rem;
-    transform: none;
-  }
-  .end-turn-btn {
-    top: auto;
-    bottom: calc(0.28rem + env(safe-area-inset-bottom, 0px));
-    right: 0.42rem;
-    transform: none;
-    padding: 0.34rem 0.72rem;
+    width: 100px;
+    flex-shrink: 0;
+    padding: 0.5rem 0.4rem;
+    min-height: 145px;
+    height: 145px;
   }
   /* No hover on mobile — active press instead */
   .card:hover { transform: none; border-color: var(--border); box-shadow: none; }
@@ -2440,283 +1891,402 @@ body {
     border-color: var(--gold);
     box-shadow: 0 0 10px rgba(201,168,76,0.3);
   }
+  .card-emoji { font-size: 1.4rem; }
+  .card-name { font-size: 0.6rem; }
+  .card-desc { font-size: 0.58rem; }
+  .card-dice-req { font-size: 0.52rem; }
+  .card-cost { width: 18px; height: 18px; font-size: 0.65rem; }
 
-  /* ── DOORS ── */
-  @media (max-width: 700px) and (orientation: portrait) {
-    .combat-arena {
-      padding: 0 2.5% 0.1rem;
-      gap: 0.25rem;
-    }
-    .combatant {
-      gap: 0.2rem;
-    }
-    .combatant-info {
-      flex: 0 0 116px;
-      height: 116px;
-    }
-    .hand-area {
+  /* End Turn — fixed strip at very bottom, always visible */
+  .end-turn-btn {
+    position: fixed !important;
+    bottom: 0; right: 0;
+    width: 100%;
+    border-radius: 0;
+    border-left: none; border-right: none; border-bottom: none;
+    font-size: 0.85rem;
+    padding: 0.7rem;
+    padding-bottom: calc(0.7rem + env(safe-area-inset-bottom, 0px));
+    z-index: 100;
+    background: rgba(139,26,26,0.95);
+    color: var(--text);
+    border-color: var(--red2);
+  }
+  /* Push hand area up so End Turn doesn't overlap last card */
+  .hand-area { padding-bottom: 60px; }
+
+  @media (max-width: 1100px) and (orientation: landscape) {
+    #combat-screen.active {
       justify-content: flex-start;
-      gap: 0.22rem;
-      min-height: 102px;
-      max-height: 112px;
-      padding: 0.18rem 76px calc(0.34rem + env(safe-area-inset-bottom, 0px)) 62px;
-      scroll-padding-left: 62px;
-      scroll-padding-right: 76px;
-      scroll-snap-type: x proximity;
+      overflow: hidden;
     }
-    .card {
-      width: 64px;
-      padding: 0.42rem 0.38rem;
-      scroll-snap-align: center;
+
+    .combat-arena {
+      flex: 1 1 auto;
+      min-height: 0;
+      align-items: flex-end;
+      padding-bottom: 0.35rem;
     }
-    .card-cost {
-      top: 3px;
-      left: 3px;
-      width: 14px;
-      height: 14px;
-      font-size: 0.5rem;
+
+    .combatant-info {
+      overflow: visible;
     }
-    .card-emoji {
-      font-size: 0.88rem;
-      margin: 0.22rem 0 0.14rem;
+
+    #enemy-combatant .combatant-info {
+      padding-bottom: 0.18rem;
     }
-    .card-name {
-      font-size: 0.47rem;
-      line-height: 1.15;
+
+    .hand-area {
+      flex: 0 0 92px;
+      height: 92px;
+      min-height: 92px;
+      max-height: 92px;
+      align-items: flex-end;
+      overflow-y: visible;
+      gap: 0;
+      margin-top: -2px;
+      padding-bottom: calc(0.28rem + env(safe-area-inset-bottom, 0px));
+      overscroll-behavior-x: contain;
+      overscroll-behavior-y: none;
+      touch-action: pan-x;
+      -webkit-mask-image: none;
+      mask-image: none;
     }
-    .card-type {
-      font-size: 0.5rem;
-      margin-top: 0.08rem;
+
+    .card.mobile-compressed {
+      margin-left: -14px;
+      z-index: calc(10 + var(--card-index));
     }
-    .card-desc {
-      font-size: 0.4rem;
-      margin-top: 0.2rem;
-      line-height: 1.22;
+
+    .card.mobile-compressed:first-of-type {
+      margin-left: 0;
     }
-    .card-dice-req {
-      font-size: 0.39rem;
-      margin-top: 0.14rem;
-      line-height: 1.15;
+
+    .card.mobile-compressed.selected {
+      margin-left: -10px;
+      margin-right: 2px;
     }
-    #dice-corner {
-      left: 0.3rem;
-      bottom: calc(0.34rem + env(safe-area-inset-bottom, 0px));
-      gap: 0.16rem;
+
+    .mobile-card-preview {
+      position: absolute;
+      left: 50%;
+      bottom: 100px;
+      transform: translateX(-50%) translateY(8px);
+      width: min(196px, calc(100vw - 156px));
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.16s ease, transform 0.16s ease;
+      z-index: 34;
     }
-    #dice-corner .die {
-      width: 33px;
-      height: 33px;
-      font-size: 0.92rem;
+
+    .mobile-card-preview.active {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
     }
-    #dice-corner .reroll-btn {
-      font-size: 0.46rem;
-      padding: 0.08rem 0.26rem;
+
+    .mobile-card-preview-inner {
+      position: relative;
+      border: 1px solid rgba(201,168,76,0.5);
+      background:
+        linear-gradient(180deg, rgba(26,18,20,0.98), rgba(14,9,11,0.98)),
+        radial-gradient(circle at top, rgba(201,168,76,0.08), transparent 58%);
+      box-shadow: 0 14px 30px rgba(0,0,0,0.62), 0 0 0 1px rgba(255,255,255,0.03) inset;
+      padding: 0.58rem 0.5rem 0.44rem;
+      text-align: center;
     }
-    .end-turn-btn {
-      right: 0.35rem;
-      bottom: calc(0.34rem + env(safe-area-inset-bottom, 0px));
+
+    .mobile-card-preview-inner.affinity-active {
+      border-color: var(--gold);
+      box-shadow: 0 12px 28px rgba(0,0,0,0.58), 0 0 12px rgba(201,168,76,0.2);
+    }
+
+    .mobile-card-preview-cost {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--energy);
+      color: var(--bg);
+      font-family: 'Cinzel', serif;
+      font-size: 0.62rem;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .mobile-card-preview-emoji {
+      font-size: 1rem;
+      margin: 0.1rem 0 0.12rem;
+    }
+
+    .mobile-card-preview-name {
+      font-family: 'Cinzel', serif;
       font-size: 0.6rem;
-      padding: 0.32rem 0.68rem;
+      color: var(--gold);
+      line-height: 1.18;
+    }
+
+    .mobile-card-preview-type {
+      margin-top: 0.16rem;
+      font-size: 0.5rem;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .mobile-card-preview-condition {
+      margin-top: 0.18rem;
+      font-size: 0.43rem;
+      color: var(--gold);
+      letter-spacing: 0.03em;
+    }
+
+    .mobile-card-preview-desc {
+      margin-top: 0.26rem;
+      font-size: 0.48rem;
+      color: var(--text2);
+      line-height: 1.28;
+    }
+
+    .mobile-card-preview-bonus {
+      margin-top: 0.18rem;
+      font-size: 0.44rem;
+      color: var(--gold);
+      font-style: italic;
+    }
+
+    .mobile-card-preview-hint {
+      margin-top: 0.2rem;
+      font-size: 0.4rem;
+      color: var(--text3);
+      letter-spacing: 0.02em;
     }
   }
 
   @media (max-height: 520px) and (orientation: landscape) {
-    .hud-main-row {
-      padding: 0.04rem 0.34rem;
-      gap: 0.1rem;
-    }
-    .hud-floor {
-      font-size: 0.62rem;
-    }
-    .hud-room,
-    .hud-combat-stats {
-      font-size: 0.56rem;
-    }
     .combat-arena {
-      padding: 0 2.5% 0.38rem;
-      gap: 0.2rem;
+      padding-bottom: 0.38rem;
     }
-    .combatant {
-      gap: 0.12rem;
-    }
-    .combatant-sprite {
-      flex: 0 0 90px;
-      width: 76px;
-      height: 90px;
-      max-width: 76px;
-      max-height: 90px;
-    }
-    .combatant-info {
-      flex: 0 0 92px;
-      height: 92px;
-      gap: 0.14rem;
-    }
-    .combat-stat-row {
-      gap: 0.14rem;
-    }
-    .status-icons {
-      gap: 0.14rem;
-    }
-    .status-icon {
-      gap: 0.12rem;
-      padding: 0.06rem 0.18rem;
-    }
-    .status-icon-glyph,
-    .status-icon-value {
-      font-size: 0.54rem;
-    }
-    #player-combatant .combatant-info {
-      gap: 0.1rem;
-    }
-    .combatant-name {
-      font-size: 0.66rem;
-    }
-    #player-combatant .combatant-name,
-    #player-combatant .hp-bar-wrap,
-    #player-combatant .combat-stat-row,
-    #player-combatant .passive-badge,
-    #player-combatant .status-icons {
-      width: 82px;
-    }
-    #player-combatant .combat-stat-row {
-      justify-content: center;
-      align-items: center;
-    }
-    #player-combatant .passive-badge {
-      padding: 0.03rem 0.18rem;
-      font-size: 0.44rem;
-      letter-spacing: 0.02em;
-    }
-    .hp-bar-wrap {
-      gap: 0.12rem;
-    }
-    .bar-label {
-      font-size: 0.48rem;
-    }
-    .intent-box {
-      font-size: 0.5rem;
-      padding: 0.18rem 0.34rem;
-      margin-bottom: 0.08rem;
-    }
-    .status-icons {
-      gap: 0.14rem;
-    }
-    .status-icon {
-      font-size: 0.56rem;
-      min-width: 18px;
-      height: 18px;
-      padding: 0 0.2rem;
-    }
+
     .hand-area {
       flex: 0 0 82px;
-      align-items: flex-end;
       height: 82px;
       min-height: 82px;
       max-height: 82px;
-      overflow-y: visible;
       gap: 0;
       margin-top: -2px;
-      padding: 0.18rem 70px calc(0.12rem + env(safe-area-inset-bottom, 0px)) 64px;
-      scroll-padding-left: 66px;
-      scroll-padding-right: 70px;
+      padding-bottom: calc(0.12rem + env(safe-area-inset-bottom, 0px));
     }
+
     .card.mobile-compressed {
       width: 56px;
       min-height: 66px;
       padding: 0.28rem 0.24rem 0.18rem;
       margin-left: -12px;
     }
+
     .card.mobile-compressed:first-of-type {
       margin-left: 0;
     }
+
     .card.mobile-compressed.selected {
       width: 56px;
       min-height: 66px;
       padding: 0.28rem 0.24rem 0.18rem;
       transform: translateY(-7px);
     }
+
     .card.mobile-compressed .card-compact-summary {
       font-size: 0.33rem;
       margin-top: 0.08rem;
       min-height: 2.7em;
     }
+
     .card.mobile-compressed .card-compact-bonus {
       font-size: 0.31rem;
     }
+
     .mobile-card-preview {
       bottom: 90px;
       width: min(184px, calc(100vw - 144px));
     }
+
     .mobile-card-preview-inner {
       padding: 0.5rem 0.42rem 0.38rem;
     }
+
     .mobile-card-preview-name {
       font-size: 0.54rem;
     }
+
     .mobile-card-preview-desc {
       font-size: 0.44rem;
     }
+
     .mobile-card-preview-bonus {
       font-size: 0.42rem;
     }
+
     .mobile-card-preview-condition,
     .mobile-card-preview-hint {
       font-size: 0.39rem;
     }
-    .card-cost {
-      top: 3px;
-      left: 3px;
-      width: 13px;
-      height: 13px;
-      font-size: 0.48rem;
-    }
-    .card-emoji {
+
+    .card.mobile-compressed .card-emoji {
       font-size: 0.74rem;
       margin: 0.08rem 0 0.06rem;
     }
-    .card-name {
+
+    .card.mobile-compressed .card-name {
       font-size: 0.4rem;
       line-height: 1.04;
     }
-    .card-type {
-      font-size: 0.46rem;
-      margin-top: 0.05rem;
-    }
-    .card-desc {
-      font-size: 0.38rem;
-      margin-top: 0.12rem;
-      line-height: 1.18;
-    }
-    .card-dice-req {
-      font-size: 0.37rem;
-      margin-top: 0.08rem;
-      line-height: 1.1;
-    }
-    #dice-corner {
-      left: 0.35rem;
-      top: auto;
-      bottom: calc(0.12rem + env(safe-area-inset-bottom, 0px));
-      transform: none;
-      gap: 0.12rem;
-    }
-    #dice-corner .die {
-      width: 30px;
-      height: 30px;
-      font-size: 0.86rem;
-    }
-    #dice-corner .reroll-btn {
-      font-size: 0.42rem;
-      padding: 0.06rem 0.22rem;
-    }
-    .end-turn-btn {
-      right: 0.58rem;
-      top: auto;
-      bottom: calc(0.12rem + env(safe-area-inset-bottom, 0px));
-      font-size: 0.56rem;
-      padding: 0.22rem 0.54rem;
+
+    #enemy-combatant .combatant-info {
+      padding-bottom: 0.12rem;
     }
   }
 
+  @media (max-width: 1100px) and (orientation: landscape) {
+    #path-screen {
+      min-height: 0;
+      gap: 0.45rem;
+      padding: 0.4rem 0.45rem 0.55rem;
+      justify-content: flex-start;
+      overflow: hidden;
+    }
+
+    #path-floor-label {
+      font-size: 1.32rem !important;
+      letter-spacing: 0.12em !important;
+    }
+
+    #path-subtitle {
+      max-width: 540px !important;
+      font-size: 0.8rem !important;
+      line-height: 1.25;
+      margin: 0 auto;
+    }
+
+    #path-choices {
+      display: grid !important;
+      flex: 1 1 auto;
+      min-height: 0;
+      grid-template-columns: repeat(3, minmax(100px, 1fr));
+      gap: 0.36rem !important;
+      align-items: stretch !important;
+      width: min(100%, 680px) !important;
+      max-height: 100%;
+      padding: 0.04rem 0.12rem 0.14rem !important;
+      overflow-x: hidden !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .path-card {
+      width: auto;
+      min-width: 0;
+      padding: 0.58rem 0.46rem;
+    }
+
+    .path-card-header {
+      font-size: 0.78rem;
+      padding-bottom: 0.32rem;
+      margin-bottom: 0.24rem;
+    }
+
+    .path-room-icon {
+      width: 42px;
+      height: 26px;
+      font-size: 0.82rem;
+    }
+
+    .path-room-arrow {
+      font-size: 0.5rem;
+      padding: 1px 0;
+    }
+
+    .path-card-stats {
+      font-size: 0.54rem;
+      line-height: 1.18;
+      margin-top: 0.22rem;
+      padding-top: 0.2rem;
+    }
+
+    .path-card-boss {
+      font-size: 0.6rem;
+      padding-top: 0.2rem;
+      margin-top: 0.2rem;
+    }
+
+    #path-screen > div:last-child {
+      margin-top: 0 !important;
+    }
+
+    #path-screen > div:last-child p {
+      font-size: 0.66rem !important;
+      text-align: center;
+      max-width: 520px;
+    }
+  }
+
+  @media (max-height: 520px) and (orientation: landscape) {
+    #path-screen {
+      min-height: 0;
+      gap: 0.35rem;
+      padding: 0.3rem 0.42rem 0.45rem;
+      overflow: hidden;
+    }
+
+    #path-floor-label {
+      font-size: 1.16rem !important;
+    }
+
+    #path-subtitle {
+      font-size: 0.74rem !important;
+      max-width: 500px !important;
+    }
+
+    #path-choices {
+      gap: 0.28rem !important;
+      width: min(100%, 640px) !important;
+      padding: 0.02rem 0.06rem 0.08rem !important;
+    }
+
+    .path-card {
+      padding: 0.42rem 0.36rem;
+    }
+
+    .path-card-header {
+      font-size: 0.7rem;
+      padding-bottom: 0.26rem;
+      margin-bottom: 0.2rem;
+    }
+
+    .path-room-icon {
+      width: 38px;
+      height: 22px;
+      font-size: 0.76rem;
+    }
+
+    .path-card-stats {
+      font-size: 0.5rem;
+      line-height: 1.12;
+    }
+
+    .path-card-boss {
+      font-size: 0.56rem;
+    }
+
+    #path-screen > div:last-child p {
+      font-size: 0.62rem !important;
+    }
+  }
+
+  /* ── DOORS ── */
   #path-screen {
   flex-direction: column;
   align-items: center;
@@ -2726,361 +2296,6 @@ body {
   z-index: 50;
   padding: 1.2rem 0.5rem 2rem;
   overflow-y: auto;
-}
-
-@media (max-width: 900px) {
-  .combat-arena {
-    flex: 1 1 0;
-    min-height: 0;
-  }
-
-  .hand-area {
-    flex: 0 0 136px;
-    height: 136px;
-    min-height: 136px;
-    max-height: 136px;
-    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
-  }
-}
-
-@media (max-width: 1100px) and (orientation: landscape) {
-  #combat-screen.active {
-    justify-content: flex-start;
-  }
-
-  .combat-arena {
-    flex: 0 1 auto;
-    min-height: auto;
-  }
-}
-
-@media (max-width: 900px) and (orientation: landscape) {
-  #combat-screen.active {
-    justify-content: flex-start;
-  }
-
-  .combat-arena {
-    flex: 0 1 auto;
-    min-height: auto;
-    padding: 0 2.5% 0.24rem;
-    gap: 0.16rem;
-  }
-
-  .combatant {
-    gap: 0.14rem;
-  }
-
-  .combatant-sprite {
-    flex: 0 0 94px;
-    width: 78px;
-    height: 94px;
-    max-width: 78px;
-    max-height: 94px;
-  }
-
-  .combatant-info {
-    flex: 0 0 96px;
-    height: 96px;
-    gap: 0.14rem;
-  }
-  #player-combatant .combatant-info {
-    gap: 0.1rem;
-  }
-  #player-combatant .combatant-name,
-  #player-combatant .hp-bar-wrap,
-  #player-combatant .passive-badge,
-  #player-combatant .status-icons,
-  #player-combatant .combat-stat-row {
-    width: 84px;
-  }
-  #player-combatant .passive-badge {
-    padding: 0.03rem 0.2rem;
-    font-size: 0.45rem;
-    letter-spacing: 0.02em;
-  }
-
-  .intent-box {
-    padding: 0.16rem 0.3rem;
-    margin-bottom: 0;
-  }
-
-  .hand-area {
-    flex: 0 0 92px;
-    align-items: flex-end;
-    height: 92px;
-    min-height: 92px;
-    max-height: 92px;
-    overflow-y: visible;
-    gap: 0;
-    margin-top: -2px;
-    padding: 0.18rem 74px calc(0.16rem + env(safe-area-inset-bottom, 0px)) 66px;
-    scroll-padding-left: 68px;
-    scroll-padding-right: 74px;
-  }
-
-  .card.mobile-compressed {
-    margin-left: -14px;
-    z-index: calc(10 + var(--card-index));
-  }
-
-  .card.mobile-compressed:first-of-type {
-    margin-left: 0;
-  }
-
-  .card.mobile-compressed.selected {
-    margin-left: -10px;
-    margin-right: 2px;
-  }
-
-  .mobile-card-preview {
-    position: absolute;
-    left: 50%;
-    bottom: 100px;
-    transform: translateX(-50%) translateY(8px);
-    width: min(196px, calc(100vw - 156px));
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.16s ease, transform 0.16s ease;
-    z-index: 34;
-  }
-
-  .mobile-card-preview.active {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-
-  .mobile-card-preview-inner {
-    position: relative;
-    border: 1px solid rgba(201,168,76,0.5);
-    background:
-      linear-gradient(180deg, rgba(26,18,20,0.98), rgba(14,9,11,0.98)),
-      radial-gradient(circle at top, rgba(201,168,76,0.08), transparent 58%);
-    box-shadow: 0 14px 30px rgba(0,0,0,0.62), 0 0 0 1px rgba(255,255,255,0.03) inset;
-    padding: 0.58rem 0.5rem 0.44rem;
-    text-align: center;
-  }
-
-  .mobile-card-preview-inner.affinity-active {
-    border-color: var(--gold);
-    box-shadow: 0 12px 28px rgba(0,0,0,0.58), 0 0 12px rgba(201,168,76,0.2);
-  }
-
-  .mobile-card-preview-cost {
-    position: absolute;
-    top: 6px;
-    left: 6px;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: var(--energy);
-    color: var(--bg);
-    font-family: 'Cinzel', serif;
-    font-size: 0.62rem;
-    font-weight: 900;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .mobile-card-preview-emoji {
-    font-size: 1rem;
-    margin: 0.1rem 0 0.12rem;
-  }
-
-  .mobile-card-preview-name {
-    font-family: 'Cinzel', serif;
-    font-size: 0.6rem;
-    color: var(--gold);
-    line-height: 1.18;
-  }
-
-  .mobile-card-preview-type {
-    margin-top: 0.16rem;
-    font-size: 0.5rem;
-    color: var(--text3);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  .mobile-card-preview-condition {
-    margin-top: 0.18rem;
-    font-size: 0.43rem;
-    color: var(--gold);
-    letter-spacing: 0.03em;
-  }
-
-  .mobile-card-preview-desc {
-    margin-top: 0.26rem;
-    font-size: 0.48rem;
-    color: var(--text2);
-    line-height: 1.28;
-  }
-
-  .mobile-card-preview-bonus {
-    margin-top: 0.18rem;
-    font-size: 0.44rem;
-    color: var(--gold);
-    font-style: italic;
-  }
-
-  .mobile-card-preview-hint {
-    margin-top: 0.2rem;
-    font-size: 0.4rem;
-    color: var(--text3);
-    letter-spacing: 0.02em;
-  }
-
-  #dice-corner {
-    left: 0.28rem;
-    top: auto;
-    bottom: calc(0.16rem + env(safe-area-inset-bottom, 0px));
-    transform: none;
-  }
-
-  .end-turn-btn {
-    right: 0.62rem;
-    padding: 0.3rem 0.66rem;
-  }
-}
-
-@media (max-width: 1100px) and (orientation: landscape) {
-  #path-screen {
-    min-height: 0;
-    gap: 0.45rem;
-    padding: 0.4rem 0.45rem 0.55rem;
-    justify-content: flex-start;
-    overflow: hidden;
-  }
-
-  #path-floor-label {
-    font-size: 1.32rem !important;
-    letter-spacing: 0.12em !important;
-  }
-
-  #path-subtitle {
-    max-width: 540px !important;
-    font-size: 0.8rem !important;
-    line-height: 1.25;
-    margin: 0 auto;
-  }
-
-  #path-choices {
-    display: grid !important;
-    flex: 1 1 auto;
-    min-height: 0;
-    grid-template-columns: repeat(3, minmax(100px, 1fr));
-    gap: 0.36rem !important;
-    align-items: stretch !important;
-    width: min(100%, 680px) !important;
-    max-height: 100%;
-    padding: 0.04rem 0.12rem 0.14rem !important;
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .path-card {
-    width: auto;
-    min-width: 0;
-    padding: 0.58rem 0.46rem;
-  }
-
-  .path-card-header {
-    font-size: 0.78rem;
-    padding-bottom: 0.32rem;
-    margin-bottom: 0.24rem;
-  }
-
-  .path-room-icon {
-    width: 42px;
-    height: 26px;
-    font-size: 0.82rem;
-  }
-
-  .path-room-arrow {
-    font-size: 0.5rem;
-    padding: 1px 0;
-  }
-
-  .path-card-stats {
-    font-size: 0.54rem;
-    line-height: 1.18;
-    margin-top: 0.22rem;
-    padding-top: 0.2rem;
-  }
-
-  .path-card-boss {
-    font-size: 0.6rem;
-    padding-top: 0.2rem;
-    margin-top: 0.2rem;
-  }
-
-  #path-screen > div:last-child {
-    margin-top: 0 !important;
-  }
-
-  #path-screen > div:last-child p {
-    font-size: 0.66rem !important;
-    text-align: center;
-    max-width: 520px;
-  }
-
-  #path-back-btn {
-    margin-top: 0.1rem;
-  }
-}
-
-@media (max-height: 520px) and (orientation: landscape) {
-  #path-screen {
-    min-height: 0;
-    gap: 0.35rem;
-    padding: 0.3rem 0.42rem 0.45rem;
-    overflow: hidden;
-  }
-
-  #path-floor-label {
-    font-size: 1.16rem !important;
-  }
-
-  #path-subtitle {
-    font-size: 0.74rem !important;
-    max-width: 500px !important;
-  }
-
-  #path-choices {
-    gap: 0.28rem !important;
-    width: min(100%, 640px) !important;
-    padding: 0.02rem 0.06rem 0.08rem !important;
-  }
-
-  .path-card {
-    padding: 0.42rem 0.36rem;
-  }
-
-  .path-card-header {
-    font-size: 0.7rem;
-    padding-bottom: 0.26rem;
-    margin-bottom: 0.2rem;
-  }
-
-  .path-room-icon {
-    width: 38px;
-    height: 22px;
-    font-size: 0.76rem;
-  }
-
-  .path-card-stats {
-    font-size: 0.5rem;
-    line-height: 1.12;
-  }
-
-  .path-card-boss {
-    font-size: 0.56rem;
-  }
-
-  #path-screen > div:last-child p {
-    font-size: 0.62rem !important;
-  }
 }
 
 .path-card {
@@ -3188,20 +2403,13 @@ body {
   .door-knob { width: 8px; height: 8px; }
 
   /* ── REWARD ── */
-  #reward-screen {
-    padding: 0.8rem 0.6rem 1.5rem;
-    justify-content: flex-start;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  .reward-title { font-size: 1.2rem; margin-bottom: 0.2rem; }
-  .reward-sub { font-size: 0.8rem; margin-bottom: 0.8rem; }
-  .reward-choices { gap: 0.6rem; }
-  .reward-card { width: 105px; padding: 0.6rem 0.5rem; }
-  .reward-card-emoji { font-size: 1.4rem; margin-bottom: 0.3rem; }
-  .reward-card-name { font-size: 0.65rem; }
-  .reward-card-desc { font-size: 0.58rem; }
-  .reward-card-type { font-size: 0.55rem; }
+  #reward-screen { padding: 1rem 0.8rem; }
+  .reward-title { font-size: 1.4rem; }
+  .reward-choices { gap: 0.8rem; }
+  .reward-card { width: 115px; padding: 0.8rem 0.6rem; }
+  .reward-card-emoji { font-size: 1.6rem; }
+  .reward-card-name { font-size: 0.7rem; }
+  .reward-card-desc { font-size: 0.62rem; }
 
   /* ── REST STOP ── */
   #rest-screen { padding: 1rem 0.8rem 2rem; gap: 0.7rem; }
@@ -3235,48 +2443,8 @@ body {
   .boss-intro-hint { font-size: 0.8rem; padding: 0.6rem 0.8rem; }
 
   /* ── GAME OVER / VICTORY ── */
-  #gameover-screen {
-    padding: 0.65rem 0.65rem 0.8rem;
-    gap: 0.42rem;
-    justify-content: flex-start;
-    overflow: hidden;
-  }
-  #gameover-screen > div:first-child { font-size: 2.55rem !important; line-height: 1; }
-  #gameover-screen .btn { margin-top: 0.2rem !important; }
-  .gameover-title { font-size: 1.72rem; line-height: 1; letter-spacing: 0.12em; }
+  .gameover-title { font-size: 2.2rem; }
   .victory-title { font-size: 1.8rem; }
-  .gameover-sub { font-size: 0.78rem; text-align: center; max-width: 280px; line-height: 1.2; }
-  .gameover-souls { font-size: 0.88rem; margin: 0.05rem 0 0.1rem; }
-  .gameover-summary {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    width: min(100%, 340px);
-    gap: 0.35rem;
-    max-height: min(38dvh, 220px);
-    overflow-y: auto;
-    padding-right: 0.05rem;
-  }
-  .gameover-stat { padding: 0.45rem 0.5rem; gap: 0.08rem; }
-  .gameover-stat-label { font-size: 0.6rem; }
-  .gameover-stat-value { font-size: 0.8rem; line-height: 1.12; }
-
-  @media (max-height: 720px) {
-    #gameover-screen {
-      padding-top: 0.5rem;
-      gap: 0.35rem;
-    }
-    #gameover-screen > div:first-child { font-size: 2.3rem !important; }
-    .gameover-title { font-size: 1.58rem; }
-    .gameover-sub { font-size: 0.74rem; max-width: 260px; }
-    .gameover-souls { font-size: 0.84rem; }
-    .gameover-summary {
-      width: min(100%, 320px);
-      gap: 0.3rem;
-      max-height: min(34dvh, 190px);
-    }
-    .gameover-stat { padding: 0.38rem 0.42rem; }
-    .gameover-stat-label { font-size: 0.57rem; }
-    .gameover-stat-value { font-size: 0.76rem; }
-  }
 
   /* ── MAP ── */
   .map-modal { padding: 1rem 0.8rem; }
@@ -3290,7 +2458,13 @@ body {
 
   /* Buttons easier to tap */
   .btn { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; }
+}
 
-  /* Dice panel reroll — exempt from 42px tap target, lives in compact strip */
-  .reroll-btn { min-height: unset; height: 30px; font-size: 0.58rem; padding: 0 0.55rem; }
+/* Medium screens (tablets) */
+@media (min-width: 601px) and (max-width: 900px) {
+  .combat-arena { padding: 0 1rem 0.5rem; }
+  .combatant-sprite { font-size: 4rem; }
+  .hp-bar-wrap { width: 130px; }
+  .card { width: 90px; }
+  .hand-area { gap: 0.4rem; }
 }

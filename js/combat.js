@@ -1,29 +1,50 @@
-const _PASSIVE_INFO = {
-  even:    { emoji: '⚖️' },
-  odd:     { emoji: '🗡️' },
-  high:    { emoji: '⬆️' },
-  gambler: { emoji: '🎲' },
-  extreme: { emoji: '⚡' },
+﻿// ALDRIC — FINAL BOSS
+// ═══════════════════════════════════════════════════════════════════
+
+const ALDRIC = {
+  name: 'King Aldric Ashborne',
+  emoji: '👑',
+  phases: [
+    {
+      num: 1,
+      label: 'PHASE 1 — THE CORRUPTED KING',
+      hp: 250,
+      damage: 15,
+      block: 30,
+      stoneHeartBase: 30,   // starting persistent block gain
+      stoneHeartMin: 2,     // minimum it can decay to
+      color: '#6a0dad'
+    },
+    {
+      num: 2,
+      label: 'PHASE 2 — THE SHATTERED RULER',
+      hp: 200,
+      damage: 8,   // hits 3 times
+      block: 0,
+      color: '#8b0000'
+    },
+    {
+      num: 3,
+      label: "PHASE 3 — THE SOUL'S BURDEN",
+      hp: 150,
+      damage: 20,  // no relics: 20/turn
+      block: 0,
+      color: '#2c3e50'
+    }
+  ]
 };
 
-function updatePassiveBadge() {
-  const el = document.getElementById('player-passive');
-  if (!el || !G.char) return;
-  const p = _PASSIVE_INFO[G.char.diceAffinity];
-  if (!p) { el.textContent = ''; return; }
-  const label = G.char.diceLabel || G.char.diceAffinity || '';
-  const tip = G.char.diceHint || label;
-  el.textContent = `${p.emoji} ${label}`;
-  el.setAttribute('data-tip', tip);
-  el.setAttribute('aria-label', 'Passive: ' + tip);
-  el.onclick = () => showMsg('\u26a1 Passive: ' + tip);
-}
+const ALDRIC_RELIC_TRIGGERS = [
+  { hp: 100, icon: '👑', name: 'THE CROWN',  quote: '"I remember… the throne…"',      effect: 'Aldric loses all Strength.' },
+  { hp: 75,  icon: '⚔️', name: 'THE SWORD',  quote: '"I swore to protect..."',           effect: 'Aldric damage is halved.' },
+  { hp: 50,  icon: '🔱', name: 'THE SIGIL',  quote: '"The pact... it is breaking..."',   effect: 'Your Reroll is now infinite.' },
+  { hp: 25,  icon: '🤝', name: 'THE VOW',    quote: '"I… am still here…"',             effect: 'Aldric stops attacking.' }
+];
 
 function startAldricFight() {
   const phase = ALDRIC.phases[0];
   G.aldricPhase = 1;
   G.aldricDamageDealt = 0;
-  G.aldricTotalDamage = 0;
   G.aldricTurns = 0;
   G.aldricStoneHeart = phase.stoneHeartBase;
   G.aldricRelicsTriggered = [];
@@ -51,16 +72,12 @@ function startAldricFight() {
   G.block = 0;
   G.statuses = { player: [], enemy: [] };
   G.exhaustedPile = [];
-  G._forcedMaxRolls = 0;
-  G.dieSetUsedThisTurn = false;
-  G.turnCardsPlayed = 0;
   G.inBoss = true;
   G.isFinalBoss = true;
 
   showScreen('combat-screen');
   updateCombatSprites(G.charKey, 'aldric');
   document.getElementById('player-name').textContent = G.char.name.toUpperCase();
-  updatePassiveBadge();
   document.getElementById('enemy-name').textContent = 'KING ALDRIC ASHBORNE';
   document.getElementById('enemy-sprite').classList.remove('dying');
 
@@ -152,7 +169,7 @@ function processAldricTurn() {
     const exhaustedCount = Math.min((G.exhaustedPile || []).length, 3);
     if (exhaustedCount > 0) {
       const strGain = exhaustedCount * 2;
-      applyStatus(G, 'enemy', '💢Strength', strGain);
+      applyStatus(G, 'enemy', '💢Rage', strGain);
     }
     return;
   }
@@ -190,7 +207,7 @@ function showAldricRelicTrigger(trigger) {
   // Apply effect
   if (trigger.hp === 100) {
     // Crown — Aldric loses all Strength
-    G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '💢Strength');
+    G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '💢Rage');
     showMsg('👑 ' + trigger.quote);
   } else if (trigger.hp === 75) {
     // Sword — damage halved
@@ -319,7 +336,27 @@ function updateBossDiceCurse() {
   }
 }
 
+function getMagicHint(type, floor) {
+  if (floor === 0) return null; // always hinted on floor 1 (no hint = show type)
+  const hints = {
+    battle: 'Growling echoes from behind the door. Something stirs.',
+    elite: 'The door is cracked. Something stares back through it.',
+    event: 'Strange symbols glow faintly across the door surface.',
+    shop: 'The scent of candle wax and gold drifts from beneath.',
+    rest: 'Warm orange light bleeds under the door.',
+  };
+  return hints[type] || null;
+}
 
+function roomEmoji(type) {
+  return { battle:'⚔️', elite:'💀', event:'❓', shop:'🛒', rest:'❤️', boss:'👑' }[type] || '🚪';
+}
+function roomLabel(type) {
+  return { battle:'Battle', elite:'Elite Fight', event:'Strange Event', shop:'Merchant', rest:'Rest Stop', boss:'Floor Boss' }[type] || 'Unknown';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// COMBAT
 // ═══════════════════════════════════════════════════════════════════
 
 function startCombat(isElite) {
@@ -331,40 +368,34 @@ function startCombat(isElite) {
     pool = indices.map(i => ELITES[i]).filter(Boolean);
     if (!pool.length) pool = ELITES.slice(0,2);
   } else {
-    const floor = G.map[G.currentFloor];
-    const roomIdx = floor[floor.currentPath === 'A' ? 'roomIndexA' : floor.currentPath === 'B' ? 'roomIndexB' : 'roomIndexC'] || 0;
-    const isEasy = G.currentFloor === 0 && roomIdx < 2;
-    const isEarlyFloor2 = G.currentFloor === 1 && roomIdx < 2;
-    if (isEasy) {
-      pool = EASY_ENEMIES;
-    } else if (isEarlyFloor2) {
-      pool = EARLY_FLOOR2_ENEMIES;
-    } else {
-      pool = FLOOR_ENEMIES[G.currentFloor + 1] || FLOOR_ENEMIES[1];
-    }
+    // First 2 rooms of Floor 1 use easy pool
+    const isEasy = G.currentFloor === 0 &&
+      (G.map[0][`roomIndex${G.map[0].currentPath}`] || 0) < 2;
+    pool = isEasy ? EASY_ENEMIES : (FLOOR_ENEMIES[G.currentFloor + 1] || FLOOR_ENEMIES[1]);
   }
 
   const e = { ...rand(pool) };
-  G.enemy = { ...e, maxHp: e.hp, turnCount: 0};
- // Moves-based enemies: set opening move
-  if (e.moves && e.moves.length) {
-    const opener = e.moves.find(m => m.isOpener) || e.moves[0];
-    G.enemy.currentMove = opener;
-    G.enemy._moveHistory = [];
-  } else {
-    G.enemy.intent = 'attack';
-  }
+  G.enemy = { ...e, maxHp: e.hp, turnCount: 0 };
   G.block = 0;
   G.statuses = { player: [], enemy: [] };
   G.exhaustedPile = [];
-  G._forcedMaxRolls = 0;
-  G.dieSetUsedThisTurn = false;
-  G.turnCardsPlayed = 0;
   G.inBoss = false;
+  G.lastFightWasElite = !!isElite;
+  G.phantomBladeFired = false;
+  G.extraDraw = 0;
+  G.handLimit = 5;
+  G.cardsPlayedThisCombat = 0;
+  G._ashenCrownFired = false;
+  // Relic hooks — start of combat
+  if (hasRelic('iron_vambrace')) G.block += 6;
+  if (hasRelic('cracked_hourglass')) G.rerollUsed = false;
+  if (hasRelic('rusted_chain')) G.statuses.enemy.push({ name:'🫗Vulnerable', stacks:1 });
+  if (hasRelic('torn_page')) G.extraDraw += 1;
+  if (hasRelic('cursed_hourglass')) { G.extraDraw += 2; G.handLimit = 4; }
+  if (hasRelic('hollow_throne')) G.block += 20;
 
   updateCombatSprites(G.charKey, null);
   document.getElementById('player-name').textContent = G.char.name.toUpperCase();
-  updatePassiveBadge();
   document.getElementById('enemy-sprite').textContent = e.emoji;
   document.getElementById('enemy-name').textContent = e.name.toUpperCase();
   document.getElementById('enemy-sprite').classList.remove('dying');
@@ -381,15 +412,23 @@ function startBossFight() {
   G.block = 0;
   G.statuses = { player: [], enemy: [] };
   G.exhaustedPile = [];
-  G._forcedMaxRolls = 0;
-  G.dieSetUsedThisTurn = false;
-  G.turnCardsPlayed = 0;
   G.inBoss = true;
+  G.phantomBladeFired = false;
+  G.extraDraw = 0;
+  G.handLimit = 5;
+  G.cardsPlayedThisCombat = 0;
+  G._ashenCrownFired = false;
+  // Relic hooks — start of combat
+  if (hasRelic('iron_vambrace')) G.block += 6;
+  if (hasRelic('cracked_hourglass')) G.rerollUsed = false;
+  if (hasRelic('rusted_chain')) G.statuses.enemy.push({ name:'🫗Vulnerable', stacks:1 });
+  if (hasRelic('torn_page')) G.extraDraw += 1;
+  if (hasRelic('cursed_hourglass')) { G.extraDraw += 2; G.handLimit = 4; }
+  if (hasRelic('hollow_throne')) G.block += 20;
 
   showScreen('combat-screen');
   document.getElementById('player-sprite').textContent = G.char.emoji;
   document.getElementById('player-name').textContent = G.char.name.toUpperCase();
-  updatePassiveBadge();
   document.getElementById('enemy-sprite').textContent = e.emoji;
   document.getElementById('enemy-name').textContent = e.name.toUpperCase();
   document.getElementById('enemy-sprite').classList.remove('dying');
@@ -399,255 +438,40 @@ function startBossFight() {
   renderAll();
 }
 
-function applyPlayerIncomingDamageModifiers(g, amount) {
-  return getModifiedIncomingDamage(g, amount, true);
-}
-
-function getModifiedIncomingDamage(g, amount, consumeFly = false) {
-  let modified = amount;
-  const playerVuln = g.statuses.player.find(s => s.name === '🫗Vulnerable');
-  if (playerVuln && playerVuln.stacks > 0) {
-    modified = Math.floor(modified * 1.25);
-  }
-  const playerFly = g.statuses.player.find(s => s.name === '🦇Fly');
-  if (playerFly && playerFly.stacks > 0) {
-    modified = Math.floor(modified * 0.5);
-    if (consumeFly) {
-      g.statuses.player = g.statuses.player.filter(s => s.name !== '🦇Fly');
-    }
-  }
-  return modified;
-}
-
-function clearVoidChannelSelection() {
-  G._voidChannelSelecting = false;
-  G._voidChannelNeeded = 0;
-  G._voidChannelPicked = [];
-}
-
-function hasPendingCombatChoice() {
-  return !!(G && G.pendingCombatChoice);
-}
-
-function clearPendingCombatChoice() {
-  G.pendingCombatChoice = null;
-  if (!G._voidChannelSelecting) {
-    setEndTurnLocked(false);
-  }
-}
-
-function beginDiscardChoice(g, options = {}) {
-  const availableCards = Array.isArray(g.hand) ? g.hand.slice() : [];
-  const requestedAmount = Math.max(0, options.amount || 1);
-  const discardAmount = Math.min(requestedAmount, availableCards.length);
-
-  if (discardAmount <= 0) {
-    if (typeof options.onComplete === 'function') options.onComplete([]);
-    return false;
-  }
-
-  g.pendingCombatChoice = {
-    type: 'discard',
-    amount: discardAmount,
-    chosen: [],
-    prompt: options.prompt || (discardAmount === 1 ? 'Choose a card to discard.' : `Choose ${discardAmount} cards to discard.`),
-    onComplete: options.onComplete,
-  };
-
-  setEndTurnLocked(true);
-  showMsg(g.pendingCombatChoice.prompt);
-  renderAll();
-  return true;
-}
-
-function choosePendingCombatCard(cardKey) {
-  const pending = G.pendingCombatChoice;
-  if (!pending || pending.type !== 'discard') return;
-
-  const idx = G.hand.indexOf(cardKey);
-  if (idx < 0) return;
-
-  const [discarded] = G.hand.splice(idx, 1);
-  if (discarded == null) return;
-
-  G.discardPile.push(discarded);
-  pending.chosen.push(discarded);
-
-  if (pending.chosen.length >= pending.amount) {
-    const chosen = pending.chosen.slice();
-    const onComplete = pending.onComplete;
-    clearPendingCombatChoice();
-    if (typeof onComplete === 'function') onComplete(chosen);
-    return;
-  }
-
-  const remaining = pending.amount - pending.chosen.length;
-  showMsg(remaining === 1 ? 'Choose 1 more card to discard.' : `Choose ${remaining} more cards to discard.`);
-  renderAll();
-}
-
-function removeStatus(g, target, name) {
-  g.statuses[target] = g.statuses[target].filter(s => s.name !== name);
-}
-
-function tickStatusDamage(g, target, name) {
-  const status = g.statuses[target].find(s => s.name === name);
-  if (!status || status.stacks <= 0) return false;
-
-  if (target === 'player') {
-    g.hp -= status.stacks;
-    noteRunFinalBlow(g, status.stacks);
-    floatDamage('player-combatant', status.stacks, 'dmg');
-  } else if (g.enemy) {
-    g.enemy.hp -= status.stacks;
-    noteRunDamageDealt(g, status.stacks);
-    floatDamage('enemy-combatant', status.stacks, 'dmg');
-  }
-
-  SFX.statusTick();
-  status.stacks--;
-  if (status.stacks <= 0) {
-    removeStatus(g, target, name);
-  }
-  return true;
-}
-
-function tickTimedDebuffs(g, target) {
-  const currentTurn = target === 'player' ? g.turn : ((g.enemy && g.enemy.turnCount) || 0);
-  const turnKey = target === 'player' ? 'appliedOnPlayerTurn' : 'appliedOnEnemyTurn';
-
-  for (const name of ['😵Weak', '🫗Vulnerable']) {
-    const debuff = g.statuses[target].find(s => s.name === name);
-    if (!debuff) continue;
-    if (debuff[turnKey] === currentTurn) continue;
-    debuff.stacks--;
-    if (debuff.stacks <= 0) {
-      removeStatus(g, target, name);
-    }
-  }
-}
-
-function clearExpiredFly(g, target) {
-  const fly = g.statuses[target].find(s => s.name === '🦇Fly');
-  if (!fly) return;
-  const currentTurn = target === 'player' ? g.turn : ((g.enemy && g.enemy.turnCount) || 0);
-  const turnKey = target === 'player' ? 'appliedOnPlayerTurn' : 'appliedOnEnemyTurn';
-  if (fly[turnKey] !== currentTurn) {
-    removeStatus(g, target, '🦇Fly');
-  }
-}
-
-function setEndTurnLocked(locked) {
-  G.endTurnLocked = locked;
-  const btn = document.querySelector('.end-turn-btn');
-  if (btn) btn.disabled = locked;
-}
-
-function getModifiedEnemyAttackDamage(g, baseDamage) {
-  let dmg = baseDamage;
-  const strength = g.statuses.enemy.find(s => s.name === '💢Strength');
-  if (strength && strength.stacks > 0) {
-    dmg += strength.stacks;
-  }
-  const weak = g.statuses.enemy.find(s => s.name === '😵Weak');
-  if (weak && weak.stacks > 0) {
-    dmg = Math.floor(dmg * 0.75);
-  }
-  const chill = g.statuses.enemy.find(s => s.name === '❄️Chill');
-  if (chill && chill.stacks > 0) {
-    dmg = Math.floor(dmg * 0.75);
-  }
-  return getModifiedIncomingDamage(g, dmg, false);
-}
-
-function formatEnemyIntentDamageDesc(g, desc) {
-  if (!desc) return desc;
-  return desc.replace(/\b(\d+)\s+dmg\b/gi, (match, num) => {
-    const previewDmg = getModifiedEnemyAttackDamage(g, parseInt(num, 10));
-    return `${previewDmg} dmg`;
-  });
-}
-
-function getModifiedPlayerAttackDamage(g, baseDamage, consumeEnemyFly = false) {
-  if (!g.enemy) return baseDamage;
-  if (g.enemy._phased) return 0;
-
-  let dmg = baseDamage;
-  const playerStrength = g.statuses.player.find(s => s.name === '💢Strength');
-  if (playerStrength && playerStrength.stacks > 0) {
-    dmg += playerStrength.stacks;
-  }
-
-  const activeDieBonus = getDie(g.activeDie);
-  if (activeDieBonus.bonus === 'odd_dmg' && g.currentDie && g.currentDie % 2 !== 0) {
-    dmg += 2;
-  }
-
-  const playerWeak = g.statuses.player.find(s => s.name === '😵Weak');
-  if (playerWeak && playerWeak.stacks > 0) {
-    dmg = Math.floor(dmg * 0.75);
-  }
-
-  const enemyVuln = g.statuses.enemy.find(s => s.name === '🫗Vulnerable');
-  if (enemyVuln && enemyVuln.stacks > 0) {
-    dmg = Math.floor(dmg * 1.25);
-  }
-
-  const enemyFly = g.statuses.enemy.find(s => s.name === '🦇Fly');
-  if (enemyFly && enemyFly.stacks > 0) {
-    dmg = Math.floor(dmg * 0.5);
-    if (consumeEnemyFly) {
-      removeStatus(g, 'enemy', '🦇Fly');
-    }
-  }
-
-  return dmg;
-}
-
 function startTurn() {
-  setEndTurnLocked(false);
-  clearPendingCombatChoice();
   G.selectedHandIndex = null;
   G.selectedHandKey = null;
-
-  if (G._voidChannelSelecting || (G._voidChannelPicked && G._voidChannelPicked.length)) {
-    clearVoidChannelSelection();
-  }
-
   G.turn++;
-
-  tickStatusDamage(G, 'player', '🔥Burn');
-  tickStatusDamage(G, 'enemy', '🔥Burn');
-
-  const regen = G.statuses.player.find(s => s.name === '💚Regen');
-  if (regen && regen.stacks > 0) {
-    healPlayer(G, regen.stacks);
-    regen.stacks--;
-    if (regen.stacks <= 0) {
-      removeStatus(G, 'player', '💚Regen');
-    }
-  }
-
-  clearExpiredFly(G, 'player');
-
-  renderAll();
-  checkCombatEnd();
-  if (G.hp <= 0 || !G.enemy || G.enemy.hp <= 0) return;
-
+  G._spellEcho = 0;
+  const hasMomentum = G.statuses.player.find(s => s.name === '✨Momentum');
+  G._momentumCap = hasMomentum ? 3 : 0;
   G.energy = G.maxEnergy;
-  G.block = 0;
+  // Ashen Crown — +1 energy on first turn of each combat
+  if (hasRelic('ashen_crown') && !G._ashenCrownFired) { G.energy++; G._ashenCrownFired = true; }
+  if (G._entrenchActive) { G._entrenchActive = false; } else { G.block = 0; }
+  G._spellsThisTurn = 0;
   G._manaSurge = false; // reset each turn
   // Enemy block persists until player damages through it — does NOT reset each turn
   G.rerollUsed = false;
-  G.dieSetUsedThisTurn = false;
-  G.turnCardsPlayed = 0;
   G.diceRolled = false;
+  G._cardsPlayedThisTurn = 0;
+  G._shadowMark = 0;
+  G._disappearCount = 0;
+  G._flyActive = false;
+  G._dieSetThisTurn = false;
+  G._guaranteedMax = G._guaranteedMax || 0;
+  G._minRoll = G._minRoll || (G.charKey === 'gambler' ? 2 : 1);
+  G._fallacyCount = G._fallacyCount || 0;
+  G._shadowArtistDiscount = 0;
+  G._hungerDmgThisTurn = 0;
+  G._soulboundTomeFired = false;
+  G._firstCardFree = false;
 
   // Use active die
   G.currentDieType = getDie(G.activeDie);
   G.diceMax = G.currentDieType.max;
 
-  rollDice(G);
+  rollDice(G, true);
 
   // Apply die bonus effects after roll
   const activeDieData = getDie(G.activeDie);
@@ -657,35 +481,69 @@ function startTurn() {
     showMsg(activeDieData.emoji + ' Arcane Die — even roll restores 1 energy!');
   }
   if (activeDieData.bonus === 'max_draw' && roll === activeDieData.max) {
-    drawCards(G, 6); // draw 6 instead of 5 — extra card
+    drawCards(G, 6 + (G.extraDraw || 0));
     renderAll();
     updateIntent();
     return;
   }
 
-  drawCards(G, 5);
+  drawCards(G, 5 + (G.extraDraw || 0));
   renderAll();
   updateIntent();
 }
 
-function rollDice(g) {
-  SFX.diceRoll();
-  let roll;
-  if ((g._forcedMaxRolls || 0) > 0) {
-    roll = g.diceMax;
-    g._forcedMaxRolls--;
-  } else {
-    roll = Math.floor(Math.random() * g.diceMax) + 1;
-  }
-  // Gambler min 2
-  if (g.charKey === 'gambler' && roll < 2) roll = 2;
-  // Apply die-specific bonus
+function rollDice(g, isInitial = false) {
+  let roll = Math.floor(Math.random() * g.diceMax) + 1;
+
+  // Guaranteed max from Loaded House
+  if (g._guaranteedMax > 0) { roll = g.diceMax; g._guaranteedMax--; }
+
+  // Min roll enforcement (Gambler min 2, House Edge min 3, d4 Cursed Die min 3)
+  const minRoll = g._minRoll || (g.charKey === 'gambler' ? 2 : 1);
+  if (roll < minRoll) roll = minRoll;
+
+  // d4 Cursed Die bonus — min 3
   const activeDieObj = getDie(g.activeDie);
   if (activeDieObj.bonus === 'min3' && roll < 3) roll = 3;
+
+  // Twinned Die / Fractured Die — initial roll only: roll twice, take higher
+  if (isInitial && (hasRelic('twinned_die') || hasRelic('fractured_die'))) {
+    let roll2 = Math.floor(Math.random() * g.diceMax) + 1;
+    if (roll2 < minRoll) roll2 = minRoll;
+    if (roll2 > roll) roll = roll2;
+  }
+
+  // Gambler's Fallacy tracking
+  if (g._fallacyCount !== undefined) {
+    if (roll === g.diceMax) { g._fallacyCount = 0; }
+    else {
+      g._fallacyCount++;
+      const fallacyThreshold = g._fallacyThreshold || 3;
+      if (g._fallacyCount >= fallacyThreshold) { roll = g.diceMax; g._fallacyCount = 0; }
+    }
+  }
+
   g.currentDie = roll;
   g.diceRolled = true;
 
-  // animate
+  // Lucky Coin — affinity exact match draws 1 card (Gambler excluded)
+  if (hasRelic('lucky_coin') && g.charKey !== 'gambler') {
+    const lcMatch = g.charKey === 'mage' ? roll === 6 : checkAffinity(g, roll, g.char.diceAffinity);
+    if (lcMatch) {
+      drawCards(g, 1);
+      showMsg('🍀 Lucky Coin — affinity match! Draw 1!');
+    }
+  }
+
+  // Lucky Streak — max roll draws 1 card + deals 4 dmg
+  const luckyStreak = G.statuses.player.find(s => s.name === '⭐LuckyStreak');
+if (roll === g.diceMax && luckyStreak) {
+  drawCards(g, 1);
+  const dmg = luckyStreak.stacks === 2 ? 6 : 4;
+  if (g.enemy) { g.enemy.hp -= dmg; floatDamage('enemy-combatant', dmg, 'dmg'); }
+}
+
+  // Animate
   const die = document.getElementById('current-die');
   die.classList.remove('rolling');
   void die.offsetWidth;
@@ -699,7 +557,6 @@ function rollDice(g) {
 
 function checkAffinityHighlight(g, roll) {
   const isMatch = checkAffinity(g, roll, g.char.diceAffinity);
-  if (isMatch) SFX.affinityMatch();
   const die = document.getElementById('current-die');
   die.classList.toggle('affinity-match', isMatch);
   const thisDieMax = g.currentDieType ? g.currentDieType.max : g.diceMax;
@@ -708,12 +565,10 @@ function checkAffinityHighlight(g, roll) {
     affinityHint = `Extreme: roll 1 or ${thisDieMax}`;
   }
   document.getElementById('affinity-label').textContent = isMatch
-    ? `✨ ${affinityHint}`
+    ? `✨ ${affinityHint} — Bonus Active!`
     : affinityHint;
-  const dieTypeLbl = document.getElementById('die-type-label');
-  if (dieTypeLbl) dieTypeLbl.textContent = (g.currentDieType && g.currentDieType.type ? g.currentDieType.type : 'd6');
+  document.getElementById('die-type-label').textContent = (g.currentDieType && g.currentDieType.type ? g.currentDieType.type : 'd6');
   renderHand();
-  syncMobileDice();
 }
 
 function checkAffinity(g, roll, affinity) {
@@ -734,19 +589,25 @@ function checkAffinity(g, roll, affinity) {
 }
 
 function useReroll() {
-  if (hasPendingCombatChoice()) {
-    showMsg('Choose a card to discard first!');
-    return;
-  }
+  if (G._noReroll) { showMsg('💔 Fractured Die — no rerolls this run!'); return; }
   if (G.rerollUsed && !G.aldricInfiniteReroll) return;
-  SFX.reroll();
   if (!G.aldricInfiniteReroll) {
     G.rerollUsed = true;
     document.getElementById('reroll-btn').disabled = true;
-    const mBtn = document.getElementById('m-reroll-btn');
-    if (mBtn) mBtn.disabled = true;
   }
-  rollDice(G);
+  const preRerollValue = G.currentDie;
+  rollDice(G, false);
+  // Bone Dice — reroll can never land lower than the original roll
+  if (hasRelic('bone_dice')) {
+    setTimeout(() => {
+      if (G.currentDie < preRerollValue) {
+        G.currentDie = preRerollValue;
+        const die = document.getElementById('current-die');
+        if (die) { die.textContent = preRerollValue; checkAffinityHighlight(G, preRerollValue); }
+        showMsg('🦴 Bone Dice — held at ' + preRerollValue + '!');
+      }
+    }, 450);
+  }
   if (G.aldricInfiniteReroll) {
     showMsg('🔱 The Sigil — infinite rerolls active!');
   } else {
@@ -767,28 +628,9 @@ function doubleDown(g) {
   renderHand();
 }
 
-function noteRunDamageDealt(g, amount) {
-  if (!g.runStats || amount <= 0) return;
-  g.runStats.totalDamageDealt += amount;
-}
-
-function noteRunHighestBlock(g) {
-  if (!g.runStats) return;
-  g.runStats.highestBlock = Math.max(g.runStats.highestBlock || 0, g.block || 0);
-}
-
-function noteRunFinalBlow(g, amount) {
-  if (!g.runStats || amount <= 0) return;
-  if (g.hp <= 0) {
-    g.runStats.finalBlowDamage = amount;
-  }
-}
-
 function playCard(cardKey) {
   const card = CARDS[cardKey];
   if (!card) return;
-  if (hasPendingCombatChoice()) { showMsg('Choose a card to discard first!'); return; }
-  if (G._voidChannelSelecting) { showMsg('Finish Void Channel discards first!'); return; }
 
   // Apply Mana Surge cost reduction if active (only on the NEXT card after Mana Surge)
   var actualCost = card.cost;
@@ -796,61 +638,68 @@ function playCard(cardKey) {
     actualCost = Math.max(0, card.cost - 1);
     G._manaSurge = false; // consume the effect
   }
+  // Soulbound Gauntlet — first card each turn costs 0
+  if (!G._firstCardFree && hasRelic('soulbound_gauntlet')) { actualCost = 0; G._firstCardFree = true; }
 
   if (G.energy < actualCost) { showMsg('Not enough energy!'); return; }
   if (!G.enemy && card.type === 'Attack') { showMsg('No enemy to attack!'); return; }
 
-  SFX.cardPlay();
-
   G.energy -= actualCost;
-  if (G.runStats) G.runStats.cardsPlayed++;
+  G._cardsPlayedThisTurn = (G._cardsPlayedThisTurn || 0) + 1;
+  G.cardsPlayedThisCombat = (G.cardsPlayedThisCombat || 0) + 1;
+  // Gilded Quill — every 10th card played deals double damage
+  if (G.cardsPlayedThisCombat % 10 === 0 && hasRelic('gilded_quill')) G._gildedQuillActive = true;
+  // Soulbound Tome — playing 3+ cards in a turn grants 1 energy (once per turn)
+  if (G._cardsPlayedThisTurn === 3 && hasRelic('soulbound_tome') && !G._soulboundTomeFired) {
+    G.energy++;
+    G._soulboundTomeFired = true;
+    showMsg('📚 Soulbound Tome — +1 Energy!');
+  }
+
+// Shadow Mark bonus
+if (G._shadowMark > 0 && card.type === 'Attack') {
+  G.enemy.hp -= G._shadowMark;
+  floatDamage('enemy-combatant', G._shadowMark, 'dmg');
+  G._shadowMark = 0;
+}
+if (G._shadowArtistDiscount > 0) { actualCost = Math.max(0, actualCost - 1); G._shadowArtistDiscount--; }
+// Disappear free card
+if (G._disappearCount > 0 && cardKey !== 'disappear') {
+  G.energy += actualCost;
+  G._disappearCount--;
+}
+
+  if (card.type === 'Skill' || card.type === 'Power') G._spellsThisTurn = (G._spellsThisTurn || 0) + 1;
+if (G._arcaneMomentum && G._momentumCap > 0 && (card.type === 'Skill' || card.type === 'Power')) {
+  G.currentDie = Math.min(G.currentDie + 1, G.diceMax);
+  G._momentumCap--;
+  const dieEl = document.getElementById('current-die');
+  if (dieEl) {
+    dieEl.classList.remove('rolling');
+    void dieEl.offsetWidth;
+    dieEl.classList.add('rolling');
+    setTimeout(() => {
+      dieEl.textContent = G.currentDie;
+      dieEl.classList.remove('rolling');
+      checkAffinityHighlight(G, G.currentDie);
+    }, 200);
+  }
+}
   const roll = G.currentDie || 1;
-  const idx = G.hand.indexOf(cardKey);
-  if (idx >= 0) {
-    G.hand.splice(idx, 1);
-  }
-
-  let resolved = false;
-  const finishResolution = () => {
-    if (resolved) return;
-    resolved = true;
-
-    if (card.type === 'Power' || card.exhaust) {
-      if (!G.exhaustedPile) G.exhaustedPile = [];
-      G.exhaustedPile.push(cardKey);
-    } else {
-      G.discardPile.push(cardKey);
-    }
-
-    G.turnCardsPlayed = (G.turnCardsPlayed || 0) + 1;
-    if (G.enemy && G.enemy.hp > 0 && card.type === 'Skill' && G.enemy.special && G.enemy.special.trigger === 'skill') {
-      try { G.enemy.special.effect(G); } catch (err) { console.log('skill special ability error', err); }
-    }
-
-    if (G.charKey === 'gambler' && roll === G.diceMax && !G.rerollUsed) {
-      showMsg('Lucky Streak! Bonus reroll!');
-      G.rerollUsed = false;
-      setTimeout(() => {
-        const btn = document.getElementById('reroll-btn');
-        btn.disabled = false;
-        btn.innerHTML = 'REROLL <span style="font-size:0.7em;opacity:0.8">(1)</span>';
-      }, 100);
-    }
-
-    renderAll();
-    checkCombatEnd();
-  };
-
-  card.effect(G, roll, finishResolution);
-  if (!resolved && !hasPendingCombatChoice()) {
-    finishResolution();
-  } else if (hasPendingCombatChoice()) {
-    renderAll();
-  }
-  return;
-  /*
   card.effect(G, roll);
 
+  // Spell Echo — repeat Attack effect
+if (card.type === 'Attack' && G._spellEcho > 0) {
+  G._spellEcho--;
+  card.effect(G, roll);
+  showMsg('🔮 Spell Echo — attack triggered twice!');
+}
+if (G.statuses.player.find(s => s.name === '👑BloodLord') && card.type === 'Attack') {
+  const lordStacks = G.statuses.player.find(s => s.name === '👑BloodLord');
+  const healAmt = lordStacks.stacks === 2 ? 3 : 2; // + version heals 3, base heals 2
+  healPlayer(G, healAmt);
+}
+  // Gambler lucky streak
   if (G.charKey === 'gambler' && roll === G.diceMax && !G.rerollUsed) {
     showMsg('Lucky Streak! Bonus reroll!');
     G.rerollUsed = false;
@@ -865,7 +714,7 @@ function playCard(cardKey) {
   const idx = G.hand.indexOf(cardKey);
   if (idx >= 0) {
     G.hand.splice(idx, 1);
-    if (card.type === 'Power' || card.exhaust) {
+    if (card.type === 'Power') {
       // Power cards are exhausted — removed from combat, not discarded
       // They stay in the deck for future runs but don't cycle back this combat
       if (!G.exhaustedPile) G.exhaustedPile = [];
@@ -877,35 +726,46 @@ function playCard(cardKey) {
 
   renderAll();
   checkCombatEnd();
-  */
 }
 
 function endTurn() {
   if (!G.enemy) return;
-  if (hasPendingCombatChoice()) {
-    showMsg('Choose a card to discard first!');
-    return;
-  }
-  if (G._voidChannelSelecting) {
-    showMsg('🌀 Finish Void Channel discards first!');
-    return;
-  }
-  if (G.endTurnLocked) return;
-  setEndTurnLocked(true);
   const e = G.enemy;
 
-  SFX.endTurn();
-
-  if (G.enemy._phased) {
-    G.enemy._phased = false;
+  // ── STEP 1: Burn ticks BEFORE enemy acts ──
+  const burn = G.statuses.enemy.find(s => s.name === '🔥Burn');
+  if (burn) {
+    G.enemy.hp -= burn.stacks;
+    floatDamage('enemy-combatant', burn.stacks, 'dmg');
+    burn.stacks--;
+    if (burn.stacks <= 0) G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '🔥Burn');
   }
 
-  // ── STEP 1: Expire player turn-limited statuses at end of player turn ──
-  tickTimedDebuffs(G, 'player');
+  // ── STEP 2: Vulnerable ticks down ──
+  const vuln = G.statuses.enemy.find(s => s.name === '🫗Vulnerable');
+  if (vuln) {
+    vuln.stacks--;
+    if (vuln.stacks <= 0) G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '🫗Vulnerable');
+  }
+
+  // ── STEP 3: Regen ticks ──
+  const regen = G.statuses.player.find(s => s.name === '💚Regen');
+  if (regen) {
+    healPlayer(G, regen.stacks);
+    const eternalHunger = G.statuses.player.find(s => s.name === '🦷EternalHunger');
+    if (eternalHunger && G.enemy && G._hungerDmgThisTurn < 15) {
+      const dmg = Math.min(regen.stacks * 2, 15 - G._hungerDmgThisTurn);
+      G.enemy.hp -= dmg;
+      floatDamage('enemy-combatant', dmg, 'dmg');
+      G._hungerDmgThisTurn += dmg;
+    }
+    regen.stacks--;
+    if (regen.stacks <= 0) G.statuses.player = G.statuses.player.filter(s => s.name !== '💚Regen');
+  }
 
   renderAll();
 
-  // ── STEP 2: Check if combat already ended ──
+  // ── STEP 4: Check if enemy died from Burn/Regen ──
   if (G.enemy.hp <= 0) {
     G.discardPile.push(...G.hand);
     G.hand = [];
@@ -914,7 +774,7 @@ function endTurn() {
     return;
   }
 
-  // ── STEP 3: Trigger turn-start special abilities BEFORE enemy acts ──
+  // ── STEP 5: Trigger turn-start special abilities BEFORE enemy acts ──
   if (G.enemy && G.enemy.special) {
     G.enemy.turnCount = (G.enemy.turnCount || 0) + 1;
     const sp = G.enemy.special;
@@ -926,110 +786,116 @@ function endTurn() {
         sp.effect(G, G.enemy.turnCount);
       }
       if (sp.trigger === 'immune') sp.effect(G);
-    } catch (err) {
-      console.log('special ability error', err);
-    }
-  } else {
-    G.enemy.turnCount = (G.enemy.turnCount || 0) + 1;
+    } catch(err) { console.log('special ability error', err); }
   }
 
   renderAll();
 
-  // ── STEP 4: Enemy acts ──
+// ── STEP 6: Enemy acts ──
   if (G.enemy && G.enemy.isAldric) {
     processAldricTurn();
-  } else if (e.moves && e.currentMove && typeof e.currentMove.effect === 'function') {
-    try {
-      e.currentMove.effect(G);
-
-      if (!e._moveHistory) e._moveHistory = [];
-      e._moveHistory.push(e.currentMove.name);
-
-      if (e._moveHistory.length > 6) {
-        e._moveHistory = e._moveHistory.slice(-6);
-      }
-    } catch (err) {
-      console.log('enemy move error', err);
-    }
   } else if (e.intent === 'attack') {
-    // fallback for older enemies not yet converted
-    let dmg = getModifiedEnemyAttackDamage(G, e.damage);
-    const enemyChill = G.statuses.enemy.find(s => s.name === '❄️Chill');
-    if (enemyChill && enemyChill.stacks > 0) {
-      enemyChill.stacks--;
-      if (enemyChill.stacks <= 0) {
-        removeStatus(G, 'enemy', '❄️Chill');
-      }
+    let dmg = e.damage;
+    const eStrong = G.statuses.enemy.find(s => s.name === '💢Rage');
+    if (eStrong) dmg += eStrong.stacks;
+    const chillStatus = G.statuses.enemy.find(s => s.name === '❄️Chill');
+    if (chillStatus && chillStatus.stacks > 0) {
+      const coldMastery = G.statuses.player.find(s => s.name === '❄️ColdMastery');
+      const chillReduction = coldMastery ? (coldMastery.stacks === 2 ? 0.50 : 0.65) : 0.75;
+      dmg = Math.floor(dmg * chillReduction);
+      chillStatus.stacks--;
+      if (chillStatus.stacks <= 0) G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '❄️Chill');
     }
-
-    dealDamage(G, 'player', dmg);
+    dmg = Math.max(0, dmg - G.block);
+    G.block = Math.max(0, G.block - e.damage);
+    if (dmg > 0) G.hp -= dmg;
+    floatDamage('player-combatant', dmg, 'dmg');
+    document.getElementById('player-sprite').classList.add('shake');
+    setTimeout(() => document.getElementById('player-sprite').classList.remove('shake'), 300);
   } else if (e.intent === 'defend') {
-    const profile = AGGRO_PROFILES[e.aggro] || AGGRO_PROFILES.balanced;
-    G.enemy.block += profile.defendBlock;
+    G.enemy.block += 8;
   }
 
-  renderAll();
+  // ── STEP 7: Poison ticks AFTER enemy acts ──
+  const poison = G.statuses.enemy.find(s => s.name === '☠️Poison');
+  if (poison) {
+    G.enemy.hp -= poison.stacks;
+    floatDamage('enemy-combatant', poison.stacks, 'dmg');
+    poison.stacks--;
+    if (poison.stacks <= 0) G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '☠️Poison');
+  }
 
-  // ── STEP 5: Trigger post-action special abilities ──
+  // ── STEP 8: Check if enemy died from Poison ──
+  if (G.enemy && G.enemy.hp <= 0) {
+    G.discardPile.push(...G.hand);
+    G.hand = [];
+    renderAll();
+    checkCombatEnd();
+    return;
+  }
+
+  // ── STEP 9: Trigger post-attack special abilities ──
   if (G.enemy && G.enemy.special) {
     const sp = G.enemy.special;
     try {
-      if (sp.trigger === 'attack') sp.effect(G);
+      if (sp.trigger === 'attack' && G.enemy.intent === 'attack') sp.effect(G);
       if (sp.trigger === 'hp') sp.effect(G);
-    } catch (err) {
-      console.log('special ability error', err);
-    }
+    } catch(err) { console.log('special ability error', err); }
   }
 
-  // ── STEP 6: End-of-enemy-turn status resolution ──
-  tickStatusDamage(G, 'enemy', '☠️Poison');
-  tickStatusDamage(G, 'player', '☠️Poison');
-  tickTimedDebuffs(G, 'enemy');
-  clearExpiredFly(G, 'enemy');
+  // ── STEP 10: Alternate enemy intent for next turn ──
+  G.enemy.intent = G.enemy.intent === 'attack' ? (Math.random() < 0.3 ? 'defend' : 'attack') : 'attack';
 
-  renderAll();
-  checkCombatEnd();
-  if (G.hp <= 0 || !G.enemy || G.enemy.hp <= 0) return;
-
-  // ── STEP 7: Choose next move / next intent ──
-  if (G.enemy && !G.enemy.isAldric) {
-    if (e.moves && typeof chooseMove === 'function') {
-      const nextMove = chooseMove(e);
-      if (nextMove) {
-        e.currentMove = nextMove;
-      }
-    } else {
-      const _profile = AGGRO_PROFILES[G.enemy.aggro] || AGGRO_PROFILES.balanced;
-      if (_profile === AGGRO_PROFILES.forced) {
-        // forced enemies manage themselves
-      } else if (G.enemy.intent === 'defend') {
-        G.enemy.intent = 'attack';
-      } else {
-        const _hurt = G.enemy.hp / G.enemy.maxHp < 0.4;
-        const _playerLow = G.hp / G.maxHp < 0.3;
-        let _defendChance = _hurt ? _profile.hurtDefendChance : _profile.defendChance;
-        if (G.enemy.aggro === 'balanced' && _playerLow) {
-          _defendChance = Math.min(_defendChance, 0.05);
-        }
-        G.enemy.intent = Math.random() < _defendChance ? 'defend' : 'attack';
-      }
-    }
-  }
-
-  if (typeof updateIntent === 'function') {
-    updateIntent();
-  }
-
-  // ── STEP 8: Discard hand, check end, start next turn ──
+  // ── STEP 11: Discard hand, check end, start next turn ──
   G.discardPile.push(...G.hand);
   G.hand = [];
-  clearVoidChannelSelection();
 
   renderAll();
   checkCombatEnd();
 
-  if (G.hp <= 0 || !G.enemy || G.enemy.hp <= 0) return;
+  if (G.hp <= 0) return;
   setTimeout(startTurn, 300);
+}
+function animateSpriteAttack(attackerEl, direction = 'right') {
+  const sprite = attackerEl?.querySelector('.combatant-sprite');
+  if (!sprite) return;
+
+  const cls = direction === 'right' ? 'attack-lunge-left' : 'attack-lunge-right';
+  sprite.classList.remove('attack-lunge-left', 'attack-lunge-right');
+  void sprite.offsetWidth;
+  sprite.classList.add(cls);
+
+  setTimeout(() => {
+    sprite.classList.remove(cls);
+  }, 300);
+}
+
+function animateHit(targetEl) {
+  if (!targetEl) return;
+
+  targetEl.classList.remove('hit-flash');
+  void targetEl.offsetWidth;
+  targetEl.classList.add('hit-flash');
+
+  setTimeout(() => {
+    targetEl.classList.remove('hit-flash');
+  }, 250);
+}
+
+function spawnSlashVFX(targetEl) {
+  const layer = document.getElementById('combat-vfx-layer');
+  if (!layer || !targetEl) return;
+
+  const rect = targetEl.getBoundingClientRect();
+  const arenaRect = layer.getBoundingClientRect();
+
+  const slash = document.createElement('div');
+  slash.className = 'slash-vfx';
+  slash.style.left = `${rect.left - arenaRect.left + rect.width * 0.15}px`;
+  slash.style.top = `${rect.top - arenaRect.top + rect.height * 0.35}px`;
+
+  layer.appendChild(slash);
+  setTimeout(() => slash.remove(), 250);
 }
 
 function playAttackAnimation({ attackerEl, targetEl, style = 'slash' }) {
@@ -1048,33 +914,40 @@ function dealDamage(g, target, amount) {
   const enemyEl = document.getElementById('enemy-combatant');
 
   if (target === 'enemy' && g.enemy) {
-    if (g.enemy._phased) {
-      showMsg(`${g.enemy.emoji || '👻'} ${g.enemy.name} is phased and ignores the hit!`);
-      floatDamage('enemy-combatant', 'IMMUNE', 'block');
-      setTimeout(() => {
-        renderAll();
-      }, 140);
-      return;
+    // Phantom Blade — first attack this combat deals +8
+    if (!g.phantomBladeFired && hasRelic('phantom_blade')) {
+      amount += 8;
+      g.phantomBladeFired = true;
     }
-    amount = getModifiedPlayerAttackDamage(g, amount, true);
-
-     // Stone Skin — absorb incoming damage before block/HP
-    if (g.enemy._stoneShield && g.enemy._stoneShield > 0) {
-      const absorbed = Math.min(amount, g.enemy._stoneShield);
-      amount -= absorbed;
-      g.enemy._stoneShield -= absorbed;
-      showMsg(`🪨 Stone Skin absorbs ${absorbed}!`);
-
-      if (g.enemy._stoneShield <= 0) {
-        g.enemy._stoneShield = 0;
-      }
+    // Apply player Strength/Rage bonus to all attacks
+    const playerRage = g.statuses.player.find(s => s.name === '💢Rage');
+    if (playerRage && playerRage.stacks > 0) {
+      amount += playerRage.stacks;
     }
-
+    // d8 Hunter's Die: odd rolls deal +2 bonus damage
+    const activeDieBonus = getDie(g.activeDie);
+    if (activeDieBonus.bonus === 'odd_dmg' && g.currentDie && g.currentDie % 2 !== 0) {
+      amount += 2;
+    }
+    // Apply Weak — player deals 25% less damage
+    const playerWeak = g.statuses.player.find(s => s.name === '😵Weak');
+    if (playerWeak && playerWeak.stacks > 0) {
+      amount = Math.floor(amount * 0.75);
+      playerWeak.stacks--;
+      if (playerWeak.stacks <= 0) g.statuses.player = g.statuses.player.filter(s => s.name !== '😵Weak');
+    }
+    // Also apply Vulnerable — enemy takes 50% more damage
+   const enemyVuln = g.statuses.enemy.find(s => s.name === '🫗Vulnerable');
+    if (enemyVuln && enemyVuln.stacks > 0) {
+    amount = Math.floor(amount * 1.5);
+}
+    // Pale Contract — all player attacks deal +4 damage
+    if (hasRelic('pale_contract')) amount += 4;
+    // Gilded Quill — 10th card played this combat deals double damage
+    if (g._gildedQuillActive) { amount *= 2; g._gildedQuillActive = false; showMsg('🪶 Gilded Quill — double damage!'); }
     const pen = Math.max(0, amount - g.enemy.block);
     g.enemy.block = Math.max(0, g.enemy.block - amount);
     g.enemy.hp -= pen;
-    noteRunDamageDealt(g, pen);
-    SFX.attack();
     playAttackAnimation({
       attackerEl: playerEl,
       targetEl: enemyEl,
@@ -1083,11 +956,11 @@ function dealDamage(g, target, amount) {
 
     floatDamage('enemy-combatant', pen || amount, 'dmg');
     
-    // Aldric Stone Heart decay on total incoming damage, even if block absorbs it
-    if (g.enemy && g.enemy.isAldric && g.aldricPhase === 1 && amount > 0) {
-      g.aldricTotalDamage = (g.aldricTotalDamage || 0) + amount;
+    // Aldric Stone Heart decay on damage
+    if (g.enemy && g.enemy.isAldric && g.aldricPhase === 1 && pen > 0) {
+      g.aldricDamageDealt = (g.aldricDamageDealt || 0) + pen;
       const decayThreshold = 60;
-      const decayCount = Math.floor(g.aldricTotalDamage / decayThreshold);
+      const decayCount = Math.floor(g.aldricDamageDealt / decayThreshold);
       const newStoneHeart = Math.max(
         ALDRIC.phases[0].stoneHeartMin,
         ALDRIC.phases[0].stoneHeartBase - (decayCount * 2)
@@ -1102,12 +975,24 @@ function dealDamage(g, target, amount) {
       try { g.enemy.special.effect(g); } catch(e) {}
     }
   } else if (target === 'player') {
-    amount = applyPlayerIncomingDamageModifiers(g, amount);
     const pen = Math.max(0, amount - g.block);
     g.block = Math.max(0, g.block - amount);
     g.hp -= pen;
-    noteRunFinalBlow(g, pen);
-    if (pen > 0) SFX.playerHurt();
+    // Lucky Rabbit Foot — survive killing blow at 1 HP (fires first)
+    if (g.hp <= 0 && hasRelic('lucky_rabbit_foot')) {
+      g.hp = 1;
+      const rfIdx = g.relics.indexOf('lucky_rabbit_foot');
+      if (rfIdx !== -1) g.relics.splice(rfIdx, 1);
+      showMsg('🐇 Lucky Rabbit Foot — survived at 1 HP!');
+    }
+    // Crimson Phylactery — survive killing blow at 1 HP (fires if Rabbit Foot already gone)
+    if (g.hp <= 0 && hasRelic('crimson_phylactery')) {
+      g.hp = 1;
+      const cpIdx = g.relics.indexOf('crimson_phylactery');
+      if (cpIdx !== -1) g.relics.splice(cpIdx, 1);
+      showMsg('💎 Crimson Phylactery — survived at 1 HP!');
+    }
+
     playAttackAnimation({
       attackerEl: enemyEl,
       targetEl: playerEl,
@@ -1124,54 +1009,30 @@ function dealDamage(g, target, amount) {
 function gainBlock(g, target, amount) {
   if (target === 'player') {
     g.block += amount;
-    noteRunHighestBlock(g);
     floatDamage('player-combatant', amount, 'block');
-    SFX.block();
   }
   renderAll();
 }
 
 function healPlayer(g, amount) {
+  if (hasRelic('pale_contract')) amount = Math.max(1, Math.floor(amount * 0.5));
   g.hp = Math.min(g.maxHp, g.hp + amount);
-  SFX.heal();
   floatDamage('player-combatant', amount, 'heal');
   renderAll();
 }
 
 function applyStatus(g, target, name, stacks) {
-  if (name === '💢Rage') name = '💢Strength';
   const arr = g.statuses[target];
   const ex = arr.find(s => s.name === name);
-  const isTimedDebuff = name === '😵Weak' || name === '🫗Vulnerable';
-  const isFly = name === '🦇Fly';
-  const turnKey = target === 'player' ? 'appliedOnPlayerTurn' : 'appliedOnEnemyTurn';
-  const currentTurn = target === 'player' ? g.turn : ((g.enemy && g.enemy.turnCount) || 0);
-
-  if (name === '💚Regen' && target === 'player') {
-    stacks = Math.min(stacks, 10);
-  }
-
-  if (ex) {
-    ex.stacks += stacks;
-    if (name === '💚Regen' && target === 'player') {
-      ex.stacks = Math.min(ex.stacks, 10);
-    }
-    if (isTimedDebuff || isFly) {
-      ex[turnKey] = currentTurn;
-    }
-  } else {
-    const status = { name, stacks };
-    if (isTimedDebuff || isFly) {
-      status[turnKey] = currentTurn;
-    }
-    arr.push(status);
-  }
+  if (ex) ex.stacks += stacks;
+  else arr.push({ name, stacks });
   renderAll();
 }
 
 function drawCards(g, n) {
-  if (n > 0) SFX.cardDraw();
+  const limit = g.handLimit || 5;
   for (let i = 0; i < n; i++) {
+    if (g.hand.length >= limit) break;
     if (g.drawPile.length === 0) {
       if (g.discardPile.length > 0) {
         const exh = g.exhaustedPile || [];
@@ -1196,7 +1057,6 @@ function shuffleDeck() {
 function checkCombatEnd() {
   if (G.hp <= 0) {
     G.runSouls += G.souls;
-    SFX.gameOver();
     setTimeout(showGameOver, 600);
     return;
   }
@@ -1205,8 +1065,12 @@ function checkCombatEnd() {
     G.gold += G.enemy.reward;
     G.souls += G.enemy.souls;
     G.runSouls += G.enemy.souls;
-    SFX.enemyDie();
-    if (G.enemy.reward > 0) setTimeout(() => SFX.gold(), 300);
+    // Relic hooks — post-combat
+    if (hasRelic('bloodsoaked_rag')) healPlayer(G, 3);
+    if (hasRelic('ash_pendant'))   { G.souls += 1; G.runSouls += 1; }
+    if (hasRelic('tarnished_coin')) G.gold += 5;
+    if (G.lastFightWasElite && hasRelic('iron_ration')) healPlayer(G, 5);
+    if (G.lastFightWasElite && hasRelic('grave_robber')) { G.gold += 8; showMsg('⚰️ Grave Robber — +8 Gold!'); }
 
     document.getElementById('enemy-sprite').classList.add('dying');
 
@@ -1252,568 +1116,26 @@ function checkCombatEnd() {
   }
 }
 
-// ── Enemy move helpers ──
-// Deals damage from enemy to player, handles block + Rage + animations
-function _emAtk(g, dmg) {
-  dmg = getModifiedEnemyAttackDamage(g, dmg);
-  const chill = g.statuses.enemy.find(s => s.name === '❄️Chill');
-  if (chill && chill.stacks > 0) {
-    chill.stacks--;
-    if (chill.stacks <= 0) {
-      removeStatus(g, 'enemy', '❄️Chill');
-    }
-  }
-  const net = Math.max(0, dmg - g.block);
-  g.block = Math.max(0, g.block - dmg);
-  if (net > 0) g.hp -= net;
-  noteRunFinalBlow(g, net);
-  floatDamage('player-combatant', net, 'dmg');
-  const ps = document.getElementById('player-sprite');
-  if (ps) { ps.classList.add('shake'); setTimeout(()=>ps.classList.remove('shake'), 300); }
-  animateSpriteAttack(document.getElementById('enemy-combatant'), 'left');
-}
-
-// Picks the next move for a moves-based enemy, respecting constraints
-function chooseMove(enemy) {
-  // Iron Archer — strict scripted alternating pattern
-  if (enemy._scripted) {
-    const tc = enemy.turnCount || 0;
-    return tc % 2 === 0
-      ? enemy.moves.find(m => m.name === 'Aim' && !m.isOpener)
-      : enemy.moves.find(m => m.name === 'Volley');
-  }
-
-  // Gargoyle Dive skip turn
-  if (enemy._skipNext) {
-    enemy._skipNext = false;
-    return { name:'—', type:'skip', desc:'Recovering...', effect(g){ showMsg(`${g.enemy.emoji} ${g.enemy.name} recovers.`); } };
-  }
-
-  const history = enemy._moveHistory || [];
-
-  // Filter: no openers, respect maxStreak constraints
-  const valid = enemy.moves.filter(m => {
-    if (m.isOpener) return false;
-    const c = (enemy.constraints || []).find(x => x.move === m.name);
-    if (c) {
-      let streak = 0;
-      for (let i = history.length - 1; i >= 0; i--) {
-        if (history[i] === m.name) streak++; else break;
-      }
-      if (streak >= c.maxStreak) return false;
-    }
-    return true;
-  });
-
-  const pool = valid.length ? valid : enemy.moves.filter(m => !m.isOpener);
-  const total = pool.reduce((s, m) => s + (m.weight || 1), 0);
-  let r = Math.random() * total;
-  for (const m of pool) { r -= (m.weight || 1); if (r <= 0) return m; }
-  return pool[pool.length - 1];
-}
-
 function updateIntent() {
   if (!G.enemy) return;
   const e = G.enemy;
   const el = document.getElementById('enemy-intent');
-
-  // Moves-based enemy — show named move
-  if (e.currentMove) {
-    const m = e.currentMove;
-    const icon = { attack:'⚔️', block:'🛡', debuff:'💀', burn:'🔥', heal:'💚', buff:'✨', mixed:'⚡', skip:'💤' }[m.type] || '⚡';
-    const desc = formatEnemyIntentDamageDesc(G, m.desc);
-    el.innerHTML = `${icon} <strong>${m.name}</strong>: ${desc}`;
-    return;
-  }
-
-  // Legacy aggro-based enemy fallback
   const specialHint = e.special
     ? `<div style="font-size:0.65rem;color:var(--purple2);margin-top:0.2rem;">⚡ ${e.special.name} · <span style="color:var(--text3)">tap for info</span></div>`
     : '';
   if (e.intent === 'attack') {
-    const previewDmg = getModifiedEnemyAttackDamage(G, e.damage);
-    el.innerHTML = `Preparing: <strong>Attack ${previewDmg}</strong>${specialHint}`;
+    const rawDmg = e.damage;
+    const chill = G.statuses.enemy.find(s => s.name === '❄️Chill');
+    const coldMastery = G.statuses.player.find(s => s.name === '❄️ColdMastery');
+    const chillReduction = coldMastery ? (coldMastery.stacks === 2 ? 0.50 : 0.65) : 0.75;
+    const actualDmg = (chill && chill.stacks > 0) ? Math.floor(rawDmg * chillReduction) : rawDmg;
+    const dmgDisplay = (chill && chill.stacks > 0)
+      ? `<span style="color:#7fb3d3;font-weight:bold">${actualDmg}</span> <span style="text-decoration:line-through;opacity:0.5;font-size:0.85em">${rawDmg}</span>`
+      : `${rawDmg}`;
+    el.innerHTML = `Preparing: <strong>Attack ${dmgDisplay}</strong>${specialHint}`;
   } else {
     el.innerHTML = `Preparing: <strong>🛡 Defend</strong>${specialHint}`;
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// REST / SHOP / EVENT
-// ═══════════════════════════════════════════════════════════════════
-
-function showRestStop() {
-  showScreen('rest-screen');
-
-  // HP display
-  const hpPct = Math.round(G.hp / G.maxHp * 100);
-  document.getElementById('rest-hp-text').textContent = `${Math.max(0,G.hp)} / ${G.maxHp}`;
-  document.getElementById('rest-hp-bar').style.width = hpPct + '%';
-  const pctEl = document.getElementById('rest-hp-pct');
-  pctEl.textContent = hpPct + '%';
-  pctEl.className = 'rest-hp-pct ' + (hpPct <= 30 ? 'hp-low' : hpPct <= 60 ? 'hp-mid' : 'hp-full');
-
-  // Heal amount
-  const healAmt = Math.floor(G.maxHp * 0.3);
-  const atFull = G.hp >= G.maxHp;
-
-  const opts = document.getElementById('rest-options');
-  opts.innerHTML = '';
-  const options = [
-    {
-      key: 'rest',
-      emoji: '❤️', name: 'Rest',
-      desc: atFull ? 'Already at full HP.' : `Recover ${healAmt} HP. Leave with ${Math.min(G.hp + healAmt, G.maxHp)}/${G.maxHp} HP.`,
-      disabled: atFull,
-      action: () => { healPlayer(G, healAmt); showMsg(`Recovered ${healAmt} HP.`); setTimeout(proceedDoors, 800); }
-    },
-    {
-      key: 'upgrade',
-      emoji: '⬆️', name: 'Upgrade Card',
-      desc: 'Improve 1 card for this run. Maxed cards cannot be upgraded again.',
-      action: () => startRestPick('upgrade')
-    },
-    {
-      key: 'remove',
-      emoji: '🗑️', name: 'Remove Card',
-      desc: 'Remove 1 card from your deck to thin future draws.',
-      action: () => startRestPick('remove')
-    },
-  ];
-  options.forEach(o => {
-    const el = document.createElement('div');
-    el.className = 'rest-option' + (o.disabled ? ' rest-disabled' : '');
-    el.dataset.restAction = o.key;
-    el.style.opacity = o.disabled ? '0.4' : '1';
-    el.style.cursor = o.disabled ? 'not-allowed' : 'pointer';
-    el.innerHTML = `<span class="rest-option-emoji">${o.emoji}</span><div class="rest-option-name">${o.name}</div><div class="rest-option-desc">${o.desc}</div>`;
-    if (!o.disabled) el.onclick = o.action;
-    opts.appendChild(el);
-  });
-
-  renderRestDeck(null);
-}
-
-function startRestPick(mode) {
-  document.getElementById('rest-picking-label').style.display = 'block';
-  document.getElementById('rest-picking-label').textContent =
-    mode === 'upgrade' ? '✨ Click a card to upgrade it' : '🗑️ Click a card to remove it from your deck';
-  document.getElementById('rest-cancel-btn').style.display = 'inline-block';
-  // disable options while picking
-  document.querySelectorAll('.rest-option').forEach(el => {
-    el.style.opacity = '0.3';
-    el.style.pointerEvents = 'none';
-  });
-  renderRestDeck(mode);
-}
-
-function cancelRestPick() {
-  document.getElementById('rest-picking-label').style.display = 'none';
-  document.getElementById('rest-cancel-btn').style.display = 'none';
-  document.querySelectorAll('.rest-option').forEach(el => {
-    el.style.opacity = '';
-    el.style.pointerEvents = '';
-  });
-  renderRestDeck(null);
-}
-
-function renderRestDeck(mode) {
-  const grid = document.getElementById('rest-deck-grid');
-  grid.innerHTML = '';
-  document.getElementById('rest-deck-count').textContent = `${G.deck.length} cards`;
-
-  // Show every card individually — no stacking
-  G.deck.forEach((key, idx) => {
-    const c = CARDS[key];
-    if (!c) return;
-    const isSelectable = mode !== null;
-    const isDanger = mode === 'remove';
-    const isUpgraded = key.endsWith('+');
-    const canUpgrade = mode === 'upgrade' && !isUpgraded && CARD_UPGRADES[key];
-
-    const el = document.createElement('div');
-    el.className = `rest-deck-card${isSelectable ? ' selectable' : ''}${isDanger ? ' danger' : ''}`;
-    if (isSelectable && mode === 'upgrade' && !canUpgrade) {
-      el.style.opacity = '0.35';
-      el.style.cursor = 'not-allowed';
-    }
-    if (isUpgraded) el.style.borderColor = 'var(--gold)';
-
-    el.innerHTML = `
-      <span class="rest-deck-card-emoji">${c.emoji}</span>
-      <div>
-        <div class="rest-deck-card-name" style="color:${isUpgraded ? 'var(--gold2)' : ''}">${c.name}</div>
-        <div class="rest-deck-card-type">${c.type} · ⚡${c.cost}${isUpgraded ? ' · ✨' : ''}</div>
-      </div>
-    `;
-
-    if (isSelectable) {
-      const capturedIdx = idx;
-      const capturedKey = key;
-      el.onclick = () => {
-        if (mode === 'remove') {
-          G.deck.splice(capturedIdx, 1);
-          showMsg(`${c.name} removed from deck.`);
-          cancelRestPick();
-          setTimeout(proceedDoors, 600);
-        } else if (mode === 'upgrade') {
-          if (!canUpgrade) { showMsg(`${c.name} cannot be upgraded further.`); return; }
-          const success = upgradeCard(capturedKey);
-          if (success) {
-            showMsg(`✨ ${c.name} → ${(CARD_UPGRADES[capturedKey] && CARD_UPGRADES[capturedKey].name ? CARD_UPGRADES[capturedKey].name : capturedKey + '+')}!`);
-            cancelRestPick();
-            setTimeout(proceedDoors, 600);
-          } else {
-            showMsg(`${c.name} cannot be upgraded.`);
-          }
-        }
-      };
-    }
-    grid.appendChild(el);
-  });
-}
-
-function showShop() {
-  showScreen('shop-screen');
-
-  const shopScreen = document.getElementById('shop-screen');
-  if (shopScreen && !document.getElementById('shop-flavor')) {
-    const sub = document.createElement('p');
-    sub.id = 'shop-flavor';
-    sub.className = 'shop-sub';
-    sub.textContent = 'A careful trader watches your wounds, your gold, and the gaps in your deck.';
-    const title = shopScreen.querySelector('.shop-title');
-    if (title) title.insertAdjacentElement('afterend', sub);
-  }
-  if (shopScreen && !document.getElementById('shop-picking-row')) {
-    const deckSection = shopScreen.querySelector('.rest-deck-section');
-    const titleRow = deckSection?.querySelector('.rest-deck-title');
-    if (deckSection && titleRow) {
-      const pickRow = document.createElement('div');
-      pickRow.id = 'shop-picking-row';
-      pickRow.className = 'shop-picking-row';
-      pickRow.style.display = 'none';
-      pickRow.innerHTML = `
-        <div class="rest-picking-label" id="shop-picking-label">🗑️ Click a card below to remove it from your deck</div>
-        <button class="btn rest-cancel-btn" id="shop-cancel-btn" type="button">Cancel</button>
-      `;
-      deckSection.insertBefore(pickRow, titleRow.nextSibling);
-      document.getElementById('shop-cancel-btn').onclick = cancelShopRemovePick;
-    }
-  }
-  G.shopPickMode = null;
-  G.shopPendingRemove = null;
-
-  // HP display
-  const hpPct = Math.round(G.hp / G.maxHp * 100);
-  document.getElementById('shop-hp-text').textContent = `${Math.max(0, G.hp)} / ${G.maxHp}`;
-  document.getElementById('shop-hp-bar').style.width = hpPct + '%';
-  const pctEl = document.getElementById('shop-hp-pct');
-  pctEl.textContent = hpPct + '%';
-  pctEl.className = 'rest-hp-pct ' + (hpPct <= 30 ? 'hp-low' : hpPct <= 60 ? 'hp-mid' : 'hp-full');
-  const hpPanel = document.getElementById('shop-hp-text')?.closest('.rest-hp-panel');
-  if (hpPanel) hpPanel.classList.toggle('shop-hp-danger', hpPct <= 30);
-
-  // Gold
-  document.getElementById('shop-gold-display').textContent = G.gold;
-
-  // Items
-  const items = document.getElementById('shop-items');
-  items.innerHTML = '';
-  const pool = shuffle([...SHOP_ITEMS]).slice(0, 4);
-  const describeShopItem = (item) => {
-    if (item.name === 'Healing Potion') return 'Restore 20 HP to stabilize before the next fight.';
-    if (item.name === 'Card Removal') return 'Remove 1 card from your deck to improve future draws.';
-    if (item.name.includes('Die')) return item.desc + ' Changes your active die immediately.';
-    if (item.desc.startsWith('Add ')) return item.desc + ' Permanent deck addition.';
-    return item.desc;
-  };
-  pool.forEach((item, i) => {
-    const el = document.createElement('div');
-    el.className = 'shop-item';
-    el.id = `shop-item-${i}`;
-    const canAfford = G.gold >= item.cost;
-    if (!canAfford) el.classList.add('shop-item--locked');
-    el.setAttribute('aria-disabled', canAfford ? 'false' : 'true');
-    const shortfall = Math.max(0, item.cost - G.gold);
-    const stateText = canAfford ? 'Ready to buy' : `Need ${shortfall} more gold`;
-    el.innerHTML = `<span class="shop-item-emoji">${item.emoji}</span><div class="shop-item-name">${item.name}</div><div class="shop-item-desc">${describeShopItem(item)}</div><div class="shop-item-cost">🪙 ${item.cost}</div><div class="shop-item-state">${stateText}</div>`;
-    el.onclick = () => {
-      if (el.classList.contains('sold')) return;
-      if (G.gold < item.cost) { showMsg('Not enough gold!'); return; }
-      if (item.name === 'Card Removal') {
-        startShopRemovePick(item.cost, i);
-        return;
-      }
-      G.gold -= item.cost;
-      item.effect(G);
-      const boughtEl = document.getElementById(`shop-item-${i}`);
-      boughtEl.classList.add('sold');
-      boughtEl.setAttribute('aria-disabled', 'true');
-      const stateEl = boughtEl.querySelector('.shop-item-state');
-      if (stateEl) stateEl.textContent = 'Sold';
-      // refresh gold and HP displays
-      document.getElementById('shop-gold-display').textContent = G.gold;
-      const newPct = Math.round(G.hp / G.maxHp * 100);
-      document.getElementById('shop-hp-text').textContent = `${Math.max(0, G.hp)} / ${G.maxHp}`;
-      document.getElementById('shop-hp-bar').style.width = newPct + '%';
-      const shopPctEl = document.getElementById('shop-hp-pct');
-      shopPctEl.textContent = newPct + '%';
-      shopPctEl.className = 'rest-hp-pct ' + (newPct <= 30 ? 'hp-low' : newPct <= 60 ? 'hp-mid' : 'hp-full');
-      if (hpPanel) hpPanel.classList.toggle('shop-hp-danger', newPct <= 30);
-      renderShopDeck();
-      updateHUD();
-    };
-    items.appendChild(el);
-  });
-
-  renderShopDeck();
-}
-
-function renderShopDeck() {
-  const grid = document.getElementById('shop-deck-grid');
-  if (!grid) return;
-  grid.innerHTML = '';
-  const mode = G.shopPickMode || null;
-  const countEl = document.getElementById('shop-deck-count');
-  const pickRow = document.getElementById('shop-picking-row');
-  if (pickRow) pickRow.style.display = mode === 'remove' ? 'flex' : 'none';
-  countEl.textContent = mode === 'remove' ? `${G.deck.length} cards · Select one` : `${G.deck.length} cards`;
-
-  if (mode === 'remove') {
-    G.deck.forEach((key, idx) => {
-      const c = CARDS[key];
-      if (!c) return;
-      const isUpgraded = key.endsWith('+');
-      const el = document.createElement('div');
-      el.className = 'rest-deck-card selectable danger';
-      if (isUpgraded) el.style.borderColor = 'var(--gold)';
-      el.innerHTML = `
-        <span class="rest-deck-card-emoji">${c.emoji}</span>
-        <div>
-          <div class="rest-deck-card-name" style="color:${isUpgraded ? 'var(--gold2)' : ''}">${c.name}</div>
-          <div class="rest-deck-card-type">${c.type} · ⚡${c.cost}${isUpgraded ? ' · ✨' : ''}</div>
-        </div>
-      `;
-      el.onclick = () => confirmShopRemovePick(idx, key);
-      grid.appendChild(el);
-    });
-    return;
-  }
-
-  const counts = {};
-  G.deck.forEach(k => counts[k] = (counts[k] || 0) + 1);
-  [...new Set(G.deck)].forEach(key => {
-    const c = CARDS[key];
-    if (!c) return;
-    const el = document.createElement('div');
-    el.className = 'rest-deck-card';
-    const isUpgraded = key.endsWith('+');
-    el.innerHTML = `
-      <span class="rest-deck-card-emoji">${c.emoji}</span>
-      <div>
-        <div class="rest-deck-card-name" style="color:${isUpgraded ? 'var(--gold2)' : ''}">${c.name}${counts[key] > 1 ? ` x${counts[key]}` : ''}</div>
-        <div class="rest-deck-card-type">${c.type} · Cost ${c.cost}${isUpgraded ? ' · <span style="color:var(--gold)">✨ Upgraded</span>' : ''}</div>
-      </div>
-    `;
-    grid.appendChild(el);
-  });
-}
-
-function leavShop() { proceedDoors(); }
-
-function startShopRemovePick(cost, itemIndex) {
-  if (G.deck.length <= 3) { showMsg('Deck too small to remove cards!'); return; }
-  G.shopPickMode = 'remove';
-  G.shopPendingRemove = { cost, itemIndex };
-  document.querySelectorAll('.shop-item').forEach((el, idx) => {
-    const isPending = idx === itemIndex && !el.classList.contains('sold');
-    el.style.pointerEvents = isPending ? '' : 'none';
-    el.style.opacity = isPending ? '1' : '0.35';
-  });
-  showMsg('🗑️ Choose a card from your deck to remove.');
-  renderShopDeck();
-}
-
-function cancelShopRemovePick() {
-  G.shopPickMode = null;
-  G.shopPendingRemove = null;
-  document.querySelectorAll('.shop-item').forEach(el => {
-    el.style.pointerEvents = '';
-    el.style.opacity = '';
-  });
-  renderShopDeck();
-}
-
-function confirmShopRemovePick(deckIdx, key) {
-  if (G.shopPickMode !== 'remove' || !G.shopPendingRemove) return;
-  const { cost, itemIndex } = G.shopPendingRemove;
-  if (G.gold < cost) {
-    cancelShopRemovePick();
-    showMsg('Not enough gold!');
-    return;
-  }
-  G.gold -= cost;
-  G.deck.splice(deckIdx, 1);
-  const boughtEl = document.getElementById(`shop-item-${itemIndex}`);
-  if (boughtEl) {
-    boughtEl.classList.add('sold');
-    boughtEl.setAttribute('aria-disabled', 'true');
-    const stateEl = boughtEl.querySelector('.shop-item-state');
-    if (stateEl) stateEl.textContent = 'Sold';
-    boughtEl.style.pointerEvents = 'none';
-    boughtEl.style.opacity = '';
-  }
-  cancelShopRemovePick();
-  document.getElementById('shop-gold-display').textContent = G.gold;
-  showMsg(`${(CARDS[key] && CARDS[key].name) ? CARDS[key].name : key} removed from deck.`);
-  renderShopDeck();
-  updateHUD();
-}
-
-function showEvent() {
-  const ev = rand(EVENTS);
-  showScreen('event-screen');
-  document.getElementById('event-icon').textContent = ev.icon;
-  document.getElementById('event-title').textContent = ev.title;
-  document.getElementById('event-desc').textContent = ev.desc;
-  const ch = document.getElementById('event-choices');
-  ch.innerHTML = '';
-  ev.choices.forEach(c => {
-    const el = document.createElement('div');
-    el.className = 'event-choice';
-    el.innerHTML = `${c.text}${c.risk ? `<div class="event-choice-risk">⚠ ${c.risk}</div>` : ''}`;
-    el.onclick = () => c.effect(G);
-    ch.appendChild(el);
-  });
-}
-
-function removeCardFromDeck(g) {
-  // Legacy fallback: random removal when no picker UI is available.
-  if (g.deck.length <= 3) { showMsg('Deck too small to remove cards!'); return; }
-  const removable = g.deck.filter(k => k !== 'strike' && k !== 'defend');
-  if (removable.length === 0) { showMsg('No cards to remove!'); return; }
-  const toRemove = rand(removable);
-  const idx = g.deck.indexOf(toRemove);
-  g.deck.splice(idx, 1);
-  showMsg(`${(CARDS[toRemove] && CARDS[toRemove].name ? CARDS[toRemove].name : toRemove)} removed from deck.`);
-  setTimeout(proceedDoors, 800);
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// REWARD
-// ═══════════════════════════════════════════════════════════════════
-
-
-function showReward() {
-  showScreen('reward-screen');
-  const pool = document.getElementById('reward-choices');
-  pool.innerHTML = '';
-
-  // Build reward pool: 2 class-specific + 1 universal
-  const classPool = (CHAR_REWARD_POOLS[G.charKey] || []).filter(k => !G.char.starterDeck.includes(k) || G.deck.filter(x => x === k).length < 2);
-  const universalPool = UNIVERSAL_REWARD_CARDS.slice();
-
-  const classPicks = shuffle([...classPool]).slice(0, 2);
-  const universalPick = rand(universalPool);
-
-  // avoid duplicates across the 3 picks
-  const allPicks = [...new Set([...classPicks, universalPick])].slice(0, 3);
-  // pad if needed
-  while (allPicks.length < 3) {
-    const extra = rand(classPool);
-    if (!allPicks.includes(extra)) allPicks.push(extra);
-  }
-
-  allPicks.forEach(key => {
-    const c = CARDS[key];
-    if (!c) return;
-    const isUniversal = UNIVERSAL_REWARD_CARDS.includes(key);
-    const el = document.createElement('div');
-    el.className = 'reward-card';
-    el.innerHTML = `
-      <div class="card-cost">${c.cost}</div>
-      <span class="reward-card-emoji">${c.emoji}</span>
-      <div class="reward-card-name">${c.name}</div>
-      <div class="reward-card-type">${c.type}${isUniversal ? ' · Universal' : ''}</div>
-      <div class="reward-card-desc">${c.desc}</div>
-    `;
-    el.onclick = () => {
-      G.deck.push(key);
-      showMsg(`${c.name} added to deck!`);
-      if (G.needsPathSelect) { G.needsPathSelect = false; showPathSelect(); }
-      else proceedDoors();
-    };
-    pool.appendChild(el);
-  });
-
-  // die option — floor scales die quality
-  // Dice rewards are rare — only appear on elite/boss floors or by chance
-  const diceFloor = G.currentFloor;
-  const availableDice = Object.values(DICE_TYPES).filter(d => {
-    if (d.type === 'd6') return false; // always have d6, no point rewarding it
-    if (d.type === 'd20') return diceFloor >= 3; // legendary only floor 4
-    if (d.type === 'd12') return diceFloor >= 2;
-    if (d.type === 'd10') return diceFloor >= 1;
-    return true;
-  });
-  const dieOpt = rand(availableDice) || getDie('d8');
-  const currentDieData = getDie(G.activeDie);
-
-  const dieEl = document.createElement('div');
-  dieEl.className = 'reward-card';
-  dieEl.style.borderColor = '#b8860b';
-  dieEl.innerHTML = `
-    <span class="reward-card-emoji">${dieOpt.emoji}</span>
-    <div class="reward-card-name">${dieOpt.name}</div>
-    <div class="reward-card-type">${dieOpt.type} · Rare · Replaces your ${currentDieData.type}</div>
-    <div class="reward-card-desc">${dieOpt.desc}<br><br><span style="color:var(--text3);font-size:0.85em">Rolls 1–${dieOpt.max}. Your current die: ${currentDieData.type} (1–${currentDieData.max})</span></div>
-  `;
-  dieEl.onclick = () => {
-    G.activeDie = dieOpt.type;
-    G.diceMax = dieOpt.max;
-    showMsg(dieOpt.emoji + ' ' + dieOpt.name + ' equipped!');
-    if (G.needsPathSelect) { G.needsPathSelect = false; showPathSelect(); }
-    else proceedDoors();
-  };
-  pool.appendChild(dieEl);
-}
-
-function giveReward(g, type, rarity) {
-  if (type === 'die') {
-    const availDice = Object.values(DICE_TYPES).filter(d => d.type !== 'd6' && d.type !== G.activeDie);
-    const dieOpt = rand(availDice) || getDie('d8');
-    G.activeDie = dieOpt.type;
-    G.diceMax = dieOpt.max;
-    showMsg(dieOpt.emoji + ' ' + dieOpt.name + ' equipped!');
-    setTimeout(proceedDoors, 800);
-  } else {
-    showReward();
-  }
-}
-
-function skipReward() {
-  if (G.needsPathSelect) { G.needsPathSelect = false; showPathSelect(); }
-  else proceedDoors();
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// BOSS INTRO
-// ═══════════════════════════════════════════════════════════════════
-
-function launchFinalBoss() {
-  showScreen('combat-screen');
-  startAldricFight();
-}
-
-function showBossIntro(boss) {
-  showScreen('boss-intro-screen');
-  document.getElementById('boss-intro-sprite').textContent = boss.emoji;
-  document.getElementById('boss-intro-name').textContent = boss.name.toUpperCase();
-  document.getElementById('boss-intro-subtitle').textContent = boss.title;
-  document.getElementById('boss-intro-hint').textContent = boss.hint;
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// RENDER
 // ═══════════════════════════════════════════════════════════════════

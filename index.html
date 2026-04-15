@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+  <div class="status-tooltip" id="status-tooltip"></div>
 <div id="loading-indicator" style="position:fixed;inset:0;background:#0a0809;color:#c9a84c;font-family:Georgia,serif;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1rem;z-index:9999;">
   <div style="font-size:1.5rem">⚔</div>
   <div>Loading Castle Run...</div>
@@ -50,25 +51,19 @@
     <div class="hint-particles" id="hint-particles"></div>
 
     <div class="combat-hud">
-      <div class="hud-main-row">
-        <div>
-          <div class="hud-floor" id="hud-floor">FLOOR 1</div>
-          <div class="hud-room" id="hud-room">Room 1</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:0.8rem;">
-          <div class="cores-display" id="cores-display"></div>
-          <div style="font-size:0.8rem;color:var(--gold)">🪙 <span id="hud-gold">0</span></div>
-          <div style="font-size:0.8rem;color:var(--text2)">💀 <span id="hud-souls">0</span></div>
-          <div class="hud-combat-stats" id="hud-combat-stats">
-            <span style="color:var(--energy)">⚡<span id="hud-energy-val">3/3</span></span>
-            <span style="color:var(--text3)">📋<span id="hud-draw-val">0</span> 🗑<span id="hud-disc-val">0</span></span>
-          </div>
-        </div>
-        <div style="display:flex;gap:0.5rem;align-items:center;">
-          <button class="btn hud-map-btn" onclick="toggleMap()">🗺 MAP</button>
-          <button class="btn hud-map-btn" onclick="toggleDeckViewer()" style="border-color:var(--border2);color:var(--text2)">📋 DECK</button>
-          <button class="btn hud-menu-btn" onclick="toggleMenu()">☰</button>
-        </div>
+      <div>
+        <div class="hud-floor" id="hud-floor">FLOOR 1</div>
+        <div class="hud-room" id="hud-room">Room 1</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.8rem;">
+        <div class="cores-display" id="cores-display"></div>
+        <div style="font-size:0.8rem;color:var(--gold)">🪙 <span id="hud-gold">0</span></div>
+        <div style="font-size:0.8rem;color:var(--text2)">💀 <span id="hud-souls">0</span></div>
+      </div>
+      <div style="display:flex;gap:0.5rem;align-items:center;">
+        <button class="btn hud-map-btn" onclick="toggleMap()">🗺 MAP</button>
+        <button class="btn hud-map-btn" onclick="toggleDeckViewer()" style="border-color:var(--border2);color:var(--text2)">📋 DECK</button>
+        <button class="btn hud-menu-btn" onclick="toggleMenu()">☰</button>
       </div>
     </div>
 
@@ -79,7 +74,6 @@
         <div class="combatant-sprite" id="player-sprite">⚔️</div>
         <div class="combatant-info">
           <div class="combatant-name" id="player-name">HERO</div>
-          <div id="player-passive" class="passive-badge"></div>
           <div class="hp-bar-wrap">
             <div class="bar-label"><span>HP</span><span id="player-hp-text">80/80</span></div>
             <div class="bar-track"><div class="bar-fill hp-fill" id="player-hp-bar" style="width:100%"></div></div>
@@ -87,6 +81,14 @@
           <div class="combat-stat-row">
             <div class="block-display is-empty" id="player-block-display" aria-label="Block 0">
               <span class="block-display-icon">🛡</span>
+              <span class="block-display-value" id="player-block-text">0</span>
+            </div>
+            <div class="status-icons" id="player-status"></div>
+          </div>
+          <div class="hp-bar-wrap">
+            <div class="bar-label"><span>🛡</span><span id="player-block-text">0</span></div>
+            <div class="block-display is-empty" id="player-block-display" aria-label="Block 0">
+              <span class="block-display-icon">ðŸ›¡</span>
               <span class="block-display-value" id="player-block-text">0</span>
             </div>
             <div class="status-icons" id="player-status"></div>
@@ -114,42 +116,65 @@
             </div>
             <div class="status-icons" id="enemy-status"></div>
           </div>
+          <div class="hp-bar-wrap">
+            <div class="bar-label"><span>🛡</span><span id="enemy-block-text">0</span></div>
+            <div class="bar-track"><div class="bar-fill block-fill" id="enemy-block-bar" style="width:0%"></div></div>
+          </div>
+          <div class="status-icons" id="enemy-status"></div>
         </div>
       </div>
     </div>
-<div class="combat-controls">
+
     <div class="dice-panel">
       <!-- Current roll -->
       <div class="dice-display">
         <div class="die" id="current-die">?</div>
-        <div class="die-affinity-label" id="affinity-label">Roll to begin turn</div>
+        <div>
+          <div class="die-affinity-label" id="affinity-label">Roll to begin turn</div>
+          <div style="font-size:0.65rem;color:var(--text3)" id="die-type-label"></div>
+        </div>
       </div>
 
-      <!-- Dice pool -->
-      <div id="dice-pool-display" style="display:flex;gap:0.3rem;flex-wrap:wrap;justify-content:center;"></div>
+      <!-- Dice pool — shows all dice you own -->
+      <div style="display:flex;flex-direction:column;align-items:center;gap:0.2rem;">
+        <div style="font-size:0.6rem;color:var(--text3);letter-spacing:0.05em;text-transform:uppercase;">ACTIVE DIE</div>
+        <div style="font-size:0.58rem;color:var(--text3);font-style:italic;">tap to see bonus</div>
+        <div id="dice-pool-display" style="display:flex;gap:0.3rem;flex-wrap:wrap;justify-content:center;max-width:120px;"></div>
+      </div>
 
       <button class="btn reroll-btn" id="reroll-btn" onclick="useReroll()">🎲 REROLL</button>
       <div id="aldric-curse-indicator"></div>
+      <div class="energy-display">
+        <span>⚡</span>
+        <span id="energy-text">3</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:0.2rem;">
+        <div style="font-size:0.58rem;color:var(--text3);text-align:center;">
+          <span title="Cards in draw pile">📋 <span id="draw-count">0</span></span>
+          &nbsp;
+          <span title="Cards in discard pile">🗑 <span id="discard-count">0</span></span>
+        </div>
+      </div>
     </div>
-</div>
+
     <div class="hand-area" id="hand-area">
       <button class="btn end-turn-btn" onclick="endTurn()">END TURN</button>
-    </div>
-    <div id="dice-corner">
-      <div class="die" id="m-current-die">?</div>
-      <button class="btn reroll-btn" id="m-reroll-btn" onclick="useReroll()">🎲 REROLL (1)</button>
     </div>
   </div>
 
   <!-- REWARD -->
   <div id="reward-screen" class="screen">
     <h2 class="reward-title">VICTORY</h2>
-    <p class="reward-sub">Choose your reward — card or die</p>
-    <div class="reward-choices" id="reward-choices"></div>
-    <div class="reward-actions">
-      <button class="btn skip-btn reward-deck-btn" onclick="toggleDeckViewer()">📋 View Deck</button>
-      <button class="btn skip-btn" onclick="skipReward()">Skip Reward</button>
+    <div style="display:flex;gap:1.5rem;align-items:center;font-size:0.85rem;margin-bottom:0.5rem;">
+      <span style="color:var(--hp)">❤️ <span id="reward-hp"></span></span>
+      <span style="color:var(--energy)">🪙 <span id="reward-gold"></span></span>
+      <span style="color:var(--text2)">💀 <span id="reward-souls"></span></span>
+      <button class="btn" style="font-size:0.7rem;padding:0.3rem 0.8rem;" onclick="toggleDeckViewer()">📋 DECK</button>
+      <button class="btn" style="font-size:0.7rem;padding:0.3rem 0.8rem;" onclick="toggleMap()">🗺 MAP</button>
     </div>
+<p class="reward-sub">Choose your reward — card or die</p>
+    <div class="reward-choices" id="reward-choices"></div>
+    <button class="btn skip-btn" onclick="skipReward()">Skip Reward</button>
   </div>
 
   <!-- PATH SELECT — shown at start of each floor -->
@@ -160,7 +185,6 @@
     <div style="display:flex;align-items:center;gap:0.8rem;margin-top:0.5rem;">
       <p style="font-size:0.75rem;color:var(--text3);font-style:italic;">Icons show room types. Contents are revealed as you enter.</p>
     </div>
-    <button class="btn skip-btn" id="path-back-btn" onclick="backToCharSelect()" style="display:none;">← Back to Heroes</button>
   </div>
 
   <!-- PATH CONFIRM POPUP -->
@@ -230,6 +254,23 @@
     <!-- Shop items -->
     <div class="shop-items" id="shop-items"></div>
 
+    <!-- Relics for sale -->
+    <div class="rest-deck-section" id="shop-relics-section" style="width:min(700px,95vw);">
+      <div class="rest-deck-title"><span>RELICS</span></div>
+      <div id="shop-relics-grid" class="shop-items" style="justify-content:center;"></div>
+    </div>
+
+    <!-- Die for sale -->
+    <div class="rest-deck-section" id="shop-die-section" style="width:min(700px,95vw);">
+      <div class="rest-deck-title"><span>DICE</span></div>
+      <div id="shop-die-grid" class="shop-items" style="justify-content:center;"></div>
+    </div>
+
+    <!-- Card services -->
+    <div style="display:flex;gap:0.8rem;width:min(700px,95vw);justify-content:center;">
+      <button id="shop-remove-btn" class="btn" style="flex:1;font-size:0.85rem;" onclick="showShopRemove()">🗑 Remove Card (75🪙)</button>
+    </div>
+
     <!-- Deck viewer -->
     <div class="rest-deck-section" style="width:min(700px,95vw);">
       <div class="rest-deck-title">
@@ -240,6 +281,26 @@
     </div>
 
     <button class="btn shop-leave" onclick="leavShop()">Leave Shop</button>
+
+    <!-- Card removal modal -->
+    <div id="shop-remove-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:200;overflow-y:auto;padding:1.5rem 1rem;">
+      <div style="max-width:580px;margin:0 auto;">
+        <h3 style="font-family:'Cinzel',serif;color:var(--gold);text-align:center;margin-bottom:0.4rem;">REMOVE A CARD</h3>
+        <p style="color:var(--text2);text-align:center;font-size:0.85rem;margin-bottom:1rem;">Tap a card to permanently remove it. Cost: 75 🪙</p>
+        <div id="shop-remove-grid" class="rest-deck-grid"></div>
+        <button class="btn" onclick="closeShopModal('shop-remove-modal')" style="margin-top:1rem;width:100%;">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Card upgrade modal -->
+    <div id="shop-upgrade-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:200;overflow-y:auto;padding:1.5rem 1rem;">
+      <div style="max-width:580px;margin:0 auto;">
+        <h3 style="font-family:'Cinzel',serif;color:var(--gold);text-align:center;margin-bottom:0.4rem;">UPGRADE A CARD</h3>
+        <p style="color:var(--text2);text-align:center;font-size:0.85rem;margin-bottom:1rem;">Tap a card to upgrade it. Cost: 80 🪙</p>
+        <div id="shop-upgrade-grid" class="rest-deck-grid"></div>
+        <button class="btn" onclick="closeShopModal('shop-upgrade-modal')" style="margin-top:1rem;width:100%;">Cancel</button>
+      </div>
+    </div>
   </div>
 
   <!-- EVENT -->
@@ -266,7 +327,6 @@
     <h2 class="gameover-title">FALLEN</h2>
     <p class="gameover-sub">The castle claims another soul...</p>
     <p class="gameover-souls">Souls earned this run: <span id="gameover-souls">0</span></p>
-    <div class="gameover-summary" id="gameover-summary"></div>
     <button class="btn" style="margin-top:1rem" onclick="restartGame()">TRY AGAIN</button>
   </div>
 
@@ -292,15 +352,22 @@
       </div>
 
       <!-- Discard section -->
-      <div id="dv-discard-section" style="border-top:1px solid var(--border);padding-top:0.8rem;">
+      <div style="border-top:1px solid var(--border);padding-top:0.8rem;">
         <div style="font-family:Cinzel,serif;font-size:0.9rem;color:var(--text2);letter-spacing:0.08em;margin-bottom:0.6rem;display:flex;justify-content:space-between;">
           <span>🗑 DISCARD</span><span id="dv-discard-count" style="color:var(--text3);font-size:0.75rem"></span>
         </div>
         <div id="dv-discard-grid" style="display:flex;flex-wrap:wrap;gap:0.4rem;"></div>
       </div>
-
+ <!-- Exhaust section -->
+      <div style="border-top:1px solid var(--border);padding-top:0.8rem;margin-top:0.2rem;">
+        <div style="font-family:Cinzel,serif;font-size:0.9rem;color:#a07040;letter-spacing:0.08em;margin-bottom:0.6rem;display:flex;justify-content:space-between;">
+          <span>🔥 EXHAUSTED</span><span id="dv-exhaust-count" style="color:var(--text3);font-size:0.75rem"></span>
+        </div>
+        <div id="dv-exhaust-grid" style="display:flex;flex-wrap:wrap;gap:0.4rem;"></div>
+        <div style="font-size:0.65rem;color:var(--text3);font-style:italic;margin-top:0.3rem;">Returns to deck after combat.</div>
+      </div>
       <!-- Draw pile count -->
-      <div id="dv-battle-summary" style="border-top:1px solid var(--border);padding-top:0.6rem;margin-top:0.6rem;font-size:0.75rem;color:var(--text3);font-style:italic;text-align:center;">
+      <div style="border-top:1px solid var(--border);padding-top:0.6rem;margin-top:0.6rem;font-size:0.75rem;color:var(--text3);font-style:italic;text-align:center;">
         <span id="dv-draw-count"></span>
       </div>
     </div>
@@ -314,7 +381,6 @@
       <p style="font-size:0.8rem;color:var(--text2);font-style:italic">Your run will be lost if you return to the main menu.</p>
       <div style="display:flex;flex-direction:column;gap:0.6rem;width:100%;">
         <button class="btn" onclick="toggleMenu()" style="width:100%;font-size:0.85rem;padding:0.7rem">Continue Run</button>
-        <button class="btn" id="sfx-mute-btn" onclick="SFX.toggleMute()" style="width:100%;font-size:0.85rem;padding:0.7rem;border-color:var(--border2);color:var(--text2)">🔊 Sounds On</button>
         <button class="btn" onclick="confirmNewRun()" style="width:100%;font-size:0.85rem;padding:0.7rem;border-color:var(--red2);color:var(--red2)">↩ Back to Main Menu</button>
       </div>
     </div>
@@ -368,8 +434,6 @@
   </div>
 
   <div class="message-log" id="message-log"></div>
-</div>
-
 <script src="js/data.js"></script>
 <script src="js/game.js"></script>
 <script src="js/combat.js"></script>
