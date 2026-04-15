@@ -28,17 +28,17 @@
 | Floor Boss Hint System | ✅ Complete | ✅ In prototype |
 | Sir Crimson — Story Arc | ✅ Complete | ❌ Not built |
 | Sir Crimson — Fight | ✅ Complete (today) | ❌ Not built |
-| Relics — Common (10) | ✅ Complete | ❌ Not built |
-| Relics — Uncommon (10) | ✅ Complete | ❌ Not built |
-| Relics — Rare (10) | ✅ Complete (today) | ❌ Not built |
-| Relics — Character (15) | ✅ Complete (today) | ❌ Not built |
+| Relics — Common (10) | ✅ Complete | ✅ Built |
+| Relics — Uncommon (10) | ✅ Complete | ✅ Built |
+| Relics — Rare (10) | ✅ Complete | ✅ Built (void_compass, bone_key, shattered_mirror deferred) |
+| Relics — Character (15) | ✅ Complete | ❌ Not built |
 | Relics — True Ending (4) | ✅ Complete | ❌ Not built |
 | Boss Reward Relic Screen | ✅ Complete | ❌ Not built |
 | Consumables (10) | ✅ Complete | ❌ Not built |
 | Soul Meta-Progression Tree | ✅ Complete (partial) | ❌ Not built |
 | Core Passive Bonuses | ❌ Not designed | ❌ Not built |
-| Magic Door Exclusive Pool | ❌ Not designed | ❌ Not built |
-| Card Rarity / Reward Odds | ❌ Not designed | ❌ Not built |
+| Magic Door Exclusive Pool | ✅ Complete | ✅ Built |
+| Card Rarity / Reward Odds | ✅ Complete | ✅ Built |
 | Hand Size Decision | ❌ Not decided | ❌ Not built |
 
 ---
@@ -360,11 +360,11 @@ Categories: Gold events, HP-for-Gold trades, Curse card rewards, Risk events, Cl
 | Item | Notes |
 |---|---|
 | Sir Crimson encounter | Full fight + dialogue + story beats between floors |
-| Relic system in combat | None of the 35+ relics are active yet |
 | Boss reward relic choice screen | Pick 1 of 3 after each floor boss |
 | Consumable system | Carry/use from inventory during combat |
 | Soul meta-progression tree | UI + unlock system |
-| Magic Door exclusive pool | Dedicated events for Magic Doors only |
+| Enemy intent bug | Always starts on defend — fix pending |
+| Mobile UI polish | Intent overlap, dice area layout, selected card cutoff |
 
 ---
 
@@ -377,4 +377,4 @@ Categories: Gold events, HP-for-Gold trades, Curse card rewards, Risk events, Cl
 | Early 2026 | Enemy roster all 4 floors. Boss debuff system. 18 events. Economy. Consumables. |
 | Early 2026 | King Aldric 3-phase fight. True Ending relic system. Two endings locked. |
 | Early 2026 | GDD v0.5 → v0.7. Floor hint system. Sir Crimson story arc early design. |
-| April 2026 | Sir Crimson full arc locked. Rare relics (10) + Character relics (15) designed. PROGRESS.md created. All 5 hero card pools coded (Barbarian 24, Mage 27, Thief 26, Vampire 28, Gambler 26). All upgrade versions coded for all 5 heroes. Reward pool fix — now shows full card variety. Status display system overhauled — Rage/Weak/Vulnerable/Chill all update card preview numbers with color coding. Status tooltip system added — tap icon to see description. Exhaust pile viewer added to deck overlay. Exhaust cards return to deck after combat. Burn changed to stacks × 1 (matching Poison). Burn/Poison timing split — Burn before enemy acts, Poison after. Chill only ticks on attack turns. Cold Mastery correctly reduces Chill percentage. Entrench block carry fixed. Energy display changed to single number. Time Warp redesigned as draw-focused card. rollDice() updated with full Gambler mechanics. Vulnerable per-turn tick (not per-hit). |
+| April 2026 | Sir Crimson full arc locked. Rare relics (10) + Character relics (15) designed. PROGRESS.md created. All 5 hero card pools coded (Barbarian 24, Mage 27, Thief 26, Vampire 28, Gambler 26). All upgrade versions coded for all 5 heroes. Reward pool fix — now shows full card variety. Status display system overhauled — Rage/Weak/Vulnerable/Chill all update card preview numbers with color coding. Status tooltip system added — tap icon to see description. Exhaust pile viewer added to deck overlay. Exhaust cards return to deck after combat. Burn changed to stacks × 1 (matching Poison). Burn/Poison timing split — Burn before enemy acts, Poison after. Chill only ticks on attack turns. Cold Mastery correctly reduces Chill percentage. Entrench block carry fixed. Energy display changed to single number. Time Warp redesigned as draw-focused card. rollDice() updated with full Gambler mechanics. Vulnerable per-turn tick (not per-hit). Card Rarity System — CHAR_REWARD_POOLS restructured into common/uncommon/rare buckets for all 5 characters. Shared cards distributed correctly. curseddice removed. Pity timer added (G.rareOffset, caps at 35%). Elite rewards use separate odds 55/35/10. Scholar's Lens shows 4 reward options. Relic System — Full RELICS object built with 30 relics. hasRelic() helper added. All common and most uncommon/rare hooks wired into combat. healPlayer() routes all healing for pale_contract. shopCost() applies King's Debt multiplier. Deferred: bone_key, shattered_mirror, void_compass. Shop Overhaul — Relics section (2 relics, floor-gated by rarity). Die section (1 die, 80 gold). Card removal service (75 gold). Upgrade Card moved to rest stop only. Die Progression — Die removed from reward screen. Dice now from shop, Magic Door (25% chance, floor-gated), and events only. File Split — castle-run.html split into index.html + css/styles.css + js/data.js + js/combat.js + js/ui.js + js/game.js + js/main.js. GitHub Pages confirmed working. Mobile confirmed playable. |
