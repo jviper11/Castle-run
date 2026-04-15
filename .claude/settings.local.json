@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(wc -l C:/Users/JTejada/Documents/castle/Castle-run/index.html C:/Users/JTejada/Documents/castle/Castle-run/css/styles.css C:/Users/JTejada/Documents/castle/Castle-run/js/*.js)"
+      "Bash(wc -l C:/Users/JTejada/Documents/castle/Castle-run/index.html C:/Users/JTejada/Documents/castle/Castle-run/css/styles.css C:/Users/JTejada/Documents/castle/Castle-run/js/*.js)",
+      "Bash(powershell -Command \"Get-Content 'c:\\\\Users\\\\JTejada\\\\Documents\\\\castle\\\\Castle-run\\\\castle-run.html' | Select-Object -Skip 2909 -First 10\")",
+      "Bash(powershell -Command \"Get-Content 'c:\\\\Users\\\\JTejada\\\\Documents\\\\castle\\\\Castle-run\\\\castle-run.html' | Select-Object -Skip 2948 -First 15\")",
+      "Bash(powershell -Command \"Get-Content 'c:\\\\Users\\\\JTejada\\\\Documents\\\\castle\\\\Castle-run\\\\castle-run.html' | Select-Object -Skip 3520 -First 15\")"
     ]
   }
 }
