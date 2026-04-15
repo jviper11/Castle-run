@@ -376,6 +376,7 @@ function startCombat(isElite) {
 
   const e = { ...rand(pool) };
   G.enemy = { ...e, maxHp: e.hp, turnCount: 0 };
+  G.enemy.intent = 'attack';
   G.block = 0;
   G.statuses = { player: [], enemy: [] };
   G.exhaustedPile = [];
@@ -844,7 +845,7 @@ function endTurn() {
   }
 
   // ── STEP 10: Alternate enemy intent for next turn ──
-  G.enemy.intent = G.enemy.intent === 'attack' ? (Math.random() < 0.3 ? 'defend' : 'attack') : 'attack';
+  G.enemy.intent = Math.random() < 0.65 ? 'attack' : 'defend';
 
   // ── STEP 11: Discard hand, check end, start next turn ──
   G.discardPile.push(...G.hand);
