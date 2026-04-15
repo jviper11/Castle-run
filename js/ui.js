@@ -625,6 +625,8 @@ function giveReward(g, type, rarity) {
 }
 
 function skipReward() {
+  G.gold += 10;
+  showMsg('💰 Skipped — +10 Gold');
   if (G.needsPathSelect) { G.needsPathSelect = false; showPathSelect(); }
   else proceedDoors();
 }
