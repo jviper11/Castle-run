@@ -398,12 +398,6 @@ body {
 .status-tooltip.visible {
   opacity: 1;
 }
-#player-combatant .hp-bar-wrap:has(#player-status),
-#enemy-combatant .hp-bar-wrap:has(#enemy-block-bar),
-#enemy-combatant .combatant-info > .status-icons#enemy-status {
-  display: none;
-}
-
 .intent-box {
   background: rgba(26,18,20,0.9);
   border: 1px solid var(--border);
