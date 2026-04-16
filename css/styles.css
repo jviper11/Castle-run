@@ -2021,7 +2021,7 @@ body {
       min-height: auto;
       align-items: flex-end;
       justify-content: space-between;
-      padding-bottom: 0.35rem;
+      padding-bottom: 0.2rem;
       gap: 0.16rem;
     }
 
@@ -2086,7 +2086,8 @@ body {
     }
 
     #enemy-combatant .combatant-info {
-      padding-bottom: 0.18rem;
+      gap: 0.08rem;
+      padding-bottom: 0.08rem;
     }
 
     .intent-box {
@@ -2158,6 +2159,22 @@ body {
       bottom: calc(0.28rem + env(safe-area-inset-bottom, 0px));
       left: 0.38rem;
       transform: none;
+      gap: 0.16rem;
+      max-width: 58px;
+      padding: 0.14rem 0.18rem 0.16rem;
+    }
+
+    #dice-corner #m-current-die {
+      width: 34px;
+      height: 34px;
+      font-size: 0.96rem;
+    }
+
+    #dice-corner #m-reroll-btn {
+      max-width: 54px;
+      padding: 0.08rem 0.26rem;
+      font-size: 0.46rem;
+      line-height: 1;
     }
 
     .end-turn-btn {
@@ -2296,7 +2313,7 @@ body {
     .combat-arena {
       flex-direction: row;
       justify-content: space-between;
-      padding: 0 2.5% 0.38rem;
+      padding: 0 2.5% 0.22rem;
       gap: 0.2rem;
     }
 
@@ -2332,6 +2349,8 @@ body {
       top: auto;
       bottom: calc(0.16rem + env(safe-area-inset-bottom, 0px));
       transform: none;
+      gap: 0.14rem;
+      padding: 0.12rem 0.16rem 0.14rem;
     }
 
     .combatant-info {
