@@ -1953,14 +1953,13 @@ body {
 
     .combatant {
       gap: 0.14rem;
+      min-width: 0;
     }
 
     .combatant-sprite {
-      flex: 0 0 94px;
-      width: 78px;
-      height: 94px;
-      max-width: 78px;
-      max-height: 94px;
+      font-size: 3.5rem;
+      flex-shrink: 0;
+      line-height: 1;
     }
 
     .combatant-info {
@@ -2136,14 +2135,13 @@ body {
 
     .combatant {
       gap: 0.12rem;
+      min-width: 0;
     }
 
     .combatant-sprite {
-      flex: 0 0 90px;
-      width: 76px;
-      height: 90px;
-      max-width: 76px;
-      max-height: 90px;
+      font-size: 3rem;
+      flex-shrink: 0;
+      line-height: 1;
     }
 
     .combatant-info {
