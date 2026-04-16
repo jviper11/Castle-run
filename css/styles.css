@@ -1758,17 +1758,19 @@ body {
     touch-action: manipulation;
     overflow-x: hidden;
     overflow-y: hidden;
-    height: calc(var(--vh, 1vh) * 100);
     height: 100dvh;
+    height: calc(var(--vh, 1vh) * 100);
     min-height: 100dvh;
+    min-height: calc(var(--vh, 1vh) * 100);
     width: 100%;
     position: relative;
     overscroll-behavior-y: none;
   }
   #game {
-    height: calc(var(--vh, 1vh) * 100);
     height: 100dvh;
+    height: calc(var(--vh, 1vh) * 100);
     min-height: 100dvh;
+    min-height: calc(var(--vh, 1vh) * 100);
     width: 100%;
     overflow: hidden;
     position: relative;
@@ -1776,9 +1778,10 @@ body {
 
   /* All screens — fill game container, hidden by default */
   .screen {
-    height: calc(var(--vh, 1vh) * 100);
     height: 100dvh;
+    height: calc(var(--vh, 1vh) * 100);
     min-height: 100dvh;
+    min-height: calc(var(--vh, 1vh) * 100);
     width: 100%;
     position: absolute;
     top: 0; left: 0;
@@ -1805,8 +1808,11 @@ body {
     display: flex !important;
     flex-direction: column;
     min-height: 100dvh;
+    min-height: calc(var(--vh, 1vh) * 100);
     max-height: 100dvh;
+    max-height: calc(var(--vh, 1vh) * 100);
     height: 100dvh;
+    height: calc(var(--vh, 1vh) * 100);
     overflow: hidden;
     overscroll-behavior: none;
   }
@@ -1821,7 +1827,15 @@ body {
   .char-title { font-size: 1.3rem; }
 
   /* ── COMBAT SCREEN ── */
-  #combat-screen { height: 100dvh; min-height: 100dvh; max-height: 100dvh; overflow: hidden; }
+  #combat-screen {
+    height: 100dvh;
+    height: calc(var(--vh, 1vh) * 100);
+    min-height: 100dvh;
+    min-height: calc(var(--vh, 1vh) * 100);
+    max-height: 100dvh;
+    max-height: calc(var(--vh, 1vh) * 100);
+    overflow: hidden;
+  }
 
   .combat-hud { padding: 0.5rem 0.8rem; flex-wrap: wrap; gap: 0.3rem; }
   .hud-floor { font-size: 0.75rem; }
@@ -2034,7 +2048,9 @@ body {
       overflow-y: visible;
       gap: 0;
       margin-top: -2px;
-      padding: 0.18rem 112px calc(0.28rem + env(safe-area-inset-bottom, 0px)) 236px;
+      padding: 0.18rem clamp(88px, 13vw, 118px) calc(0.28rem + env(safe-area-inset-bottom, 0px)) clamp(160px, 24vw, 224px);
+      scroll-padding-left: clamp(160px, 24vw, 224px);
+      scroll-padding-right: clamp(88px, 13vw, 118px);
       overscroll-behavior-x: contain;
       overscroll-behavior-y: none;
       touch-action: pan-x;
@@ -2204,10 +2220,10 @@ body {
     }
 
     .combatant-sprite {
-      width: clamp(48px, 8vw, 70px) !important;
-      height: clamp(58px, 11vw, 84px) !important;
-      max-width: 70px;
-      max-height: 84px;
+      width: clamp(56px, 8vw, 76px) !important;
+      height: clamp(68px, 11vw, 90px) !important;
+      max-width: 76px;
+      max-height: 90px;
       font-size: 3rem;
       flex-shrink: 0;
       line-height: 1;
@@ -2284,7 +2300,9 @@ body {
       max-height: 82px;
       gap: 0;
       margin-top: -2px;
-      padding: 0.16rem 104px calc(0.12rem + env(safe-area-inset-bottom, 0px)) 236px;
+      padding: 0.16rem clamp(86px, 13vw, 108px) calc(0.12rem + env(safe-area-inset-bottom, 0px)) clamp(160px, 24vw, 224px);
+      scroll-padding-left: clamp(160px, 24vw, 224px);
+      scroll-padding-right: clamp(86px, 13vw, 108px);
     }
 
     .dice-panel {
