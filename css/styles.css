@@ -1852,13 +1852,25 @@ body {
   .status-icon-glyph { font-size: 0.58rem; }
   .status-icon-value { font-size: 0.62rem; }
 
-  /* Dice panel compact */
-  .dice-panel { gap: 0.8rem; padding: 0.5rem 0.8rem; flex-wrap: wrap; justify-content: space-between; }
-  .die { width: 48px; height: 48px; font-size: 1.4rem; }
-  .die-affinity-label { font-size: 0.7rem; color: var(--text); }
-  .reroll-btn { font-size: 0.8rem; padding: 0.35rem 0.8rem; }
-  .energy-pip { width: 12px; height: 12px; }
-  .energy-display { font-size: 0.75rem; gap: 0.3rem; }
+  /* Dice panel — single horizontal bar: die | affinity | active-die badge | reroll | energy | hand count */
+  .dice-panel {
+    gap: 0.4rem;
+    padding: 0.32rem 0.6rem;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .dice-display { gap: 0.28rem; flex-shrink: 0; }
+  .die { width: 36px; height: 36px; font-size: 1.05rem; }
+  .die-type { font-size: 0.44rem; }
+  .die-affinity-label { font-size: 0.58rem; color: var(--text); max-width: 68px; line-height: 1.2; }
+  /* Hide "ACTIVE DIE" and "tap to see bonus" text labels — keep only the die badge pill */
+  .dice-panel > div:nth-child(2) { flex-direction: row; align-items: center; gap: 0; }
+  .dice-panel > div:nth-child(2) > div:not(#dice-pool-display) { display: none; }
+  #dice-pool-display { max-width: 52px !important; }
+  .reroll-btn { font-size: 0.68rem; padding: 0.22rem 0.48rem; flex-shrink: 0; }
+  .energy-pip { width: 11px; height: 11px; }
+  .energy-display { font-size: 0.7rem; gap: 0.18rem; flex-shrink: 0; }
 
   /* Hand area — fills remaining space, cards scroll horizontally */
   .hand-area {
