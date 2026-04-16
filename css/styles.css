@@ -2002,8 +2002,12 @@ body {
       max-width: 78px;
       max-height: 94px;
       font-size: 3.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       flex-shrink: 0;
       line-height: 1;
+      overflow: hidden;
     }
 
     .combatant-info {
@@ -2083,7 +2087,12 @@ body {
     }
 
     .dice-display {
+      flex-direction: column;
       gap: 0.18rem;
+    }
+
+    .dice-display > div {
+      display: none;
     }
 
     .die-affinity-label {
@@ -2094,12 +2103,12 @@ body {
 
     .dice-panel .reroll-btn {
       min-height: unset;
-      height: auto;
+      height: 22px;
       max-width: 82px;
       white-space: nowrap;
       font-size: 0.5rem;
       line-height: 1.1;
-      padding: 0.08rem 0.34rem;
+      padding: 0 0.42rem;
     }
 
     .end-turn-btn {
@@ -2261,8 +2270,12 @@ body {
       max-width: 76px;
       max-height: 90px;
       font-size: 3rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       flex-shrink: 0;
       line-height: 1;
+      overflow: hidden;
     }
 
     .combatant-info {
@@ -2361,7 +2374,12 @@ body {
     }
 
     .dice-display {
+      flex-direction: column;
       gap: 0.14rem;
+    }
+
+    .dice-display > div {
+      display: none;
     }
 
     .die-affinity-label {
@@ -2372,12 +2390,12 @@ body {
 
     .dice-panel .reroll-btn {
       min-height: unset;
-      height: auto;
+      height: 20px;
       max-width: 76px;
       white-space: nowrap;
       font-size: 0.42rem;
       line-height: 1.08;
-      padding: 0.06rem 0.24rem;
+      padding: 0 0.28rem;
     }
 
     .end-turn-btn {
