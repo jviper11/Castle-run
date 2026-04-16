@@ -1830,6 +1830,10 @@ body {
   .hud-map-btn { font-size: 0.7rem; padding: 0.25rem 0.6rem; }
   .hud-menu-btn { font-size: 0.85rem; padding: 0.25rem 0.5rem; }
 
+  .dice-panel {
+    display: none !important;
+  }
+
   /* Arena — compact fixed height, no dead space */
   .combat-arena {
     flex-direction: column;
