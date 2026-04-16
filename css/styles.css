@@ -1961,8 +1961,8 @@ body {
 
     .combat-arena {
       flex-direction: row;
-      flex: 1 1 auto;
-      min-height: 0;
+      flex: 0 1 auto;
+      min-height: auto;
       align-items: flex-end;
       justify-content: space-between;
       padding-bottom: 0.35rem;
@@ -1994,7 +1994,10 @@ body {
 
     .combatant-info {
       flex: 0 0 96px;
+      width: 96px;
       height: 96px;
+      align-items: center;
+      justify-content: flex-start;
       gap: 0.14rem;
       overflow: visible;
     }
@@ -2003,11 +2006,12 @@ body {
       gap: 0.1rem;
     }
 
-    #player-combatant .combatant-name,
-    #player-combatant .hp-bar-wrap,
-    #player-combatant .status-icons,
-    #player-combatant .combat-stat-row {
+    .combatant-name,
+    .hp-bar-wrap,
+    .status-icons,
+    .combat-stat-row {
       width: 84px;
+      max-width: 84px;
     }
 
     #enemy-combatant .combatant-info {
@@ -2017,6 +2021,8 @@ body {
     .intent-box {
       padding: 0.16rem 0.3rem;
       margin-bottom: 0;
+      max-width: 84px;
+      align-self: center;
     }
 
     .hand-area {
@@ -2209,7 +2215,10 @@ body {
 
     .combatant-info {
       flex: 0 0 92px;
+      width: 92px;
       height: 92px;
+      align-items: center;
+      justify-content: flex-start;
       gap: 0.14rem;
     }
 
@@ -2239,11 +2248,12 @@ body {
       font-size: 0.66rem;
     }
 
-    #player-combatant .combatant-name,
-    #player-combatant .hp-bar-wrap,
-    #player-combatant .combat-stat-row,
-    #player-combatant .status-icons {
+    .combatant-name,
+    .hp-bar-wrap,
+    .combat-stat-row,
+    .status-icons {
       width: 82px;
+      max-width: 82px;
     }
 
     #player-combatant .combat-stat-row {
@@ -2263,6 +2273,8 @@ body {
       font-size: 0.5rem;
       padding: 0.18rem 0.34rem;
       margin-bottom: 0.08rem;
+      max-width: 82px;
+      align-self: center;
     }
 
     .hand-area {
