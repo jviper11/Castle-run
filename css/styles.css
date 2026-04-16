@@ -2091,7 +2091,7 @@ body {
       gap: 0.18rem;
     }
 
-    .dice-display > div {
+    .dice-display > div:not(.die) {
       display: none;
     }
 
@@ -2378,7 +2378,7 @@ body {
       gap: 0.14rem;
     }
 
-    .dice-display > div {
+    .dice-display > div:not(.die) {
       display: none;
     }
 
