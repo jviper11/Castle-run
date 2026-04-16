@@ -570,6 +570,7 @@ function checkAffinityHighlight(g, roll) {
     : affinityHint;
   document.getElementById('die-type-label').textContent = (g.currentDieType && g.currentDieType.type ? g.currentDieType.type : 'd6');
   renderHand();
+  syncMobileDice();
 }
 
 function checkAffinity(g, roll, affinity) {
