@@ -1758,19 +1758,17 @@ body {
     touch-action: manipulation;
     overflow-x: hidden;
     overflow-y: hidden;
-    height: 100dvh;
     height: calc(var(--vh, 1vh) * 100);
+    height: 100dvh;
     min-height: 100dvh;
-    min-height: calc(var(--vh, 1vh) * 100);
     width: 100%;
     position: relative;
     overscroll-behavior-y: none;
   }
   #game {
-    height: 100dvh;
     height: calc(var(--vh, 1vh) * 100);
+    height: 100dvh;
     min-height: 100dvh;
-    min-height: calc(var(--vh, 1vh) * 100);
     width: 100%;
     overflow: hidden;
     position: relative;
@@ -1778,10 +1776,9 @@ body {
 
   /* All screens — fill game container, hidden by default */
   .screen {
-    height: 100dvh;
     height: calc(var(--vh, 1vh) * 100);
+    height: 100dvh;
     min-height: 100dvh;
-    min-height: calc(var(--vh, 1vh) * 100);
     width: 100%;
     position: absolute;
     top: 0; left: 0;
@@ -1808,11 +1805,9 @@ body {
     display: flex !important;
     flex-direction: column;
     min-height: 100dvh;
-    min-height: calc(var(--vh, 1vh) * 100);
     max-height: 100dvh;
-    max-height: calc(var(--vh, 1vh) * 100);
-    height: 100dvh;
     height: calc(var(--vh, 1vh) * 100);
+    height: 100dvh;
     overflow: hidden;
     overscroll-behavior: none;
   }
@@ -1828,12 +1823,10 @@ body {
 
   /* ── COMBAT SCREEN ── */
   #combat-screen {
-    height: 100dvh;
     height: calc(var(--vh, 1vh) * 100);
+    height: 100dvh;
     min-height: 100dvh;
-    min-height: calc(var(--vh, 1vh) * 100);
     max-height: 100dvh;
-    max-height: calc(var(--vh, 1vh) * 100);
     overflow: hidden;
   }
 
