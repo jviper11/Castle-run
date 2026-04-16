@@ -1852,25 +1852,33 @@ body {
   .status-icon-glyph { font-size: 0.58rem; }
   .status-icon-value { font-size: 0.62rem; }
 
-  /* Dice panel — single horizontal bar: die | affinity | active-die badge | reroll | energy | hand count */
+  /* Dice panel — compact fixed widget, bottom-left corner above END TURN */
   .dice-panel {
-    gap: 0.4rem;
-    padding: 0.32rem 0.6rem;
+    position: fixed;
+    bottom: calc(44px + env(safe-area-inset-bottom, 0px));
+    left: 0;
+    width: auto;
+    flex-direction: row;
     flex-wrap: nowrap;
-    justify-content: space-between;
+    padding: 0.3rem 0.55rem;
+    gap: 0.4rem;
     align-items: center;
+    justify-content: flex-start;
+    background: rgba(10,8,9,0.94);
+    border-top: 1px solid var(--border2);
+    border-right: 1px solid var(--border2);
+    border-bottom: none;
+    border-left: none;
+    border-radius: 0 6px 0 0;
+    z-index: 90;
   }
-  .dice-display { gap: 0.28rem; flex-shrink: 0; }
+  /* Hide everything except the die display and reroll button */
+  .dice-panel > *:not(.dice-display):not(.reroll-btn) { display: none !important; }
+  .dice-display { gap: 0.25rem; }
   .die { width: 36px; height: 36px; font-size: 1.05rem; }
   .die-type { font-size: 0.44rem; }
-  .die-affinity-label { font-size: 0.58rem; color: var(--text); max-width: 68px; line-height: 1.2; }
-  /* Hide "ACTIVE DIE" and "tap to see bonus" text labels — keep only the die badge pill */
-  .dice-panel > div:nth-child(2) { flex-direction: row; align-items: center; gap: 0; }
-  .dice-panel > div:nth-child(2) > div:not(#dice-pool-display) { display: none; }
-  #dice-pool-display { max-width: 52px !important; }
-  .reroll-btn { font-size: 0.68rem; padding: 0.22rem 0.48rem; flex-shrink: 0; }
-  .energy-pip { width: 11px; height: 11px; }
-  .energy-display { font-size: 0.7rem; gap: 0.18rem; flex-shrink: 0; }
+  .die-affinity-label { font-size: 0.55rem; color: var(--text); max-width: 64px; line-height: 1.2; }
+  .reroll-btn { font-size: 0.65rem; padding: 0.2rem 0.45rem; }
 
   /* Hand area — fills remaining space, cards scroll horizontally */
   .hand-area {
@@ -1926,8 +1934,8 @@ body {
     color: var(--text);
     border-color: var(--red2);
   }
-  /* Push hand area up so End Turn doesn't overlap last card */
-  .hand-area { padding-bottom: 60px; }
+  /* Push hand area up so End Turn doesn't overlap last card; left padding clears the die widget */
+  .hand-area { padding-bottom: 60px; padding-left: 8px; }
 
   @media (max-width: 1100px) and (orientation: landscape) {
     #combat-screen.active {
