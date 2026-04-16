@@ -648,7 +648,7 @@ body {
   width: 60px;
   min-height: 72px;
   padding: 0.34rem 0.28rem 0.24rem;
-  transform: translateY(-8px);
+  transform: translateY(-4px);
   border-color: var(--gold);
   box-shadow: 0 8px 18px rgba(0,0,0,0.5), 0 0 12px rgba(201,168,76,0.22);
   z-index: 26;
@@ -1659,6 +1659,8 @@ body {
   gap: 1.5rem;
   background: radial-gradient(ellipse at 50% 50%, #2a0000 0%, var(--bg) 70%);
   z-index: 50;
+  overflow-y: auto;
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 1.5rem));
 }
 .boss-intro-label { font-size: 0.85rem; color: var(--red2); letter-spacing: 0.3em; text-transform: uppercase; font-family: 'Cinzel', serif; }
 .boss-intro-sprite { font-size: 6rem; animation: boss-appear 0.5s ease; filter: drop-shadow(0 0 20px rgba(192,57,43,0.5)); }
@@ -1836,7 +1838,7 @@ body {
   #enemy-combatant { order: 1; }
   #player-combatant { order: 2; }
 
-  .combatant { flex-direction: row; align-items: center; gap: 0.7rem; width: 100%; }
+  .combatant { flex-direction: row; align-items: flex-start; gap: 0.7rem; width: 100%; }
   .combatant-info { align-items: flex-start; gap: 0.25rem; flex: 1; min-width: 0; }
   .combatant-sprite { font-size: 3rem; flex-shrink: 0; line-height: 1; }
   .combatant-name { font-size: 0.78rem; }
@@ -1852,9 +1854,9 @@ body {
 
   /* Dice panel compact */
   .dice-panel { gap: 0.8rem; padding: 0.5rem 0.8rem; flex-wrap: wrap; justify-content: space-between; }
-  .die { width: 46px; height: 46px; font-size: 1.2rem; }
-  .die-affinity-label { font-size: 0.65rem; }
-  .reroll-btn { font-size: 0.75rem; padding: 0.35rem 0.8rem; }
+  .die { width: 48px; height: 48px; font-size: 1.4rem; }
+  .die-affinity-label { font-size: 0.7rem; color: var(--text); }
+  .reroll-btn { font-size: 0.8rem; padding: 0.35rem 0.8rem; }
   .energy-pip { width: 12px; height: 12px; }
   .energy-display { font-size: 0.75rem; gap: 0.3rem; }
 

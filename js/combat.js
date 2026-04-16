@@ -1028,6 +1028,7 @@ function applyStatus(g, target, name, stacks) {
   if (ex) ex.stacks += stacks;
   else arr.push({ name, stacks });
   renderAll();
+  checkAffinityHighlight(G, G.currentDie);
 }
 
 function drawCards(g, n) {
