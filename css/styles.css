@@ -1839,24 +1839,37 @@ body {
     flex-direction: column;
     align-items: center;
     gap: 0.2rem;
-    position: fixed;
-    bottom: calc(44px + 0.45rem + env(safe-area-inset-bottom, 0px));
+    position: absolute;
+    bottom: 0.45rem;
     left: 0.5rem;
-    z-index: 101;
+    z-index: 20;
     padding: 0.16rem 0.2rem 0.18rem;
     border: 1px solid rgba(90,58,60,0.14);
     border-radius: 12px;
     background: linear-gradient(180deg, rgba(18,13,15,0.52), rgba(11,8,10,0.66));
     box-shadow: 0 4px 10px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.03);
+    width: max-content;
+    max-width: 62px;
+    box-sizing: border-box;
   }
-  #dice-corner .die {
+  #dice-corner > * {
+    flex: 0 0 auto;
+  }
+  #dice-corner #m-current-die {
     width: 36px;
     height: 36px;
     min-height: unset;
     font-size: 1rem;
     border-width: 1px;
+    box-sizing: border-box;
   }
-  #dice-corner .reroll-btn {
+  #dice-corner #m-reroll-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    max-width: 58px;
+    min-width: 0;
     min-height: unset;
     height: auto;
     padding: 0.1rem 0.35rem;
@@ -1865,6 +1878,11 @@ body {
     color: rgba(232,221,208,0.76);
     box-shadow: none;
     font-size: 0.5rem;
+    line-height: 1.05;
+    letter-spacing: 0.02em;
+    white-space: normal;
+    text-align: center;
+    box-sizing: border-box;
   }
 
   /* Arena — compact fixed height, no dead space */
