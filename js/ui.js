@@ -689,20 +689,27 @@ function renderHP() {
   }
 }
 
-function formatCompactClause(clause) {
+function formatCompactDamage(amount, applyDamagePreview) {
+  const base = parseInt(amount, 10);
+  if (!applyDamagePreview || typeof calculatePlayerAttackDamage !== 'function') return base;
+  return calculatePlayerAttackDamage(G, base);
+}
+
+function formatCompactClause(clause, options = {}) {
   if (!clause) return '';
   const clean = clause.replace(/\.$/, '').replace(/\s+/g, ' ').trim();
+  const applyDamagePreview = !!options.applyDamagePreview;
   let match = clean.match(/^Deal (\d+) dmg twice$/i);
-  if (match) return `${match[1]} dmg x2`;
+  if (match) return `${formatCompactDamage(match[1], applyDamagePreview)} dmg x2`;
 
   match = clean.match(/^Deal (\d+) dmg to enemy (\d+) times$/i);
-  if (match) return `${match[1]} dmg x${match[2]}`;
+  if (match) return `${formatCompactDamage(match[1], applyDamagePreview)} dmg x${match[2]}`;
 
   match = clean.match(/^Deal (\d+) dmg, heal (\d+) HP$/i);
-  if (match) return `${match[1]} dmg + ${match[2]} heal`;
+  if (match) return `${formatCompactDamage(match[1], applyDamagePreview)} dmg + ${match[2]} heal`;
 
   match = clean.match(/^Deal (\d+) damage?$/i) || clean.match(/^Deal (\d+) dmg$/i);
-  if (match) return `Deal ${match[1]} dmg`;
+  if (match) return `Deal ${formatCompactDamage(match[1], applyDamagePreview)} dmg`;
 
   match = clean.match(/^Gain (\d+) Block$/i);
   if (match) return `Gain ${match[1]} Block`;
@@ -741,13 +748,13 @@ function formatCompactClause(clause) {
   if (match) return `${match[1]} Block +${match[2]} Draw`;
 
   match = clean.match(/^Deal (\d+) \+ burn$/i);
-  if (match) return `${match[1]} dmg + Burn`;
+  if (match) return `${formatCompactDamage(match[1], applyDamagePreview)} dmg + Burn`;
 
   match = clean.match(/^Deal (\d+) \+ chill$/i);
-  if (match) return `${match[1]} dmg + Chill`;
+  if (match) return `${formatCompactDamage(match[1], applyDamagePreview)} dmg + Chill`;
 
   match = clean.match(/^Roll 4-6: deal (\d+)\. Roll 2-3: deal (\d+)$/i);
-  if (match) return `${match[2]}-${match[1]} gamble`;
+  if (match) return `${formatCompactDamage(match[2], applyDamagePreview)}-${formatCompactDamage(match[1], applyDamagePreview)} gamble`;
 
   return clean
     .replace(/damage/ig, 'dmg')
@@ -759,14 +766,15 @@ function getCompactCardSummary(card) {
   if (!card || !card.desc) return '';
   const desc = card.desc.replace(/\s+/g, ' ').trim();
   const parts = desc.split(/\.\s+/).map(part => part.replace(/\.$/, '').trim()).filter(Boolean);
-  const base = formatCompactClause(parts[0] || desc);
+  const applyDamagePreview = card.type === 'Attack';
+  const base = formatCompactClause(parts[0] || desc, { applyDamagePreview });
   if (!card.dice || !card.affinityBonus) return base;
 
   const bonusPrefix = `${card.affinityBonus}:`;
   const bonusClause = parts.find(part => part.toLowerCase().startsWith(bonusPrefix));
   if (!bonusClause) return base;
 
-  const bonusText = formatCompactClause(bonusClause.slice(bonusPrefix.length).trim());
+  const bonusText = formatCompactClause(bonusClause.slice(bonusPrefix.length).trim(), { applyDamagePreview });
   const bonusLabel = String(card.affinityBonus).charAt(0).toUpperCase() + String(card.affinityBonus).slice(1);
   return `${base}<span class="card-compact-bonus">${bonusText} ${bonusLabel}</span>`;
 }
