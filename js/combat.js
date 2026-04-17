@@ -914,6 +914,7 @@ function playAttackAnimation({ attackerEl, targetEl, style = 'slash' }) {
 
 function calculatePlayerAttackDamage(g, amount, options = {}) {
   const consume = !!options.consume;
+  const enemyStatuses = (g.statuses && g.statuses.enemy) || [];
 
   // Phantom Blade — first attack this combat deals +8
   if (!g.phantomBladeFired && hasRelic('phantom_blade')) {
@@ -940,7 +941,7 @@ function calculatePlayerAttackDamage(g, amount, options = {}) {
     }
   }
   // Also apply Vulnerable — enemy takes 50% more damage
-  const enemyVuln = g.statuses.enemy.find(s => s.name === '🫗Vulnerable');
+  const enemyVuln = enemyStatuses.find(s => s.name === '🫗Vulnerable' || s.name === 'Vulnerable' || String(s.name).includes('Vulnerable'));
   if (enemyVuln && enemyVuln.stacks > 0) {
     amount = Math.floor(amount * 1.5);
   }
