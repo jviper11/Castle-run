@@ -834,12 +834,8 @@ function renderHand() {
     if (!canPlay) el.classList.add('unplayable');
 
     // Build dynamic description
-    const rageStatus = G.statuses && G.statuses.player && G.statuses.player.find(s => s.name === '💢Rage');
-    const rageBonus = (c.type === 'Attack' && rageStatus && rageStatus.stacks > 0) ? rageStatus.stacks : 0;
     const weakStatus2 = G.statuses && G.statuses.player && G.statuses.player.find(s => s.name === '😵Weak');
     const isWeak2 = c.type === 'Attack' && weakStatus2 && weakStatus2.stacks > 0;
-    const vulnStatus = G.statuses && G.statuses.enemy && G.statuses.enemy.find(s => s.name === '🫗Vulnerable');
-    const isVuln = c.type === 'Attack' && vulnStatus && vulnStatus.stacks > 0;
     let displayDesc = c.desc;
     const compactSummary = getCompactCardSummary(c);
     const previewConditionText = c.dice ? `🎲 ${getAffinityPreviewLabel(c.affinityBonus)}` : '';
@@ -847,38 +843,15 @@ function renderHand() {
       ? `🎲 ${affinityActive ? 'Bonus Active!' : `${String(c.affinityBonus || '').toUpperCase()} roll bonus`}`
       : '';
     const previewPlayHint = canPlay ? 'Tap selected card again to play' : `Need ${actualCost} Energy`;
- if (isVuln && rageBonus > 0 && !isWeak2) {
-  // Rage + Vulnerable — gold
-  displayDesc = c.desc.replace(/deal (\d+)/gi, (match, num) => {
-    const final = Math.floor((parseInt(num) + rageBonus) * 1.5);
-    return 'deal <span style="color:#e8d080;font-weight:bold">' + final + '</span>';
-  });
-} else if (isVuln && !isWeak2 && rageBonus === 0) {
-  // Vulnerable only — orange
-  displayDesc = c.desc.replace(/deal (\d+)/gi, (match, num) => {
-    const final = Math.floor(parseInt(num) * 1.5);
-    return 'deal <span style="color:#e67e22;font-weight:bold">' + final + '</span>';
-  });
-} else if (rageBonus > 0 && !isWeak2 && !isVuln) {
-  // Rage only — red
-  displayDesc = c.desc.replace(/deal (\d+)/gi, (match, num) => {
-    const boosted = parseInt(num) + rageBonus;
-    return 'deal <span style="color:#e74c3c;font-weight:bold">' + boosted + '</span>';
-  });
-} else if (isWeak2 && rageBonus === 0) {
-  // Weak only — blue with strikethrough
-  displayDesc = c.desc.replace(/deal (\d+)/gi, (match, num) => {
-    const reduced = Math.floor(parseInt(num) * 0.75);
-    return 'deal <span style="color:#7fb3d3;font-weight:bold">' + reduced + '</span> <span style="text-decoration:line-through;opacity:0.5;font-size:0.85em">' + num + '</span>';
-  });
-} 
-else if (isWeak2 && rageBonus > 0) {
-  // Weak + Rage — blue (weak wins visually)
-  displayDesc = c.desc.replace(/deal (\d+)/gi, (match, num) => {
-    const final = Math.floor((parseInt(num) + rageBonus) * 0.75);
-    return 'deal <span style="color:#7fb3d3;font-weight:bold">' + final + '</span>';
-  });
-}
+    if (c.type === 'Attack') {
+      displayDesc = c.desc.replace(/deal (\d+)/gi, (match, num) => {
+        const base = parseInt(num, 10);
+        const shown = calculatePlayerAttackDamage(G, base);
+        if (shown === base) return match;
+        const color = shown > base ? '#e74c3c' : '#7fb3d3';
+        return 'deal <span style="color:' + color + ';font-weight:bold">' + shown + '</span> <span style="text-decoration:line-through;opacity:0.5;font-size:0.85em">' + base + '</span>';
+      });
+    }
 
 if (key === 'arcanebarrage' || key === 'arcanebarrage+') {
   const spells = G._spellsThisTurn || 0;
@@ -886,9 +859,11 @@ if (key === 'arcanebarrage' || key === 'arcanebarrage+') {
   const isPlus = key === 'arcanebarrage+';
   const base = isPlus ? (isHigh ? 6 : 4) : (isHigh ? 5 : 3);
   const perSpell = isPlus ? 2 : 1;
-  const total = base + (spells * perSpell);
-  const color = spells > 0 ? '#e8d080' : 'inherit';
-  displayDesc = `Deal <span style="color:${color};font-weight:bold">${total}</span> dmg <span style="color:var(--text3);font-size:0.85em">(+${perSpell} × ${spells} Skill/Power)</span>. ${isHigh ? '✨ High active.' : 'High: deal more.'}`;
+  const rawTotal = base + (spells * perSpell);
+  const total = calculatePlayerAttackDamage(G, rawTotal);
+  const color = total !== rawTotal ? (total > rawTotal ? '#e74c3c' : '#7fb3d3') : (spells > 0 ? '#e8d080' : 'inherit');
+  const originalText = total !== rawTotal ? ` <span style="text-decoration:line-through;opacity:0.5;font-size:0.85em">${rawTotal}</span>` : '';
+  displayDesc = `Deal <span style="color:${color};font-weight:bold">${total}</span>${originalText} dmg <span style="color:var(--text3);font-size:0.85em">(+${perSpell} × ${spells} Skill/Power)</span>. ${isHigh ? '✨ High active.' : 'High: deal more.'}`;
 }
 
     const weakIndicator = isWeak2 ? '<div style="font-size:0.5rem;color:#7fb3d3;text-align:center;margin-top:0.1rem;">😵 WEAK</div>' : '';

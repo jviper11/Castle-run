@@ -911,42 +911,59 @@ function playAttackAnimation({ attackerEl, targetEl, style = 'slash' }) {
     setTimeout(() => animateHit(targetEl), 120);
   }
 }
+
+function calculatePlayerAttackDamage(g, amount, options = {}) {
+  const consume = !!options.consume;
+
+  // Phantom Blade — first attack this combat deals +8
+  if (!g.phantomBladeFired && hasRelic('phantom_blade')) {
+    amount += 8;
+    if (consume) g.phantomBladeFired = true;
+  }
+  // Apply player Strength/Rage bonus to all attacks
+  const playerRage = g.statuses.player.find(s => s.name === '💢Rage');
+  if (playerRage && playerRage.stacks > 0) {
+    amount += playerRage.stacks;
+  }
+  // d8 Hunter's Die: odd rolls deal +2 bonus damage
+  const activeDieBonus = getDie(g.activeDie);
+  if (activeDieBonus.bonus === 'odd_dmg' && g.currentDie && g.currentDie % 2 !== 0) {
+    amount += 2;
+  }
+  // Apply Weak — player deals 25% less damage
+  const playerWeak = g.statuses.player.find(s => s.name === '😵Weak');
+  if (playerWeak && playerWeak.stacks > 0) {
+    amount = Math.floor(amount * 0.75);
+    if (consume) {
+      playerWeak.stacks--;
+      if (playerWeak.stacks <= 0) g.statuses.player = g.statuses.player.filter(s => s.name !== '😵Weak');
+    }
+  }
+  // Also apply Vulnerable — enemy takes 50% more damage
+  const enemyVuln = g.statuses.enemy.find(s => s.name === '🫗Vulnerable');
+  if (enemyVuln && enemyVuln.stacks > 0) {
+    amount = Math.floor(amount * 1.5);
+  }
+  // Pale Contract — all player attacks deal +4 damage
+  if (hasRelic('pale_contract')) amount += 4;
+  // Gilded Quill — 10th card played this combat deals double damage
+  if (g._gildedQuillActive) {
+    amount *= 2;
+    if (consume) {
+      g._gildedQuillActive = false;
+      showMsg('🪶 Gilded Quill — double damage!');
+    }
+  }
+
+  return amount;
+}
+
 function dealDamage(g, target, amount) {
   const playerEl = document.getElementById('player-combatant');
   const enemyEl = document.getElementById('enemy-combatant');
 
   if (target === 'enemy' && g.enemy) {
-    // Phantom Blade — first attack this combat deals +8
-    if (!g.phantomBladeFired && hasRelic('phantom_blade')) {
-      amount += 8;
-      g.phantomBladeFired = true;
-    }
-    // Apply player Strength/Rage bonus to all attacks
-    const playerRage = g.statuses.player.find(s => s.name === '💢Rage');
-    if (playerRage && playerRage.stacks > 0) {
-      amount += playerRage.stacks;
-    }
-    // d8 Hunter's Die: odd rolls deal +2 bonus damage
-    const activeDieBonus = getDie(g.activeDie);
-    if (activeDieBonus.bonus === 'odd_dmg' && g.currentDie && g.currentDie % 2 !== 0) {
-      amount += 2;
-    }
-    // Apply Weak — player deals 25% less damage
-    const playerWeak = g.statuses.player.find(s => s.name === '😵Weak');
-    if (playerWeak && playerWeak.stacks > 0) {
-      amount = Math.floor(amount * 0.75);
-      playerWeak.stacks--;
-      if (playerWeak.stacks <= 0) g.statuses.player = g.statuses.player.filter(s => s.name !== '😵Weak');
-    }
-    // Also apply Vulnerable — enemy takes 50% more damage
-   const enemyVuln = g.statuses.enemy.find(s => s.name === '🫗Vulnerable');
-    if (enemyVuln && enemyVuln.stacks > 0) {
-    amount = Math.floor(amount * 1.5);
-}
-    // Pale Contract — all player attacks deal +4 damage
-    if (hasRelic('pale_contract')) amount += 4;
-    // Gilded Quill — 10th card played this combat deals double damage
-    if (g._gildedQuillActive) { amount *= 2; g._gildedQuillActive = false; showMsg('🪶 Gilded Quill — double damage!'); }
+    amount = calculatePlayerAttackDamage(g, amount, { consume: true });
     const pen = Math.max(0, amount - g.enemy.block);
     g.enemy.block = Math.max(0, g.enemy.block - amount);
     g.enemy.hp -= pen;
