@@ -239,16 +239,40 @@ body {
 }
 
 /* HUD */
+#combat-screen { --combat-bottom-hud-height: 156px; }
 .combat-hud {
   position: relative;
   z-index: 10;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
+  gap: 1rem;
   padding: 0.6rem 1.2rem;
   background: rgba(10,8,9,0.9);
   border-bottom: 1px solid var(--border);
 }
+.combat-hud-left,
+.combat-hud-center,
+.combat-hud-right {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.combat-hud-left { gap: 0.8rem; }
+.combat-hud-center { justify-content: center; gap: 0.8rem; white-space: nowrap; }
+.combat-hud-right { justify-content: flex-end; gap: 0.5rem; }
+.hud-location { flex: 0 0 auto; }
+.hud-relics {
+  min-width: 0;
+  max-width: min(220px, 22vw);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+.hud-relics::-webkit-scrollbar { display: none; }
+.hud-resource { font-size: 0.78rem; color: var(--text2); }
+.hud-gold { color: var(--gold); }
+.hud-souls { color: var(--text2); }
 .hud-floor { font-family: 'Cinzel', serif; font-size: 0.85rem; color: var(--gold); letter-spacing: 0.1em; }
 .hud-room { font-size: 0.8rem; color: var(--text2); font-style: italic; }
 .hud-map-btn { font-size: 0.75rem; padding: 0.3rem 0.8rem; }
@@ -441,29 +465,64 @@ body {
 
 /* Canonical bottom combat HUD controls */
 .dice-panel {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 38px 18px;
   position: relative;
   z-index: 1;
-  flex: 0 0 auto;
+    flex: 0 0 76px;
+    width: 76px;
+    height: 64px;
+    transform: scale(1.32);
+    transform-origin: center;
+    align-self: center;
+  align-content: center;
   align-items: center;
-  justify-content: flex-start;
-  gap: 0.55rem;
-  padding: 0.45rem 0.65rem;
-  background: rgba(18,13,15,0.72);
-  border: 1px solid rgba(90,58,60,0.45);
-  border-radius: 6px;
+  gap: 0.12rem;
+  padding: 0.12rem;
+  box-sizing: border-box;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
 }
 .dice-pool-panel {
   display: none !important;
 }
+.dice-panel #aldric-curse-indicator.visible {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 0.2rem);
+  margin: 0;
+  white-space: nowrap;
+}
 
 .dice-display {
+  grid-column: 1;
+  grid-row: 1;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: center;
+  gap: 0;
+  min-width: 0;
+  position: relative;
+  overflow: visible;
+}
+.dice-display > div:not(.die) {
+  position: absolute;
+  left: calc(50% + 18px);
+  top: 1px;
+  width: 26px;
+  height: 34px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  text-align: center;
 }
 .die {
-  width: 52px; height: 52px;
+  width: 34px; height: 34px;
   background: var(--panel);
   border: 2px solid var(--border2);
   border-radius: 8px;
@@ -471,7 +530,7 @@ body {
   align-items: center;
   justify-content: center;
   font-family: 'Cinzel', serif;
-  font-size: 1.4rem;
+    font-size: 1.1rem;
   font-weight: 900;
   color: var(--gold);
   position: relative;
@@ -494,9 +553,56 @@ body {
   color: var(--gold2);
 }
 .die-type { font-size: 0.6rem; color: var(--text3); position: absolute; bottom: 2px; right: 4px; }
-.die-affinity-label { font-size: 0.7rem; color: var(--text2); font-style: italic; }
+#die-type-label {
+    font-size: 0.43rem !important;
+  line-height: 1;
+  text-align: center;
+}
+.die-affinity-label {
+  width: 26px;
+  height: 15px;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+    font-size: 0.5rem;
+  color: var(--text2);
+  font-style: italic;
+  line-height: 1.05;
+  overflow: hidden;
+}
+.affinity-primary,
+.affinity-state {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.affinity-state {
+  width: 7px;
+  min-height: 1em;
+  font-size: 0.9em;
+  color: var(--text3);
+  visibility: hidden;
+}
+.affinity-state.active {
+  color: var(--gold2);
+  visibility: visible;
+}
 
-.reroll-btn { font-size: 0.8rem; padding: 0.4rem 1rem; }
+.reroll-btn {
+  grid-column: 1;
+  grid-row: 2;
+  justify-self: center;
+  width: auto;
+  min-width: 68px;
+  height: 18px;
+  min-height: 0;
+    font-size: 0.5rem;
+  padding: 0 0.28rem;
+  white-space: nowrap;
+}
 .reroll-btn:disabled { opacity: 0.3; cursor: not-allowed; border-color: var(--border); color: var(--text3); }
 .reroll-btn:disabled:hover { color: var(--text3); }
 .reroll-btn:disabled::before { display: none; }
@@ -520,50 +626,73 @@ body {
 
 /* hand */
 .hand-area {
+  --card-hover-reserve: 20px;
   position: relative;
   z-index: 10;
-  flex: 0 0 auto;
+  flex: 0 0 var(--combat-bottom-hud-height);
+  height: var(--combat-bottom-hud-height);
+  min-height: var(--combat-bottom-hud-height);
+  max-height: var(--combat-bottom-hud-height);
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: stretch;
   gap: 0.75rem;
-  padding: 0.6rem 1rem 0.8rem;
+  padding: 0.15rem 1rem;
   background: rgba(10,8,9,0.9);
   border-top: 1px solid rgba(90,58,60,0.55);
   box-shadow: inset 0 10px 18px rgba(0,0,0,0.22);
-  min-height: 120px;
+  box-sizing: border-box;
+  overflow: visible;
 }
-.combat-resources {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.2rem;
+.hand-viewport {
+  min-width: 0;
+  height: 100%;
+  position: relative;
+  overflow: visible;
 }
 .hand-scroll {
+  position: absolute;
+  top: calc(-1 * var(--card-hover-reserve));
+  right: 0;
+  bottom: 0;
+  left: 0;
   min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.card-stage {
+  width: max-content;
+  min-width: 100%;
+  height: 100%;
   display: flex;
   align-items: flex-end;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.2rem 0.35rem 0.1rem;
-  overflow-x: auto;
-  overflow-y: hidden;
+  padding: var(--card-hover-reserve) 0.5rem 0.15rem;
+  box-sizing: border-box;
   flex-wrap: nowrap;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
 }
 .hand-scroll::-webkit-scrollbar { display: none; }
 
 .card {
   width: 95px;
+  height: 128px;
+  min-height: 128px;
+  max-height: 128px;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 0.5rem;
+  box-sizing: border-box;
   cursor: pointer;
   transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
   position: relative;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 .card:hover {
   transform: translateY(-16px) scale(1.05);
@@ -625,16 +754,80 @@ body {
   align-items: center;
   justify-content: center;
 }
-.card-emoji { font-size: 1.4rem; display: block; text-align: center; margin: 0.3rem 0 0.2rem; }
-.card-name { font-family: 'Cinzel', serif; font-size: 0.6rem; font-weight: 600; color: var(--gold); text-align: center; letter-spacing: 0.03em; line-height: 1.2; }
-.card-type { font-size: 0.55rem; color: var(--text3); text-align: center; margin-top: 0.15rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.card-emoji {
+  flex: 0 0 24px;
+  height: 24px;
+  font-size: 1.4rem;
+  display: block;
+  text-align: center;
+  margin: 0.15rem 0 0.1rem;
+  line-height: 24px;
+}
+.card-name {
+  flex: 0 0 2.4em;
+  height: 2.4em;
+  font-family: 'Cinzel', serif;
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--gold);
+  text-align: center;
+  letter-spacing: 0.03em;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.card-type {
+  flex: 0 0 1.1em;
+  height: 1.1em;
+  font-size: 0.55rem;
+  color: var(--text3);
+  text-align: center;
+  margin-top: 0.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .card-compact-summary { display: none; }
-.card-desc { font-size: 0.6rem; color: var(--text2); text-align: center; margin-top: 0.3rem; line-height: 1.3; }
-.card-dice-req { font-size: 0.55rem; color: var(--gold); text-align: center; margin-top: 0.2rem; font-style: italic; }
+.card-desc {
+  flex: 1 1 auto;
+  min-height: 0;
+  font-size: 0.56rem;
+  color: var(--text2);
+  text-align: center;
+  margin-top: 0.2rem;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+}
+.card-dice-req {
+  flex: 0 0 2.1em;
+  height: 2.1em;
+  font-size: 0.52rem;
+  color: var(--gold);
+  text-align: center;
+  margin-top: auto;
+  padding-top: 0.12rem;
+  font-style: italic;
+  line-height: 1.05;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
 .card.mobile-compressed {
   width: 60px;
+  min-width: 60px;
+  max-width: 60px;
   height: 72px;
   min-height: 72px;
+  max-height: 72px;
   padding: 0.34rem 0.28rem 0.24rem;
   border-color: rgba(90,58,60,0.85);
   background: linear-gradient(180deg, rgba(26,18,20,0.96), rgba(18,12,14,0.98));
@@ -652,17 +845,26 @@ body {
 .card.mobile-compressed .card-name {
   font-size: 0.43rem;
   line-height: 1.05;
-  min-height: 1.05em;
+  flex-basis: 2.1em;
+  height: 2.1em;
+  min-height: 2.1em;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
 }
 .card.mobile-compressed .card-compact-summary {
   display: block;
+  flex: 1 1 auto;
   margin-top: 0.12rem;
   font-size: 0.36rem;
   color: var(--text2);
   text-align: center;
   line-height: 1.12;
-  min-height: 2.8em;
+  min-height: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
   overflow: hidden;
 }
 .card.mobile-compressed .card-compact-bonus {
@@ -674,8 +876,11 @@ body {
 }
 .card.mobile-compressed.selected {
   width: 60px;
+  min-width: 60px;
+  max-width: 60px;
   height: 72px;
   min-height: 72px;
+  max-height: 72px;
   padding: 0.34rem 0.28rem 0.24rem;
   transform: translateY(-4px);
   border-color: var(--gold);
@@ -697,7 +902,9 @@ body {
 }
 .card.mobile-compressed.selected .card-name {
   font-size: 0.43rem;
-  min-height: 1.05em;
+  flex-basis: 2.1em;
+  height: 2.1em;
+  min-height: 2.1em;
 }
 
 .end-turn-btn {
@@ -1729,6 +1936,8 @@ body {
   display: flex;
   gap: 0.5rem;
   align-items: center;
+  flex-wrap: nowrap;
+  width: max-content;
 }
 .core-icon {
   font-size: 1.2rem;
@@ -1856,11 +2065,22 @@ body {
     overflow: hidden;
   }
 
-  .combat-hud { padding: 0.5rem 0.8rem; flex-wrap: wrap; gap: 0.3rem; }
+  .combat-hud {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    padding: 0.38rem 0.5rem;
+    gap: 0.4rem;
+  }
+  .combat-hud-left { gap: 0.4rem; overflow: hidden; }
+  .combat-hud-center { gap: 0.38rem; }
+  .combat-hud-right { gap: 0.25rem; }
+  .hud-relics { max-width: 64px; }
+  .cores-display { gap: 0.25rem; }
+  .core-icon { font-size: 0.9rem; }
+  .hud-resource { font-size: 0.62rem; }
   .hud-floor { font-size: 0.75rem; }
   .hud-room { font-size: 0.7rem; }
-  .hud-map-btn { font-size: 0.7rem; padding: 0.25rem 0.6rem; }
-  .hud-menu-btn { font-size: 0.85rem; padding: 0.25rem 0.5rem; }
+  .hud-map-btn { min-height: 30px; font-size: 0.62rem; padding: 0.2rem 0.42rem; }
+  .hud-menu-btn { min-height: 30px; font-size: 0.78rem; padding: 0.2rem 0.4rem; }
 
   /* Arena — compact fixed height, no dead space */
   .combat-arena {
@@ -1923,6 +2143,7 @@ body {
 
   @media (max-width: 1100px) and (orientation: landscape) {
     #combat-screen.active {
+      --combat-bottom-hud-height: 118px;
       justify-content: flex-start;
       overflow: hidden;
     }
@@ -2011,11 +2232,12 @@ body {
     }
 
     .hand-area {
-      flex: 0 0 92px;
-      height: 92px;
-      min-height: 92px;
-      max-height: 92px;
-      grid-template-columns: 88px minmax(0, 1fr) 92px;
+      --card-hover-reserve: 7px;
+      flex-basis: var(--combat-bottom-hud-height);
+      height: var(--combat-bottom-hud-height);
+      min-height: var(--combat-bottom-hud-height);
+      max-height: var(--combat-bottom-hud-height);
+      grid-template-columns: 80px minmax(0, 1fr) 92px;
       align-items: stretch;
       gap: 0.3rem;
       margin-top: -2px;
@@ -2023,9 +2245,6 @@ body {
     }
 
     .hand-scroll {
-      justify-content: center;
-      gap: 0;
-      padding: 0;
       scroll-padding-left: 0.3rem;
       scroll-padding-right: 0.3rem;
       overscroll-behavior-x: contain;
@@ -2033,13 +2252,22 @@ body {
       touch-action: pan-x;
     }
 
+    .card-stage {
+      gap: 0;
+      padding: var(--card-hover-reserve) 0.3rem 0;
+    }
+
     .dice-panel {
-      display: grid;
-      grid-template-columns: 34px minmax(0, 1fr);
-      grid-template-rows: auto auto;
-      align-items: center;
+      grid-template-columns: 1fr;
+      grid-template-rows: 34px 18px;
+        flex-basis: 72px;
+        width: 72px;
+        height: 62px;
+        transform: scale(1.32);
+        transform-origin: center;
+        align-items: center;
       min-width: 0;
-      padding: 0.16rem 0.24rem 0.18rem;
+      padding: 0.1rem;
       gap: 0.12rem;
       border-radius: 6px;
     }
@@ -2047,53 +2275,51 @@ body {
     .dice-display {
       grid-column: 1;
       grid-row: 1;
-      gap: 0;
+      gap: 0.12rem;
     }
 
     .dice-display > div:not(.die) {
-      display: none;
+      display: flex;
+      left: calc(50% + 18px);
+      width: 25px;
+      height: 31px;
+      min-width: 0;
+      gap: 2px;
     }
 
     .dice-panel .die {
       width: 34px;
       height: 34px;
-      font-size: 0.96rem;
+        font-size: 1.05rem;
       border-width: 1px;
     }
 
     .die-affinity-label {
-      max-width: 58px;
-      font-size: 0.5rem;
+      width: 25px;
+      height: 14px;
+      max-width: 25px;
+        font-size: 0.45rem;
       line-height: 1.08;
     }
 
+    #die-type-label {
+        font-size: 0.43rem !important;
+      line-height: 1;
+      text-align: center;
+    }
+
     .dice-panel .reroll-btn {
-      grid-column: 2;
-      grid-row: 1;
-      min-height: unset;
-      height: 22px;
-      max-width: 82px;
-      white-space: nowrap;
-      font-size: 0.5rem;
-      line-height: 1.1;
-      padding: 0 0.42rem;
-    }
-
-    .dice-panel #aldric-curse-indicator.visible {
-      position: absolute;
-      left: 0;
-      bottom: calc(100% + 0.2rem);
-      margin: 0;
-      white-space: nowrap;
-    }
-
-    .combat-resources {
-      grid-column: 1 / -1;
+      grid-column: 1;
       grid-row: 2;
-      flex-direction: row;
-      justify-content: center;
-      gap: 0.35rem;
+      min-height: unset;
+      min-width: 64px;
+      width: auto;
+      height: 18px;
+      max-width: none;
       white-space: nowrap;
+        font-size: 0.48rem;
+      line-height: 1.1;
+      padding: 0 0.24rem;
     }
 
     .energy-display {
@@ -2130,7 +2356,7 @@ body {
     .mobile-card-preview {
       position: absolute;
       left: 50%;
-      bottom: 100px;
+      bottom: calc(var(--combat-bottom-hud-height) + 8px);
       transform: translateX(-50%) translateY(8px);
       width: min(196px, calc(100vw - 156px));
       opacity: 0;
@@ -2227,6 +2453,10 @@ body {
   }
 
   @media (max-height: 520px) and (orientation: landscape) {
+    #combat-screen {
+      --combat-bottom-hud-height: 104px;
+    }
+
     .hud-floor {
       font-size: 0.62rem;
     }
@@ -2344,55 +2574,75 @@ body {
     }
 
     .hand-area {
-      flex: 0 0 82px;
-      height: 82px;
-      min-height: 82px;
-      max-height: 82px;
-      grid-template-columns: 82px minmax(0, 1fr) 82px;
+      --card-hover-reserve: 5px;
+      flex-basis: var(--combat-bottom-hud-height);
+      height: var(--combat-bottom-hud-height);
+      min-height: var(--combat-bottom-hud-height);
+      max-height: var(--combat-bottom-hud-height);
+      grid-template-columns: 74px minmax(0, 1fr) 82px;
       gap: 0.24rem;
       margin-top: -2px;
       padding: 0.12rem 0.28rem calc(0.12rem + env(safe-area-inset-bottom, 0px));
     }
 
     .hand-scroll {
-      gap: 0;
       padding: 0;
     }
 
+    .card-stage {
+      gap: 0;
+      padding: var(--card-hover-reserve) 0.25rem 0;
+    }
+
     .dice-panel {
-      padding: 0.12rem 0.2rem 0.14rem;
+      grid-template-columns: 1fr;
+      grid-template-rows: 30px 17px;
+        flex-basis: 68px;
+        width: 68px;
+        height: 58px;
+        transform: scale(1.3);
+        transform-origin: center;
+        padding: 0.06rem 0.1rem;
       gap: 0.1rem;
     }
 
     .dice-display {
-      flex-direction: column;
-      gap: 0.14rem;
+      flex-direction: row;
+      gap: 0.12rem;
     }
 
     .dice-display > div:not(.die) {
-      display: none;
+      display: flex;
+      left: calc(50% + 16px);
+      width: 24px;
+      height: 28px;
+      gap: 1px;
     }
 
     .dice-panel .die {
       width: 30px;
       height: 30px;
-      font-size: 0.86rem;
+        font-size: 1rem;
     }
 
     .die-affinity-label {
-      max-width: 54px;
-      font-size: 0.46rem;
+      width: 24px;
+      height: 13px;
+      max-width: 24px;
+        font-size: 0.42rem;
       line-height: 1.05;
     }
 
     .dice-panel .reroll-btn {
       min-height: unset;
-      height: 20px;
-      max-width: 76px;
+      min-width: 60px;
+      width: auto;
+      height: 17px;
+      max-width: none;
       white-space: nowrap;
-      font-size: 0.42rem;
+        font-size: 0.46rem;
       line-height: 1.08;
-      padding: 0 0.28rem;
+      padding: 0 0.2rem;
     }
 
     .end-turn-btn {
@@ -2405,8 +2655,11 @@ body {
 
     .card.mobile-compressed {
       width: 56px;
+      min-width: 56px;
+      max-width: 56px;
       height: 66px;
       min-height: 66px;
+      max-height: 66px;
       padding: 0.28rem 0.24rem 0.18rem;
       margin-left: -12px;
     }
@@ -2417,8 +2670,11 @@ body {
 
     .card.mobile-compressed.selected {
       width: 56px;
+      min-width: 56px;
+      max-width: 56px;
       height: 66px;
       min-height: 66px;
+      max-height: 66px;
       padding: 0.28rem 0.24rem 0.18rem;
       transform: translateY(-7px);
     }
@@ -2434,7 +2690,7 @@ body {
     }
 
     .mobile-card-preview {
-      bottom: 90px;
+      bottom: calc(var(--combat-bottom-hud-height) + 6px);
       width: min(184px, calc(100vw - 144px));
     }
 

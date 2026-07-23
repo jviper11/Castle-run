@@ -51,16 +51,23 @@
     <div class="hint-particles" id="hint-particles"></div>
 
     <div class="combat-hud">
-      <div>
-        <div class="hud-floor" id="hud-floor">FLOOR 1</div>
-        <div class="hud-room" id="hud-room">Room 1</div>
+      <div class="combat-hud-left">
+        <div class="hud-location">
+          <div class="hud-floor" id="hud-floor">FLOOR 1</div>
+          <div class="hud-room" id="hud-room">Room 1</div>
+        </div>
+        <div class="hud-relics" aria-label="Collected cores">
+          <div class="cores-display" id="cores-display"></div>
+        </div>
       </div>
-      <div style="display:flex;align-items:center;gap:0.8rem;">
-        <div class="cores-display" id="cores-display"></div>
-        <div style="font-size:0.8rem;color:var(--gold)">🪙 <span id="hud-gold">0</span></div>
-        <div style="font-size:0.8rem;color:var(--text2)">💀 <span id="hud-souls">0</span></div>
+      <div class="combat-hud-center">
+        <div class="hud-resource hud-gold" title="Gold">🪙 <span id="hud-gold">0</span></div>
+        <div class="hud-resource energy-display" title="Energy">⚡ <span id="energy-text">3</span></div>
+        <div class="hud-resource" title="Draw pile">📋 <span id="draw-count">0</span></div>
+        <div class="hud-resource" title="Discard pile">🗑 <span id="discard-count">0</span></div>
+        <div class="hud-resource hud-souls" title="Souls">💀 <span id="hud-souls">0</span></div>
       </div>
-      <div style="display:flex;gap:0.5rem;align-items:center;">
+      <div class="combat-hud-right">
         <button class="btn hud-map-btn" onclick="toggleMap()">🗺 MAP</button>
         <button class="btn hud-map-btn" onclick="toggleDeckViewer()" style="border-color:var(--border2);color:var(--text2)">📋 DECK</button>
         <button class="btn hud-menu-btn" onclick="toggleMenu()">☰</button>
@@ -132,19 +139,12 @@
 
       <button class="btn reroll-btn" id="reroll-btn" onclick="useReroll()">🎲 REROLL</button>
       <div id="aldric-curse-indicator"></div>
-      <div class="combat-resources">
-        <div class="energy-display">
-          <span>⚡</span>
-          <span id="energy-text">3</span>
-        </div>
-        <div style="font-size:0.58rem;color:var(--text3);text-align:center;">
-          <span title="Cards in draw pile">📋 <span id="draw-count">0</span></span>
-          &nbsp;
-          <span title="Cards in discard pile">🗑 <span id="discard-count">0</span></span>
+    </div>
+      <div class="hand-viewport">
+        <div class="hand-scroll" id="hand-scroll">
+          <div class="card-stage" id="card-stage"></div>
         </div>
       </div>
-    </div>
-      <div class="hand-scroll" id="hand-scroll"></div>
       <button class="btn end-turn-btn" onclick="endTurn()">END TURN</button>
     </div>
   </div>

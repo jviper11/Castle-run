@@ -565,9 +565,22 @@ function checkAffinityHighlight(g, roll) {
   if (g.char.diceAffinity === 'extreme') {
     affinityHint = `Extreme: roll 1 or ${thisDieMax}`;
   }
-  document.getElementById('affinity-label').textContent = isMatch
-    ? `✨ ${affinityHint} — Bonus Active!`
-    : affinityHint;
+  const compactAffinityLabels = {
+    even: 'Even',
+    odd: 'Odd',
+    high: 'High',
+    gambler: 'd6',
+    extreme: 'Edge'
+  };
+  const affinityLabel = document.getElementById('affinity-label');
+  affinityLabel.replaceChildren();
+  const affinityPrimary = document.createElement('span');
+  affinityPrimary.className = 'affinity-primary';
+  affinityPrimary.textContent = compactAffinityLabels[g.char.diceAffinity] || affinityHint;
+  const affinityState = document.createElement('span');
+  affinityState.className = `affinity-state${isMatch ? ' active' : ''}`;
+  affinityState.textContent = '✦';
+  affinityLabel.append(affinityPrimary, affinityState);
   document.getElementById('die-type-label').textContent = (g.currentDieType && g.currentDieType.type ? g.currentDieType.type : 'd6');
   renderHand();
 }

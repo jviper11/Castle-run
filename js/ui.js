@@ -803,7 +803,7 @@ function getAffinityPreviewLabel(affinityBonus) {
 }
 
 function renderHand() {
-  const area = document.getElementById('hand-scroll');
+  const area = document.getElementById('card-stage');
   // remove old cards
   area.querySelectorAll('.card').forEach(c => c.remove());
   const preview = ensureMobileCardPreview();
