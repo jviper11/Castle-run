@@ -277,7 +277,7 @@ None. The seven previously-missing GDD cards (Thief's Gambit, Gut Punch, Golden 
 | `ragefuel` | Rage Fuel+ | Power | 1 | Exhaust. Gain 1 Strength this combat | Exhaust. Gain 2 Strength this combat |
 | `blizzard` | Blizzard+ | Attack | 2 | Deal 5 dmg 3 times | Deal 8 dmg 3 times |
 | `stealheal` | Steal & Heal+ | Attack | 2 | Deal 10 dmg. Heal 5 HP | Deal 14 dmg. Heal 9 HP |
-| `curseddice` | Cursed Die+ | Skill | 0 | Reroll die. Take 3 damage | Reroll die. Take 1 damage |
+| `curseddice` | Cursed Reroll+ | Skill | 0 | Reroll die. Take 3 damage | Reroll die. Take 1 damage |
 | `ironwall` | Iron Wall+ | Skill | 2 | Gain 14 Block | Gain 20 Block |
 | `soulsteal` | Soul Steal+ | Attack | 1 | Deal 7 dmg. Gain 1 Soul | Deal 10 dmg. Gain 2 Souls |
 

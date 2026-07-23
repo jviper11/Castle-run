@@ -225,6 +225,35 @@ function showShop() {
   renderShopDie();
 }
 
+// Grant a relic and apply its immediate pickup side effects. Shared by the shop and the
+// Void Compass post-elite relic reward so the effects (Ivory Die, Hollow Throne, etc.)
+// can never drift between the two acquisition paths.
+function acquireRelic(key) {
+  if (G.relics.includes(key)) return;
+  const relic = RELICS[key];
+  G.relics.push(key);
+  if (key === 'ivory_die' && G.diceMax < 8) {
+    G.activeDie = 'd8'; G.diceMax = 8;
+    showMsg('🎲 Ivory Die — die upgraded to d8!');
+  } else if (key === 'loaded_gauntlet') {
+    G._minRoll = Math.max(G._minRoll || 1, 2);
+    showMsg('🥊 Loaded Gauntlet — minimum roll is now 2!');
+  } else if (key === 'hollow_throne') {
+    G.maxHp -= 8; G.hp = Math.min(G.hp, G.maxHp);
+    showMsg('🪑 Hollow Throne — max HP -8, but you start combats with 20 Block!');
+  } else if (key === 'fractured_die') {
+    G._noReroll = true;
+    showMsg('💔 Fractured Die — reroll lost for the run. Initial roll is doubled.');
+  } else if (key === 'kings_debt') {
+    G.gold += 60;
+    const gd = document.getElementById('shop-gold-display'); if (gd) gd.textContent = G.gold;
+    showMsg("💰 King's Debt — +60 Gold! Shop prices now cost 25% more.");
+  } else {
+    showMsg(`${relic.emoji} ${relic.name} acquired!`);
+  }
+  updateHUD();
+}
+
 function renderShopRelics() {
   const grid = document.getElementById('shop-relics-grid');
   if (!grid) return;
@@ -245,30 +274,9 @@ function renderShopRelics() {
       if (G.gold < cost) { showMsg('Not enough gold!'); return; }
       if (G.relics.includes(key)) { showMsg('Already have this relic!'); return; }
       G.gold -= cost;
-      G.relics.push(key);
-      // Pickup side effects
-      if (key === 'ivory_die' && G.diceMax < 8) {
-        G.activeDie = 'd8'; G.diceMax = 8;
-        showMsg('🎲 Ivory Die — die upgraded to d8!');
-      } else if (key === 'loaded_gauntlet') {
-        G._minRoll = Math.max(G._minRoll || 1, 2);
-        showMsg('🥊 Loaded Gauntlet — minimum roll is now 2!');
-      } else if (key === 'hollow_throne') {
-        G.maxHp -= 8; G.hp = Math.min(G.hp, G.maxHp);
-        showMsg('🪑 Hollow Throne — max HP -8, but you start combats with 20 Block!');
-      } else if (key === 'fractured_die') {
-        G._noReroll = true;
-        showMsg('💔 Fractured Die — reroll lost for the run. Initial roll is doubled.');
-      } else if (key === 'kings_debt') {
-        G.gold += 60;
-        document.getElementById('shop-gold-display').textContent = G.gold;
-        showMsg("💰 King's Debt — +60 Gold! Shop prices now cost 25% more.");
-      } else {
-        showMsg(`${relic.emoji} ${relic.name} acquired!`);
-      }
+      acquireRelic(key); // shared grant + pickup side effects
       el.classList.add('sold');
       document.getElementById('shop-gold-display').textContent = G.gold;
-      updateHUD();
     };
     grid.appendChild(el);
   });
@@ -454,27 +462,27 @@ function removeCardFromDeck(g) {
 const CHAR_REWARD_POOLS = {
   barbarian: {
     common:   ['brutalswing','shieldbreaker','warcry','toughhide','bloodprice','heavyblow','warshout','ironbash'],
-    uncommon: ['haymaker','skullcrack','recklesslunge','battlecry','ironroar','bloodlust','entrench','overpowerattack','crushingblow','warcallecho','soulsteal','stealheal','ironwall'],
+    uncommon: ['haymaker','skullcrack','recklesslunge','battlecry','ironroar','bloodlust','entrench','overpowerattack','crushingblow','warcallecho','soulsteal','stealheal','ironwall','curseddice'],
     rare:     ['ragefuel','berserkersoath','warlordspresence','deathrattle','laststand','battletrance']
   },
   mage: {
     common:   ['spark','flametouch','meditate','channelfocus','frostbolt','arcanebarrier','manasurge','arcaneboost','voidchannel','fireball','blizzard'],
-    uncommon: ['icelance','combustion','chainbolt','ignite','arcanerecall','manaweave','frostfire','arcanebarrage','arcanesight','arcanemomentum','soulsteal','ironwall'],
+    uncommon: ['icelance','combustion','chainbolt','ignite','arcanerecall','manaweave','frostfire','arcanebarrage','arcanesight','arcanemomentum','soulsteal','ironwall','curseddice'],
     rare:     ['frozeninferno','inferno','timewarp','spellecho','coldmastery','burningsoul']
   },
   thief: {
     common:   ['swiftjab','slipaway','cheapshot','coinflick','nimblepace','quickstrike','shadowstep','poisonblade','pickpocket','smokescreen'],
-    uncommon: ['envenomdagger','backstab','cripple','shadowmark','poisoncloud','bladedance','disappear','concoction','thiefsgambit','gutpunch','soulsteal','stealheal'],
+    uncommon: ['envenomdagger','backstab','cripple','shadowmark','poisoncloud','bladedance','disappear','concoction','thiefsgambit','gutpunch','soulsteal','stealheal','curseddice'],
     rare:     ['deathmark','shadowartist','poisonmaster','lethalrhythm','assassinate','goldenstrike']
   },
   vampire: {
     common:   ['bloodpulse','draintouch','nightveil','darkblood','swoopdown','blooddrain','nightshroud','lifeleech','crimsonbite','darkembrace'],
-    uncommon: ['sanguinestrike','crimsonpact','bloodbank','drainlife','batform','shadowfeast','darkrite','bloodrush','nightstalk','cursedveins','ironwall','soulsteal','stealheal'],
+    uncommon: ['sanguinestrike','crimsonpact','bloodbank','drainlife','batform','shadowfeast','darkrite','bloodrush','nightstalk','cursedveins','ironwall','soulsteal','stealheal','curseddice'],
     rare:     ['bloodlord','eternalhunger','vampiricform','darkascension','soulrend','bloodtide']
   },
   gambler: {
     common:   ['longshot','safepull','risktaker','oddscheck','chipsin','highorlow','doubldown','luckystrike','hedgebet','wildcard'],
-    uncommon: ['allin','loadeddie','pocketaces','doubleornothing','counttheodds','highstakes','bluff','wildcardcombo','pressyourluck','jackpot','soulsteal','stealheal'],
+    uncommon: ['allin','loadeddie','pocketaces','doubleornothing','counttheodds','highstakes','bluff','wildcardcombo','pressyourluck','jackpot','soulsteal','stealheal','curseddice'],
     rare:     ['houseedge','luckystreak','gamblersfallacy','bettingitall','loadedhouse','devilsdeal']
   }
 };
@@ -554,8 +562,7 @@ function showReward() {
     el.onclick = () => {
       G.deck.push(key);
       showMsg(`${c.name} added to deck!`);
-      if (G.needsPathSelect) { G.needsPathSelect = false; showPathSelect(); }
-      else proceedDoors();
+      proceedAfterCardReward();
     };
     pool.appendChild(el);
   });
@@ -633,8 +640,63 @@ function giveReward(g, type, rarity) {
 function skipReward() {
   G.gold += 10;
   showMsg('💰 Skipped — +10 Gold');
+  proceedAfterCardReward();
+}
+
+// Proceed out of a reward screen — to path select after a boss, otherwise back to the doors.
+function proceedOrPath() {
   if (G.needsPathSelect) { G.needsPathSelect = false; showPathSelect(); }
   else proceedDoors();
+}
+
+// After the card reward is taken/skipped: Void Compass offers a choice of 3 relics following
+// an elite (never a boss — bosses leave lastFightWasElite stale). The _voidCompassOffered flag
+// (reset each combat) makes it fire at most once, so skipping the relic screen can't loop.
+function proceedAfterCardReward() {
+  if (G.lastFightWasElite && !G.inBoss && hasRelic('void_compass') && !G._voidCompassOffered) {
+    G._voidCompassOffered = true;
+    showEliteRelicReward();
+    return;
+  }
+  proceedOrPath();
+}
+
+// Void Compass — pick 1 of 3 unowned relics after an elite fight.
+function showEliteRelicReward() {
+  const available = Object.entries(RELICS).filter(([k]) => !G.relics.includes(k));
+  if (available.length === 0) { proceedOrPath(); return; } // own everything → nothing to offer
+  const picks = shuffle([...available]).slice(0, 3);
+
+  document.getElementById('reward-hp').textContent = G.hp + '/' + G.maxHp;
+  document.getElementById('reward-gold').textContent = G.gold;
+  document.getElementById('reward-souls').textContent = G.souls;
+  showScreen('reward-screen');
+  const rewardSub = document.getElementById('reward-sub');
+  if (rewardSub) rewardSub.textContent = '';
+
+  const pool = document.getElementById('reward-choices');
+  pool.innerHTML = '';
+  const hdr = document.createElement('div');
+  hdr.style.cssText = 'width:100%;text-align:center;font-family:Cinzel,serif;color:var(--gold);font-size:0.9rem;letter-spacing:0.05em;margin-bottom:0.4rem;';
+  hdr.textContent = '🧭 Void Compass — Choose a Relic';
+  pool.appendChild(hdr);
+
+  picks.forEach(([key, relic]) => {
+    const el = document.createElement('div');
+    el.className = 'reward-card';
+    el.style.borderColor = '#c9a84c';
+    el.innerHTML = `
+      <span class="reward-card-emoji">${relic.emoji}</span>
+      <div class="reward-card-name">${relic.name}</div>
+      <div class="reward-card-type" style="color:#c9a84c">Relic · ${relic.rarity.charAt(0).toUpperCase() + relic.rarity.slice(1)}</div>
+      <div class="reward-card-desc">${relic.desc}</div>
+    `;
+    el.onclick = () => {
+      acquireRelic(key);
+      proceedOrPath();
+    };
+    pool.appendChild(el);
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════════

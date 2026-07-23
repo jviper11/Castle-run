@@ -132,8 +132,8 @@ function processAldricTurn() {
       showMsg('🧱 Stone Heart weakens — block reduced to ' + G.aldricStoneHeart + '!');
     }
 
-    // Grieving Ground — attack + add Curse
-    dealDamage(G, 'player', 15);
+    // Grieving Ground — attack + add Curse (routes through the shared enemy-attack pipeline)
+    resolveEnemyAttack(G, 15);
     G.discardPile.push('curse_weakness');
     showMsg('👑 Grieving Ground — Curse of Weakness added to your deck!');
     updateAldricUI();
@@ -161,9 +161,9 @@ function processAldricTurn() {
       strikeDmg = Math.floor(strikeDmg * 1.5);
       showMsg('👑 Fractured Strike — amplified by your status effects!');
     }
-    dealDamage(G, 'player', strikeDmg);
-    setTimeout(() => dealDamage(G, 'player', strikeDmg), 200);
-    setTimeout(() => dealDamage(G, 'player', strikeDmg), 400);
+    resolveEnemyAttack(G, strikeDmg);
+    setTimeout(() => resolveEnemyAttack(G, strikeDmg), 200);
+    setTimeout(() => resolveEnemyAttack(G, strikeDmg), 400);
 
     // Desperation — 2 Strength per exhausted Power, capped at 6
     const exhaustedCount = Math.min((G.exhaustedPile || []).length, 3);
@@ -184,7 +184,7 @@ function processAldricTurn() {
     if (!G.aldricHasRelics) {
       // No relics — Unbreakable wall
       G.statuses.enemy = []; // immune to all status
-      dealDamage(G, 'player', 20);
+      resolveEnemyAttack(G, 20);
       showMsg('👑 The cycle continues... you are not ready.');
       return;
     }
@@ -199,7 +199,7 @@ function processAldricTurn() {
       }
     }
 
-    dealDamage(G, 'player', 15); // reduced damage with relics
+    resolveEnemyAttack(G, 15); // reduced damage with relics
   }
 }
 
@@ -382,6 +382,7 @@ function startCombat(isElite) {
   G.exhaustedPile = [];
   G.inBoss = false;
   G.lastFightWasElite = !!isElite;
+  G._voidCompassOffered = false; // Void Compass post-elite relic reward fires once per fight
   G.phantomBladeFired = false;
   G.extraDraw = 0;
   G.startingDrawCount = 5;   // cards drawn at the start of each turn
@@ -502,8 +503,12 @@ function rollDice(g, isInitial = false) {
   // Guaranteed max from Loaded House
   if (g._guaranteedMax > 0) { roll = g.diceMax; g._guaranteedMax--; }
 
-  // Min roll enforcement (Gambler min 2, House Edge min 3, d4 Cursed Die min 3)
-  const minRoll = g._minRoll || (g.charKey === 'gambler' ? 2 : 1);
+  // Min roll enforcement (Gambler min 2, House Edge status, d4 Cursed Die min 3)
+  let minRoll = g._minRoll || (g.charKey === 'gambler' ? 2 : 1);
+  // House Edge — raises the minimum roll this combat (base 3 / + 4). Status-gated so it
+  // clears with the exhausted card at combat end instead of leaking via a persistent flag.
+  const houseEdge = g.statuses.player.find(s => s.name === '🏠HouseEdge');
+  if (houseEdge) minRoll = Math.max(minRoll, houseEdge.stacks === 2 ? 4 : 3);
   if (roll < minRoll) roll = minRoll;
 
   // d4 Cursed Die bonus — min 3
@@ -517,14 +522,19 @@ function rollDice(g, isInitial = false) {
     if (roll2 > roll) roll = roll2;
   }
 
-  // Gambler's Fallacy tracking
-  if (g._fallacyCount !== undefined) {
+  // Gambler's Fallacy — after N consecutive non-max rolls, force the next roll to max
+  // (base 3 / + 2). Status-gated so the streak counter only runs while the card is active
+  // this combat; the counter resets whenever the status is absent.
+  const fallacy = g.statuses.player.find(s => s.name === '🎯GamblerFallacy');
+  if (fallacy) {
     if (roll === g.diceMax) { g._fallacyCount = 0; }
     else {
-      g._fallacyCount++;
-      const fallacyThreshold = g._fallacyThreshold || 3;
+      g._fallacyCount = (g._fallacyCount || 0) + 1;
+      const fallacyThreshold = fallacy.stacks === 2 ? 2 : 3;
       if (g._fallacyCount >= fallacyThreshold) { roll = g.diceMax; g._fallacyCount = 0; }
     }
+  } else {
+    g._fallacyCount = 0;
   }
 
   g.currentDie = roll;
@@ -546,6 +556,17 @@ if (roll === g.diceMax && luckyStreak) {
   const dmg = luckyStreak.stacks === 2 ? 6 : 4;
   if (g.enemy) { g.enemy.hp -= dmg; floatDamage('enemy-combatant', dmg, 'dmg'); }
 }
+
+  // Vampiric Form — extreme rolls (1 or max face) automatically grant Fly (+ also grants 2 Regen)
+  const vampForm = G.statuses.player.find(s => s.name === '🧛VampiricForm');
+  if (vampForm) {
+    const dieMax = (g.currentDieType && g.currentDieType.max) ? g.currentDieType.max : g.diceMax;
+    if ((roll === 1 || roll === dieMax) && !g.statuses.player.find(s => s.name === '🦇Fly')) {
+      applyStatus(g, 'player', '🦇Fly', 1);
+      if (vampForm.stacks === 2) applyStatus(g, 'player', '💚Regen', 2);
+      showMsg('🧛 Vampiric Form — Fly activated!');
+    }
+  }
 
   // Animate
   const die = document.getElementById('current-die');
@@ -658,6 +679,14 @@ function playCard(cardKey) {
   // Soulbound Gauntlet — first card each turn costs 0
   if (!G._firstCardFree && hasRelic('soulbound_gauntlet')) { actualCost = 0; G._firstCardFree = true; }
 
+  // Shadow Artist (base, stacks 1) — the 2nd and 4th card played each turn cost 0.
+  // (The + version uses the _shadowArtistDiscount counter instead — see below.)
+  const shadowArtistBase = G.statuses.player.find(s => s.name === '🎭ShadowArtist' && s.stacks === 1);
+  if (shadowArtistBase) {
+    const cardNumber = (G._cardsPlayedThisTurn || 0) + 1;
+    if (cardNumber === 2 || cardNumber === 4) actualCost = 0;
+  }
+
   if (G.energy < actualCost) { showMsg('Not enough energy!'); return; }
   if (!G.enemy && card.type === 'Attack') { showMsg('No enemy to attack!'); return; }
 
@@ -671,6 +700,14 @@ function playCard(cardKey) {
     G.energy++;
     G._soulboundTomeFired = true;
     showMsg('📚 Soulbound Tome — +1 Energy!');
+  }
+  // Lethal Rhythm — every 2 cards played this turn deals direct dmg to the enemy (base 3 / + 5)
+  const lethalRhythm = G.statuses.player.find(s => s.name === '🥁LethalRhythm');
+  if (lethalRhythm && G.enemy && G._cardsPlayedThisTurn % 2 === 0) {
+    const rhythmDmg = lethalRhythm.stacks === 2 ? 5 : 3;
+    G.enemy.hp -= rhythmDmg;
+    floatDamage('enemy-combatant', rhythmDmg, 'dmg');
+    showMsg('🥁 Lethal Rhythm — ' + rhythmDmg + ' dmg!');
   }
 
 // Shadow Mark bonus
@@ -764,8 +801,11 @@ function endTurn() {
   // ── STEP 1: Burn ticks BEFORE enemy acts ──
   const burn = G.statuses.enemy.find(s => s.name === '🔥Burn');
   if (burn) {
-    G.enemy.hp -= burn.stacks;
-    floatDamage('enemy-combatant', burn.stacks, 'dmg');
+    // Burning Soul — Burn deals extra dmg per stack (base +1 / + +2) on top of the 1:1 base
+    const burningSoul = G.statuses.player.find(s => s.name === '🔥BurningSoul');
+    const burnDmg = burn.stacks + (burningSoul ? burn.stacks * (burningSoul.stacks === 2 ? 2 : 1) : 0);
+    G.enemy.hp -= burnDmg;
+    floatDamage('enemy-combatant', burnDmg, 'dmg');
     burn.stacks--;
     if (burn.stacks <= 0) G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '🔥Burn');
   }
@@ -831,6 +871,7 @@ function endTurn() {
   if (G.enemy && G.enemy.isAldric) {
     processAldricTurn();
   } else if (e.intent === 'attack') {
+    // Steps 1-2: base damage + enemy modifiers (Rage adds Strength, Chill reduces).
     let dmg = e.damage;
     const eStrong = G.statuses.enemy.find(s => s.name === '💢Rage');
     if (eStrong) dmg += eStrong.stacks;
@@ -842,17 +883,8 @@ function endTurn() {
       chillStatus.stacks--;
       if (chillStatus.stacks <= 0) G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '❄️Chill');
     }
-    playAttackAnimation({
-      attackerEl: document.getElementById('enemy-combatant'),
-      targetEl: document.getElementById('player-combatant'),
-      style: 'slash'
-    });
-    dmg = Math.max(0, dmg - G.block);
-    G.block = Math.max(0, G.block - e.damage);
-    if (dmg > 0) G.hp -= dmg;
-    floatDamage('player-combatant', dmg, 'dmg');
-    document.getElementById('player-sprite').classList.add('shake');
-    setTimeout(() => document.getElementById('player-sprite').classList.remove('shake'), 300);
+    // Steps 3-6: Fly → Block → HP → on-HP-loss effects, via the shared pipeline.
+    resolveEnemyAttack(G, dmg);
   } else if (e.intent === 'defend') {
     G.enemy.block += 8;
   }
@@ -860,8 +892,11 @@ function endTurn() {
   // ── STEP 7: Poison ticks AFTER enemy acts ──
   const poison = G.statuses.enemy.find(s => s.name === '☠️Poison');
   if (poison) {
-    G.enemy.hp -= poison.stacks;
-    floatDamage('enemy-combatant', poison.stacks, 'dmg');
+    // Poison Master — Poison deals extra dmg per stack (base +1 / + +2) on top of the 1:1 base
+    const poisonMaster = G.statuses.player.find(s => s.name === '☠️PoisonMaster');
+    const poisonDmg = poison.stacks + (poisonMaster ? poison.stacks * (poisonMaster.stacks === 2 ? 2 : 1) : 0);
+    G.enemy.hp -= poisonDmg;
+    floatDamage('enemy-combatant', poisonDmg, 'dmg');
     poison.stacks--;
     if (poison.stacks <= 0) G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '☠️Poison');
   }
@@ -888,6 +923,8 @@ function endTurn() {
   G.enemy.intent = Math.random() < 0.65 ? 'attack' : 'defend';
 
   // ── STEP 11: Discard hand, check end, start next turn ──
+  // Fly is a one-turn buff: clear any leftover (e.g. the enemy defended and never triggered it)
+  G.statuses.player = G.statuses.player.filter(s => s.name !== '🦇Fly');
   G.discardPile.push(...G.hand);
   G.hand = [];
 
@@ -996,7 +1033,12 @@ function calculatePlayerAttackDamage(g, amount, options = {}) {
   return amount;
 }
 
-function dealDamage(g, target, amount) {
+// `source` (player target only): 'enemy' = enemy-direct damage → routes through the shared
+// resolveEnemyAttack pipeline so Fly halves it; 'self'/omitted = self-inflicted, environmental,
+// or DoT damage → no Fly (the safer default). Berserker's Oath + survival still fire via loseHP.
+// `bypassBlock` (only meaningful with source 'enemy') sends the damage straight to HP, skipping
+// Block — opt-in per attack (e.g. Collapse, whose damage equals your Block).
+function dealDamage(g, target, amount, source, bypassBlock) {
   const playerEl = document.getElementById('player-combatant');
   const enemyEl = document.getElementById('enemy-combatant');
 
@@ -1032,35 +1074,98 @@ function dealDamage(g, target, amount) {
       try { g.enemy.special.effect(g); } catch(e) {}
     }
   } else if (target === 'player') {
-    const pen = Math.max(0, amount - g.block);
-    g.block = Math.max(0, g.block - amount);
-    g.hp -= pen;
-    // Lucky Rabbit Foot — survive killing blow at 1 HP (fires first)
-    if (g.hp <= 0 && hasRelic('lucky_rabbit_foot')) {
-      g.hp = 1;
-      const rfIdx = g.relics.indexOf('lucky_rabbit_foot');
-      if (rfIdx !== -1) g.relics.splice(rfIdx, 1);
-      showMsg('🐇 Lucky Rabbit Foot — survived at 1 HP!');
+    if (source === 'enemy') {
+      // Enemy-direct special (Ritual, Arcane Overload, Collapse) — same pipeline as
+      // basic/boss attacks: Fly → Block → loseHP (Oath + survival). No parallel logic.
+      // Collapse passes bypassBlock so its Block-equal damage skips Block instead of self-cancelling.
+      resolveEnemyAttack(g, amount, bypassBlock);
+    } else {
+      // Self-inflicted, environmental, or DoT — NOT Fly-halved. HP loss + Berserker's Oath
+      // + survive-killing-blow relics are still handled inside loseHP.
+      const pen = Math.max(0, amount - g.block);
+      g.block = Math.max(0, g.block - amount);
+      loseHP(g, pen);
+      playAttackAnimation({
+        attackerEl: enemyEl,
+        targetEl: playerEl,
+        style: 'slash'
+      });
+      floatDamage('player-combatant', pen || amount, 'dmg');
     }
-    // Crimson Phylactery — survive killing blow at 1 HP (fires if Rabbit Foot already gone)
-    if (g.hp <= 0 && hasRelic('crimson_phylactery')) {
-      g.hp = 1;
-      const cpIdx = g.relics.indexOf('crimson_phylactery');
-      if (cpIdx !== -1) g.relics.splice(cpIdx, 1);
-      showMsg('💎 Crimson Phylactery — survived at 1 HP!');
-    }
-
-    playAttackAnimation({
-      attackerEl: enemyEl,
-      targetEl: playerEl,
-      style: 'slash'
-    });
-
-    floatDamage('player-combatant', pen || amount, 'dmg');
   }
     setTimeout(() => {
     renderAll();
   }, 140);
+}
+
+// Centralized player HP loss. `amount` is the raw HP to remove (callers subtract Block first).
+// Optional `floorAt` prevents dropping below that value — used by self-damage cards that must
+// never self-kill (their old `Math.max(1, hp - x)` pattern). Fires on-HP-loss effects
+// (Berserker's Oath) exactly once per loss event. Does NOT float damage — callers own visuals.
+function loseHP(g, amount, floorAt) {
+  if (amount == null || amount <= 0) return;
+  if (floorAt != null) {
+    amount = Math.min(amount, Math.max(0, g.hp - floorAt));
+    if (amount <= 0) return;
+  }
+  g.hp -= amount;
+  // Survive-killing-blow relics — centralized here so they fire for ANY lethal HP loss
+  // (basic attack, boss attack, or enemy special), not just dealDamage() sources.
+  if (g.hp <= 0 && hasRelic('lucky_rabbit_foot')) {
+    g.hp = 1;
+    const rfIdx = g.relics.indexOf('lucky_rabbit_foot');
+    if (rfIdx !== -1) g.relics.splice(rfIdx, 1);
+    showMsg('🐇 Lucky Rabbit Foot — survived at 1 HP!');
+  }
+  if (g.hp <= 0 && hasRelic('crimson_phylactery')) {
+    g.hp = 1;
+    const cpIdx = g.relics.indexOf('crimson_phylactery');
+    if (cpIdx !== -1) g.relics.splice(cpIdx, 1);
+    showMsg('💎 Crimson Phylactery — survived at 1 HP!');
+  }
+  // Berserker's Oath — ANY HP loss (enemy attack, enemy special, or self-inflicted) grants Block
+  const berserkOath = g.statuses.player.find(s => s.name === '🔥BerserkOath');
+  if (berserkOath) {
+    const oathBlock = berserkOath.stacks === 2 ? 4 : 3;
+    gainBlock(g, 'player', oathBlock);
+    showMsg("🔥 Berserker's Oath — +" + oathBlock + " Block!");
+  }
+}
+
+// Canonical enemy-attack damage resolution. BOTH the regular enemy-attack flow and Aldric
+// route through this so Fly, Block, and Berserker's Oath behave identically for every enemy.
+// `amount` is the attack damage AFTER enemy/boss modifiers (Rage, Chill, Fractured Strike
+// scaling, etc.) — those are the caller's responsibility (pipeline steps 1-2). Steps here:
+//   3. Fly (enemy-direct only) → 4. Block → 5. loseHP (Oath + survival fire on real HP lost).
+function resolveEnemyAttack(g, amount, bypassBlock) {
+  let dmg = amount;
+  // Fly — halve incoming enemy-direct damage, then clear (one-shot, this turn only)
+  const flyStatus = g.statuses.player.find(s => s.name === '🦇Fly');
+  if (flyStatus) {
+    dmg = Math.floor(dmg / 2);
+    g.statuses.player = g.statuses.player.filter(s => s.name !== '🦇Fly');
+    showMsg('🦇 Fly — damage halved!');
+  }
+  // Normally Block absorbs the post-Fly damage and the remainder penetrates to HP. When
+  // bypassBlock is set (opt-in, per-attack — e.g. Collapse), the damage skips Block entirely
+  // and hits HP directly; Fly still applied above. Block is neither consumed nor consulted.
+  let pen;
+  if (bypassBlock) {
+    pen = dmg;
+  } else {
+    pen = Math.max(0, dmg - g.block);
+    g.block = Math.max(0, g.block - dmg);
+  }
+  loseHP(g, pen); // HP loss → Berserker's Oath + survival relics fire on the actual loss
+  playAttackAnimation({
+    attackerEl: document.getElementById('enemy-combatant'),
+    targetEl: document.getElementById('player-combatant'),
+    style: 'slash'
+  });
+  floatDamage('player-combatant', pen, 'dmg');
+  const ps = document.getElementById('player-sprite');
+  if (ps) { ps.classList.add('shake'); setTimeout(() => ps.classList.remove('shake'), 300); }
+  return pen;
 }
 
 function gainBlock(g, target, amount) {

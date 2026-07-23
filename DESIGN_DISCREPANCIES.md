@@ -47,33 +47,21 @@ This file records unresolved conflicts between design documents, progress notes,
 
 ---
 
-## 🔍 IN PROGRESS — Weak timing
+## ✅ RESOLVED — Weak timing
 
-**Question:** Does Weak lose duration per enemy/player attack, per damage instance, or once per turn?
+**Original question:** Does Weak lose duration per enemy/player attack, per damage instance, or once per turn?
 
-**Findings so far:** `calculatePlayerAttackDamage()` in `js/combat.js` decrements Weak's stack count inside the same call that applies damage (`consume: true`), and multi-hit Attack cards call this once per hit (via `dealDamage`). This suggests Weak may be ticking down **per hit**, not **once per turn** as `GDD.md`'s Status Timing Summary describes.
-
-**Still needed:** Actual playtest — play a 2-hit or 3-hit Attack card (e.g. Vampire's Night Stalk, Thief's Blade Dance) while Weak is active on the player and confirm whether it clears mid-card instead of surviving to end of turn.
-
-**Relevant files:**
-- `GDD.md` — status table and status-timing rules.
-- `js/combat.js` — `calculatePlayerAttackDamage()`, `dealDamage()`.
-- `js/ui.js` — status tooltip and displayed description.
-- `castle-run.html` — legacy behavior for comparison only.
+**Resolution (fixed + verified in-game):** Weak was ticking down **per hit** — the decrement lived inside `calculatePlayerAttackDamage()`, which multi-hit Attack cards call once per hit, so a 2-/3-hit card drained the whole Weak stack in one play. The decrement was moved out of `calculatePlayerAttackDamage()` into `endTurn()` (STEP 2b), alongside Vulnerable's, so Weak now ticks down **exactly once per turn**. `calculatePlayerAttackDamage()` still applies the 25% damage reduction but no longer decays the stack. Confirmed by in-game test: a 3-hit card left Weak surviving with only 1 stack consumed at end of turn, not 3.
 
 ---
 
-## Mirror behavior
+## ✅ RESOLVED — Mirror behavior
 
-**Question:** Is the Mirror a paid path-switch mechanic, or a forced rest/upgrade/remove event?
+**Original question:** Is the Mirror a paid path-switch mechanic, or a forced rest/upgrade/remove event?
 
-**Relevant files:**
+**Resolution:** Code is source of truth — `useMirror()` in `js/game.js`. The Mirror is an **optional, paid path-switch** that appears at the halfway point of a path: it reflects another path's rooms and lets the player *Step Through* (pay 30/50/70/100 Gold by floor) to switch to that path, or *Walk Away* for free. It is NOT a forced rest/upgrade/remove event, and NOT a shadow-deck skill-check fight.
 
-- `GDD.md` — Mirror design descriptions.
-- `PROGRESS.md` — describes a forced rest/upgrade/remove choice.
-- `js/game.js` — active Mirror flow and path navigation. *(not yet reviewed this session)*
-- `js/ui.js` — Mirror UI where applicable.
-- `castle-run.html` — legacy behavior for comparison only.
+**Doc correction applied:** `GDD.md`'s Mirror Mechanic section was rewritten to match (it previously described a shadow-copy Mirror fight). `PROGRESS.md`'s older forced-event framing is superseded by this entry.
 
 ---
 
@@ -95,62 +83,35 @@ This file records unresolved conflicts between design documents, progress notes,
 
 ---
 
-## Blood Lord trigger frequency
+## ✅ RESOLVED — Blood Lord trigger frequency
 
-**Question:** Does Blood Lord heal once per Attack card played or once per damage instance/hit?
+**Original question:** Does Blood Lord heal once per Attack card played or once per damage instance/hit?
 
-**Relevant files:**
-
-- `CARD_UPGRADES_MASTER.md` — locks once per Attack card and calls out multi-hit cards.
-- `js/data.js` — base and upgraded descriptions. *(not yet reviewed this session)*
-- `js/combat.js` — Attack-card and damage hooks. *(not yet cross-checked against Blood Lord specifically)*
-- `js/ui.js` — displayed/previewed descriptions.
-- `PROGRESS.md` — implementation history.
-
-**Note:** Given the Weak-timing finding above (damage resolution firing per-hit inside `dealDamage`), it's worth checking whether Blood Lord's heal hook is wired at the per-card level or accidentally inherits the same per-hit firing pattern.
+**Resolution:** Code is source of truth — the Blood Lord heal in `playCard()` (`js/combat.js`) fires once per Attack **card** played (gated on `card.type === 'Attack'`), NOT per damage instance, matching `CARD_UPGRADES_MASTER.md`'s lock. Multi-hit cards (Blade Dance, Night Stalk) heal only once. Unlike Weak (see above), it did **not** inherit the per-hit firing pattern. The only defect was the base card **description** implying per-hit ("each time you deal damage"), which has been corrected to reflect once-per-Attack-card.
 
 ---
 
-## Missing GDD cards and pool completeness
+## ✅ RESOLVED — Missing GDD cards and pool completeness
 
-**Question:** Are hero pools considered complete without the GDD cards listed as uncoded, or must those cards be implemented or formally removed from the design?
+**Original question:** Are hero pools considered complete without the GDD cards listed as uncoded, or must those cards be implemented or formally removed from the design?
 
-**Relevant files:**
-
-- `GDD.md` — designed card pools.
-- `CARD_UPGRADES_MASTER.md` — simultaneously marks pools complete and lists missing cards: Thief's Gambit, Gut Punch, Golden Strike (Thief); Cursed Veins (Vampire); Wild Combo, Press Your Luck, Jackpot (Gambler).
-- `PROGRESS.md` — implemented pool counts/status.
-- `js/data.js` — implemented cards and upgrades. *(not yet reviewed this session)*
-- `js/ui.js` — active reward pools.
+**Resolution (implemented):** All 7 previously-uncoded GDD cards were implemented — base + upgrade in `CARD_UPGRADES` (`js/data.js`) and added to their hero reward pools (`CHAR_REWARD_POOLS`, `js/ui.js`): **Thief's Gambit, Gut Punch, Golden Strike** (Thief); **Cursed Veins** (Vampire); **Wild Combo, Press Your Luck, Jackpot** (Gambler). `CARD_UPGRADES_MASTER.md`'s "cards in GDD but NOT yet coded" list has been cleared (marked none, implemented 2026-07-23).
 
 ---
 
-## `curseddice`
+## ✅ RESOLVED — `curseddice`
 
-**Question:** Is `curseddice` intentionally removed from the game and design, or should it be restored?
+**Original question:** Is `curseddice` intentionally removed from the game and design, or should it be restored?
 
-**Relevant files:**
-
-- `PROGRESS.md` — records its removal.
-- `CARD_UPGRADES_MASTER.md` — still documents its upgrade.
-- `js/data.js` / `js/ui.js` — active card and reward data. *(not yet reviewed this session)*
-- `castle-run.html` — legacy implementation.
+**Resolution (restored):** `curseddice` is restored. Its **display name** was changed to **Cursed Reroll** / **Cursed Reroll+** to resolve a collision with the d4 die also named "Cursed Die" (min roll 3, max 4) — the internal key `curseddice` is unchanged so existing lookups/docs still work. It is a Shared-Pool card, now added to every hero's `uncommon` reward bucket (alongside `soulsteal`/`stealheal`/`ironwall`). Its previously-missing `+` upgrade was added to `CARD_UPGRADES` (reroll + take **1** damage, vs the base's **3**), matching `CARD_UPGRADES_MASTER.md`'s spec, and is now pickable via the normal upgrade UI.
 
 ---
 
-## Battle reward wording and die rewards
+## ✅ RESOLVED — Battle reward wording and die rewards
 
-**Question:** Are normal battle rewards card-only, or should they still offer a card-or-die choice?
+**Original question:** Are normal battle rewards card-only, or should they still offer a card-or-die choice?
 
-**Confirmed still present:** `index.html`'s reward screen subtitle literally says *"Choose your reward — card or die"* while `PROGRESS.md` says dice were removed from combat rewards and moved to shops, Magic Doors, and events only. This is a live, user-facing wording bug regardless of which behavior is correct — the subtitle should be updated to match whichever system is actually active.
-
-**Relevant files:**
-
-- `index.html` — reward subtitle says "card or die."
-- `PROGRESS.md` — says dice were removed from combat rewards and moved to shops, Magic Doors, and events.
-- `js/ui.js` — active reward generation. *(reward-screen rendering not yet fully traced this session)*
-- `js/data.js` / `js/game.js` — die acquisition sources.
-- `castle-run.html` — legacy reward wording/behavior.
+**Resolution (fixed):** Combat-victory rewards are **card-only**. The stale "card or die" subtitle was a shared element with the Magic Door die-reward screen. The reward subtitle is now set **dynamically** in `js/ui.js` — `showReward()` sets it to "Choose your reward — a card", and `showDieReward()` uses its own die header — so the wording always matches the active reward. Dice come from the shop, Magic Doors, and events only.
 
 ---
 

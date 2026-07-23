@@ -58,7 +58,7 @@ Collect all four True Ending Relics (The Fractured Crown, The King's Sword, The 
 - Reach the King and determine the ending
 
 ### Platform
-Web browser (HTML/CSS/JS). Designed for mobile-first play — playable in landscape or portrait on phone. Keyboard support for desktop.
+Web browser (HTML/CSS/JS). Designed for mobile-first play — landscape-enforced on phone: portrait triggers a full-screen rotate overlay via `checkOrientation()` (a hard block, not portrait-playable). Keyboard support for desktop.
 
 ### Visual Style
 Dark gothic aesthetic. Inspired by Castlevania and Slay the Spire. Character art is hand-illustrated with transparent backgrounds. Combat is side-view: player on the left, enemy on the right. Floor backgrounds shift in tone per floor — dungeon, crypt, throne antechamber, throne room.
@@ -114,7 +114,7 @@ Dark gothic aesthetic. Inspired by Castlevania and Slay the Spire. Character art
 | Magic Door | 🪄 | High risk / high reward mystery | Always hidden |
 
 ### Mirror Mechanic
-At approximately 60% through each path, a Mirror Room appears. The castle shows you a reflection of what you've built. The Mirror fight uses a shadow copy of your deck and dice — a skill check on your own build.
+At the halfway point of each path, an optional Mirror appears, reflecting the rooms of another path on the current floor. The player may **Step Through** — paying Gold (30/50/70/100 by floor) to switch to that reflected path — or **Walk Away** for free. It is a paid path-switch, implemented in `useMirror()` in `js/game.js`; it is NOT a forced event and NOT a shadow-deck fight.
 
 ### Floor Themes & Boss
 
@@ -137,7 +137,7 @@ Each corrupted companion boss has a fixed debuff shown before the fight. Debuffs
 ## 4. Combat System
 
 ### Turn Structure
-1. Player draws 5 cards at the start of their turn
+1. Player draws 5 cards at the start of their turn. Card draw effects can raise the hand above 5, up to a maximum hand size of 8; the turn-start draw is always 5 and any excess draws past 8 are blocked.
 2. Player rolls their active die (result determines affinity and card bonus effects)
 3. Player plays cards spending Energy (3 Energy per turn base)
 4. Player ends turn — unused cards are discarded, enemy acts
@@ -700,7 +700,7 @@ Between runs, Souls are spent on permanent upgrades.
 - ⚠ TBD: Balancing — enemy HP and damage values need playtesting
 - ⚠ TBD: Boss debuff system (Balatro-style carry-forward debuffs) — designed, not implemented
 - ⚠ TBD: Card rarity system (Common/Uncommon/Rare reward odds) — can tune late
-- ⚠ TBD: Hand size — fixed 5 or per character (default 5 works as placeholder)
+- ✅ Resolved: Hand size — draw 5 at turn start; in-turn card effects can raise the hand up to a max of 8 (implemented via `startingDrawCount` = 5 and `maxHandSize` = 8 in `js/combat.js`)
 - ⚠ TBD: Core passive bonuses — what do Cores DO mid-run?
 - ⚠ TBD: Magic Door exclusive event pool
 
