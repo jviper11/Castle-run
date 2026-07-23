@@ -820,6 +820,11 @@ function endTurn() {
       chillStatus.stacks--;
       if (chillStatus.stacks <= 0) G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '❄️Chill');
     }
+    playAttackAnimation({
+      attackerEl: document.getElementById('enemy-combatant'),
+      targetEl: document.getElementById('player-combatant'),
+      style: 'slash'
+    });
     dmg = Math.max(0, dmg - G.block);
     G.block = Math.max(0, G.block - e.damage);
     if (dmg > 0) G.hp -= dmg;
@@ -1042,6 +1047,13 @@ function gainBlock(g, target, amount) {
   if (target === 'player') {
     g.block += amount;
     floatDamage('player-combatant', amount, 'block');
+    const blockDisplay = document.getElementById('player-block-display');
+    if (blockDisplay) {
+      blockDisplay.classList.remove('block-pulse');
+      void blockDisplay.offsetWidth;
+      blockDisplay.classList.add('block-pulse');
+      setTimeout(() => blockDisplay.classList.remove('block-pulse'), 360);
+    }
   }
   renderAll();
 }
@@ -1106,7 +1118,9 @@ function checkCombatEnd() {
     if (G.lastFightWasElite && hasRelic('iron_ration')) healPlayer(G, 5);
     if (G.lastFightWasElite && hasRelic('grave_robber')) { G.gold += 8; showMsg('⚰️ Grave Robber — +8 Gold!'); }
 
-    document.getElementById('enemy-sprite').classList.add('dying');
+    const enemySprite = document.getElementById('enemy-sprite');
+    spawnDeathBurstVFX(enemySprite);
+    enemySprite.classList.add('dying');
 
     if (G.inBoss) {
       const boss = G.map[G.currentFloor].boss;
@@ -1154,6 +1168,7 @@ function updateIntent() {
   if (!G.enemy) return;
   const e = G.enemy;
   const el = document.getElementById('enemy-intent');
+  el.classList.toggle('intent-pulse', e.intent === 'attack');
   const specialHint = e.special
     ? `<div style="font-size:0.65rem;color:var(--purple2);margin-top:0.2rem;">⚡ ${e.special.name} · <span style="color:var(--text3)">tap for info</span></div>`
     : '';

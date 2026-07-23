@@ -1570,12 +1570,15 @@ function animateSpriteAttack(attackerEl, direction = 'right') {
 }
 
 function animateHit(targetEl) {
-  targetEl.classList.remove('hit-flash');
-  void targetEl.offsetWidth;
-  targetEl.classList.add('hit-flash');
+  const sprite = targetEl?.querySelector('.combatant-sprite');
+  if (!sprite) return;
+
+  sprite.classList.remove('hit-flash');
+  void sprite.offsetWidth;
+  sprite.classList.add('hit-flash');
 
   setTimeout(() => {
-    targetEl.classList.remove('hit-flash');
+    sprite.classList.remove('hit-flash');
   }, 250);
 }
 
@@ -1583,16 +1586,47 @@ function spawnSlashVFX(targetEl) {
   const layer = document.getElementById('combat-vfx-layer');
   if (!layer || !targetEl) return;
 
-  const rect = targetEl.getBoundingClientRect();
+  const sprite = targetEl.querySelector('.combatant-sprite');
+  if (!sprite) return;
+
+  const rect = sprite.getBoundingClientRect();
   const arenaRect = layer.getBoundingClientRect();
+  const slashWidth = 120;
+  const slashHeight = 20;
+  const centerX = rect.left - arenaRect.left + rect.width * 0.5;
+  const torsoY = rect.top - arenaRect.top + rect.height * 0.62;
 
   const slash = document.createElement('div');
   slash.className = 'slash-vfx';
-  slash.style.left = `${rect.left - arenaRect.left + rect.width * 0.15}px`;
-  slash.style.top = `${rect.top - arenaRect.top + rect.height * 0.35}px`;
+  slash.style.left = `${centerX - slashWidth * 0.5}px`;
+  slash.style.top = `${torsoY - slashHeight * 0.5}px`;
 
   layer.appendChild(slash);
   setTimeout(() => slash.remove(), 250);
+}
+
+function spawnDeathBurstVFX(targetEl) {
+  const layer = document.getElementById('combat-vfx-layer');
+  if (!layer || !targetEl) return;
+
+  const rect = targetEl.getBoundingClientRect();
+  const arenaRect = layer.getBoundingClientRect();
+  const originX = rect.left - arenaRect.left + rect.width * 0.5;
+  const originY = rect.top - arenaRect.top + rect.height * 0.65;
+
+  for (let i = 0; i < 7; i++) {
+    const dust = document.createElement('span');
+    const angle = (Math.PI * 2 * i) / 7;
+    const distance = 18 + Math.random() * 20;
+    dust.className = 'death-dust-vfx';
+    dust.style.left = `${originX}px`;
+    dust.style.top = `${originY}px`;
+    dust.style.setProperty('--dust-x', `${Math.cos(angle) * distance}px`);
+    dust.style.setProperty('--dust-y', `${Math.sin(angle) * distance - 12}px`);
+    dust.style.animationDelay = `${i * 18}ms`;
+    layer.appendChild(dust);
+    setTimeout(() => dust.remove(), 650);
+  }
 }
 
 function spawnProjectileVFX(fromEl, toEl) {
