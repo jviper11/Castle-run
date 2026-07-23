@@ -384,7 +384,8 @@ function startCombat(isElite) {
   G.lastFightWasElite = !!isElite;
   G.phantomBladeFired = false;
   G.extraDraw = 0;
-  G.handLimit = 5;
+  G.startingDrawCount = 5;   // cards drawn at the start of each turn
+  G.maxHandSize = 8;         // cap that in-turn draw effects can fill up to
   G.cardsPlayedThisCombat = 0;
   G._ashenCrownFired = false;
   // Relic hooks — start of combat
@@ -392,7 +393,7 @@ function startCombat(isElite) {
   if (hasRelic('cracked_hourglass')) G.rerollUsed = false;
   if (hasRelic('rusted_chain')) G.statuses.enemy.push({ name:'🫗Vulnerable', stacks:1 });
   if (hasRelic('torn_page')) G.extraDraw += 1;
-  if (hasRelic('cursed_hourglass')) { G.extraDraw += 2; G.handLimit = 4; }
+  if (hasRelic('cursed_hourglass')) { G.extraDraw += 2; G.maxHandSize = 4; }
   if (hasRelic('hollow_throne')) G.block += 20;
 
   updateCombatSprites(G.charKey, null);
@@ -416,7 +417,8 @@ function startBossFight() {
   G.inBoss = true;
   G.phantomBladeFired = false;
   G.extraDraw = 0;
-  G.handLimit = 5;
+  G.startingDrawCount = 5;   // cards drawn at the start of each turn
+  G.maxHandSize = 8;         // cap that in-turn draw effects can fill up to
   G.cardsPlayedThisCombat = 0;
   G._ashenCrownFired = false;
   // Relic hooks — start of combat
@@ -424,7 +426,7 @@ function startBossFight() {
   if (hasRelic('cracked_hourglass')) G.rerollUsed = false;
   if (hasRelic('rusted_chain')) G.statuses.enemy.push({ name:'🫗Vulnerable', stacks:1 });
   if (hasRelic('torn_page')) G.extraDraw += 1;
-  if (hasRelic('cursed_hourglass')) { G.extraDraw += 2; G.handLimit = 4; }
+  if (hasRelic('cursed_hourglass')) { G.extraDraw += 2; G.maxHandSize = 4; }
   if (hasRelic('hollow_throne')) G.block += 20;
 
   showScreen('combat-screen');
@@ -489,7 +491,7 @@ function startTurn() {
     return;
   }
 
-  drawCards(G, 5 + (G.extraDraw || 0));
+  drawCards(G, (G.startingDrawCount || 5) + (G.extraDraw || 0));
   renderAll();
   updateIntent();
 }
@@ -706,6 +708,15 @@ if (G._arcaneMomentum && G._momentumCap > 0 && (card.type === 'Skill' || card.ty
   }
 }
   const roll = G.currentDie || 1;
+
+  // Remove the played card from hand BEFORE its effect resolves. Otherwise it still occupies
+  // a hand slot while the effect runs, so any drawCards() inside the effect sees an inflated
+  // G.hand.length and can hit the maxHandSize cap early (e.g. Blood Price drew 0 at a full hand).
+  // The card is NOT put in a pile yet — deferring the discard until after the effect means a
+  // mid-effect reshuffle (drawCards shuffling discard→draw) can't draw the played card back.
+  const idx = G.hand.indexOf(cardKey);
+  if (idx >= 0) G.hand.splice(idx, 1);
+
   card.effect(G, roll);
 
   // Spell Echo — repeat Attack effect
@@ -730,10 +741,8 @@ if (G.statuses.player.find(s => s.name === '👑BloodLord') && card.type === 'At
     }, 100);
   }
 
-  // remove from hand
-  const idx = G.hand.indexOf(cardKey);
+  // Send the played card to its pile AFTER the effect resolves (see note above).
   if (idx >= 0) {
-    G.hand.splice(idx, 1);
     if (card.type === 'Power') {
       // Power cards are exhausted — removed from combat, not discarded
       // They stay in the deck for future runs but don't cycle back this combat
@@ -1087,7 +1096,9 @@ function applyStatus(g, target, name, stacks) {
 }
 
 function drawCards(g, n) {
-  const limit = g.handLimit || 5;
+  // Max hand size (default 8). Turn-start draw pulls startingDrawCount (5); in-turn draw
+  // effects may push the hand above 5 up to this cap, after which further draws are blocked.
+  const limit = g.maxHandSize || 8;
   for (let i = 0; i < n; i++) {
     if (g.hand.length >= limit) break;
     if (g.drawPile.length === 0) {

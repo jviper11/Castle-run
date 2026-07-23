@@ -20,7 +20,7 @@ function newGame(charKey) {
     block: 0, energy: 3, maxEnergy: 3,
     gold: 30, souls: 0,
     relics: [], rareOffset: 0, lastFightWasElite: false, phantomBladeFired: false,
-    extraDraw: 0, handLimit: 5, _noReroll: false, cardsPlayedThisCombat: 0,
+    extraDraw: 0, startingDrawCount: 5, maxHandSize: 8, _noReroll: false, cardsPlayedThisCombat: 0,
     deck: [...ch.starterDeck],
     drawPile: [], discardPile: [], hand: [],
     activeDie: 'd6',  // single active die — type string key into DICE_TYPES
