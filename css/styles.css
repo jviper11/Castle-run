@@ -2172,7 +2172,7 @@ body {
 
   @media (max-width: 1100px) and (orientation: landscape) {
     #combat-screen.active {
-      --combat-bottom-hud-height: 118px;
+      --combat-bottom-hud-height: 100px;
       justify-content: flex-start;
       overflow: hidden;
     }
@@ -2201,11 +2201,11 @@ body {
     }
 
     .combatant-sprite {
-      width: clamp(50px, 8vw, 69px) !important;
-      height: clamp(60px, 10.5vw, 83px) !important;
-      max-width: 69px;
-      max-height: 83px;
-      font-size: 3rem;
+      width: clamp(46px, 7.2vw, 63px) !important;
+      height: clamp(55px, 9.5vw, 76px) !important;
+      max-width: 63px;
+      max-height: 76px;
+      font-size: 2.75rem;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -2248,25 +2248,35 @@ body {
     }
 
     #enemy-combatant .combatant-info {
+      flex-basis: 116px;
+      width: 116px;
+      min-width: 116px;
       gap: 0.08rem;
       padding-bottom: 0.08rem;
     }
 
     #enemy-combatant .combatant-name {
-      width: 112px;
-      max-width: min(112px, 42vw);
+      width: 116px;
+      max-width: 116px;
       height: 1.1em;
       min-height: 1.1em;
-      font-size: 0.68rem;
+      font-size: 0.64rem;
       line-height: 1.1;
       white-space: nowrap;
       text-align: center;
     }
 
+    #enemy-combatant .hp-bar-wrap,
+    #enemy-combatant .combat-stat-row,
+    #enemy-combatant .status-icons {
+      width: 104px;
+      max-width: 104px;
+    }
+
     .intent-box {
       padding: 0.16rem 0.3rem;
       margin-bottom: 0;
-      max-width: 84px;
+      max-width: 104px;
       align-self: center;
       line-height: 1.15;
     }
@@ -2299,11 +2309,11 @@ body {
 
     .dice-panel {
       grid-template-columns: 1fr;
-      grid-template-rows: 34px 18px;
-        flex-basis: 72px;
-        width: 72px;
-        height: 62px;
-        transform: scale(1.32);
+      grid-template-rows: 30px 17px;
+        flex-basis: 60px;
+        width: 60px;
+        height: 52px;
+        transform: scale(1.1);
         transform-origin: center;
         align-items: center;
       left: 18px;
@@ -2321,30 +2331,30 @@ body {
 
     .dice-display > div:not(.die) {
       display: flex;
-      left: calc(50% + 18px);
-      width: 25px;
-      height: 31px;
+      left: calc(50% + 16px);
+      width: 21px;
+      height: 28px;
       min-width: 0;
       gap: 2px;
     }
 
     .dice-panel .die {
-      width: 34px;
-      height: 34px;
-        font-size: 1.05rem;
+      width: 30px;
+      height: 30px;
+        font-size: 0.95rem;
       border-width: 1px;
     }
 
     .die-affinity-label {
-      width: 25px;
-      height: 14px;
-      max-width: 25px;
-        font-size: 0.45rem;
+      width: 21px;
+      height: 13px;
+      max-width: 21px;
+        font-size: 0.4rem;
       line-height: 1.08;
     }
 
     #die-type-label {
-        font-size: 0.43rem !important;
+        font-size: 0.38rem !important;
       line-height: 1;
       text-align: center;
     }
@@ -2353,12 +2363,12 @@ body {
       grid-column: 1;
       grid-row: 2;
       min-height: unset;
-      min-width: 64px;
+      min-width: 56px;
       width: auto;
-      height: 18px;
+      height: 17px;
       max-width: none;
       white-space: nowrap;
-        font-size: 0.48rem;
+        font-size: 0.43rem;
       line-height: 1.1;
       padding: 0 0.24rem;
     }
@@ -2495,7 +2505,7 @@ body {
 
   @media (max-height: 520px) and (orientation: landscape) {
     #combat-screen {
-      --combat-bottom-hud-height: 104px;
+      --combat-bottom-hud-height: 92px;
     }
 
     .hud-floor {
@@ -2527,11 +2537,11 @@ body {
     }
 
     .combatant-sprite {
-      width: clamp(50px, 7vw, 67px) !important;
-      height: clamp(60px, 9.5vw, 79px) !important;
-      max-width: 67px;
-      max-height: 79px;
-      font-size: 2.7rem;
+      width: clamp(46px, 6.4vw, 61px) !important;
+      height: clamp(55px, 8.6vw, 72px) !important;
+      max-width: 61px;
+      max-height: 72px;
+      font-size: 2.5rem;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -2588,14 +2598,27 @@ body {
     }
 
     #enemy-combatant .combatant-name {
-      width: 104px;
-      max-width: min(104px, 42vw);
+      width: 108px;
+      max-width: 108px;
       height: 1.1em;
       min-height: 1.1em;
-      font-size: 0.6rem;
+      font-size: 0.58rem;
       line-height: 1.1;
       white-space: nowrap;
       text-align: center;
+    }
+
+    #enemy-combatant .combatant-info {
+      flex-basis: 108px;
+      width: 108px;
+      min-width: 108px;
+    }
+
+    #enemy-combatant .hp-bar-wrap,
+    #enemy-combatant .combat-stat-row,
+    #enemy-combatant .status-icons {
+      width: 100px;
+      max-width: 100px;
     }
 
     .combat-stat-row {
@@ -2620,7 +2643,7 @@ body {
       font-size: 0.5rem;
       padding: 0.18rem 0.34rem;
       margin-bottom: 0.02rem;
-      max-width: 82px;
+      max-width: 100px;
       align-self: center;
       line-height: 1.15;
     }
@@ -2648,11 +2671,11 @@ body {
 
     .dice-panel {
       grid-template-columns: 1fr;
-      grid-template-rows: 30px 17px;
-        flex-basis: 68px;
-        width: 68px;
-        height: 58px;
-        transform: scale(1.3);
+      grid-template-rows: 27px 16px;
+        flex-basis: 56px;
+        width: 56px;
+        height: 46px;
+        transform: scale(1.05);
         transform-origin: center;
         padding: 0.06rem 0.1rem;
       left: 16px;
@@ -2666,31 +2689,31 @@ body {
 
     .dice-display > div:not(.die) {
       display: flex;
-      left: calc(50% + 16px);
-      width: 24px;
-      height: 28px;
+      left: calc(50% + 14px);
+      width: 20px;
+      height: 25px;
       gap: 1px;
     }
 
     .dice-panel .die {
-      width: 30px;
-      height: 30px;
-        font-size: 1rem;
+      width: 27px;
+      height: 27px;
+        font-size: 0.86rem;
     }
 
     .die-affinity-label {
-      width: 24px;
-      height: 13px;
-      max-width: 24px;
-        font-size: 0.42rem;
+      width: 20px;
+      height: 12px;
+      max-width: 20px;
+        font-size: 0.36rem;
       line-height: 1.05;
     }
 
     .dice-panel .reroll-btn {
       min-height: unset;
-      min-width: 60px;
+      min-width: 52px;
       width: auto;
-      height: 17px;
+      height: 16px;
       max-width: none;
       white-space: nowrap;
         font-size: 0.46rem;
@@ -2787,7 +2810,7 @@ body {
     }
 
     .card-type {
-      font-size: 0.46rem;
+      font-size: 0.4rem;
       margin-top: 0.05rem;
     }
 

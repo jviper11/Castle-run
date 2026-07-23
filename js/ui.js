@@ -1374,12 +1374,21 @@ function showEnemyInfo(e) {
     document.getElementById('eip-ability-desc').textContent = 'This enemy has no special ability.';
   }
 
-  // Position popup near tap point but keep on screen
-  const x = Math.min(e.clientX, window.innerWidth - 300);
-  const y = Math.min(e.clientY + 10, window.innerHeight - 200);
+  // Position popup near tap point, reserving the bottom combat HUD on mobile.
+  popup.classList.add('visible');
+  const mobileLandscape = window.matchMedia &&
+    window.matchMedia('(max-width: 1100px) and (orientation: landscape)').matches;
+  const combatScreen = document.getElementById('combat-screen');
+  const hudReserve = mobileLandscape && combatScreen
+    ? parseFloat(getComputedStyle(combatScreen).getPropertyValue('--combat-bottom-hud-height')) || 0
+    : 0;
+  const edgeGap = 8;
+  const maxX = Math.max(edgeGap, window.innerWidth - popup.offsetWidth - edgeGap);
+  const maxY = Math.max(edgeGap, window.innerHeight - hudReserve - popup.offsetHeight - edgeGap);
+  const x = Math.max(edgeGap, Math.min(e.clientX, maxX));
+  const y = Math.max(edgeGap, Math.min(e.clientY + 10, maxY));
   popup.style.left = x + 'px';
   popup.style.top = y + 'px';
-  popup.classList.add('visible');
 
   // Auto-hide after 4 seconds or on next tap anywhere
   clearTimeout(popup._hideTimer);
