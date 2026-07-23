@@ -16,19 +16,8 @@ Version 2.0 — All Characters + Shared Pool
 | Shared Pool | ✅ All coded | ✅ All coded | Complete |
 
 ### Cards in GDD but NOT yet coded
-These cards appear in GDD v0.9 card pool tables but have no implementation yet:
 
-| Hero | Key | Name |
-|---|---|---|
-| Thief | `thiefsgambit` | Thief's Gambit |
-| Thief | `gutpunch` | Gut Punch |
-| Vampire | `cursedveins` | Cursed Veins |
-| Gambler | `wildcardcombo` | Wild Combo |
-| Gambler | `pressyourluck` | Press Your Luck |
-| Gambler | `jackpot` | Jackpot |
-| Thief | `goldenstrike` | Golden Strike |
-
-These cards and their upgrades should be implemented in a future session.
+None. The seven previously-missing GDD cards (Thief's Gambit, Gut Punch, Golden Strike; Cursed Veins; Wild Combo, Press Your Luck, Jackpot) were implemented on 2026-07-23 — base cards in `js/data.js` `CARDS`, upgrades in `CARD_UPGRADES`, and reward-pool membership in `js/ui.js` `CHAR_REWARD_POOLS`. See the per-hero upgrade tables below.
 
 ---
 
@@ -171,12 +160,15 @@ These cards and their upgrades should be implemented in a future session.
 | `bladedance` | Blade Dance+ | 1 | Deal 4 dmg three times. Odd: Deal 6 dmg three times |
 | `disappear` | Disappear+ | 0 | Gain 8 Block. Next card costs 0. Odd: Next 2 cards cost 0. Free |
 | `concoction` | Concoction+ | 1 | Apply 3 Poison + draw 2. Odd: Apply 5 Poison + draw 2 |
+| `thiefsgambit` | Thief's Gambit+ | 1 | Deal 5 dmg. Draw 1. Gain 8 Gold. Odd: Deal 8 dmg. Draw 1. Gain 8 Gold (base: Deal 3/5 dmg, +5 Gold) |
+| `gutpunch` | Gut Punch+ | 1 | Deal 6 dmg + 2 Poison. Odd: Deal 6 dmg + 3 Poison (base: Deal 4 dmg + 1/2 Poison) |
 
 ### 🟣 Rares
 
 | Key | Name | Type | Cost | Upgrade Effect |
 |---|---|---|---|---|
 | `deathmark` | Death Mark+ | Skill | 1 | Double Poison stacks (max 20). Exhaust. Odd: Triple stacks (max 20). Exhaust |
+| `goldenstrike` | Golden Strike+ | Attack | 1 | Deal dmg = Gold ÷ 8 (max 18). Odd: Gold ÷ 6 (max 24) (base: Gold ÷ 10 max 15 / Gold ÷ 8 max 20) |
 | `shadowartist` | Shadow Artist+ | Power | 1 | Exhaust. First 3 cards each turn cost 1 less |
 | `poisonmaster` | Poison Master+ | Power | 2 | Exhaust. Poison deals +2 dmg per stack |
 | `lethalrhythm` | Lethal Rhythm+ | Power | 1 | Exhaust. Every 2 cards played deals 5 dmg |
@@ -216,6 +208,7 @@ These cards and their upgrades should be implemented in a future session.
 | `darkrite` | Dark Rite+ | 1 | Lose 6 HP. Gain 16 Block + 3 Regen. Extreme: Lose 4 HP + 20 Block + 4 Regen |
 | `bloodrush` | Blood Rush+ | 0 | Spend 3 HP. Next attack +9 dmg. Extreme: Spend 2 HP + 12 dmg |
 | `nightstalk` | Night Stalk+ | 1 | Deal 7 dmg twice. Extreme: Deal 9 dmg twice + 3 Regen |
+| `cursedveins` | Cursed Veins+ | 1 | Gain 5 Regen. Next card costs 0. Extreme: Gain 7 Regen + next Skill costs 0 (base: 3/5 Regen) |
 
 ### 🟣 Rares
 
@@ -260,6 +253,9 @@ These cards and their upgrades should be implemented in a future session.
 | `counttheodds` | Count the Odds+ | 0 | Look at top 3 cards. Keep 2 discard 1. Max: look at 4, keep 3 |
 | `highstakes` | High Stakes+ | 1 | Gain Gold equal to roll × 4. Max: roll × 7 |
 | `bluff` | Bluff+ | 1 | Apply Weak 2 + Vulnerable 1. Max: Weak 3 + Vulnerable 2 |
+| `wildcardcombo` | Wild Combo+ | 1 | Deal 5 dmg. Draw 1. Reroll die. Max: Deal 7 dmg. Draw 2 (base: 3 dmg/draw 1, Max 5 dmg/draw 2) |
+| `pressyourluck` | Press Your Luck+ | 2 | Deal 13 dmg. Reroll — if higher +7. Max: Deal 18, if higher +11 (base: 10 dmg/+6, Max 14/+10) |
+| `jackpot` | Jackpot+ | 1 | Gain Gold = roll × 5. Max: Gain 50 Gold. Exhaust (base: roll × 4, Max 40 Gold) |
 
 ### 🟣 Rares
 

@@ -464,17 +464,17 @@ const CHAR_REWARD_POOLS = {
   },
   thief: {
     common:   ['swiftjab','slipaway','cheapshot','coinflick','nimblepace','quickstrike','shadowstep','poisonblade','pickpocket','smokescreen'],
-    uncommon: ['envenomdagger','backstab','cripple','shadowmark','poisoncloud','bladedance','disappear','concoction','soulsteal','stealheal'],
-    rare:     ['deathmark','shadowartist','poisonmaster','lethalrhythm','assassinate']
+    uncommon: ['envenomdagger','backstab','cripple','shadowmark','poisoncloud','bladedance','disappear','concoction','thiefsgambit','gutpunch','soulsteal','stealheal'],
+    rare:     ['deathmark','shadowartist','poisonmaster','lethalrhythm','assassinate','goldenstrike']
   },
   vampire: {
     common:   ['bloodpulse','draintouch','nightveil','darkblood','swoopdown','blooddrain','nightshroud','lifeleech','crimsonbite','darkembrace'],
-    uncommon: ['sanguinestrike','crimsonpact','bloodbank','drainlife','batform','shadowfeast','darkrite','bloodrush','nightstalk','ironwall','soulsteal','stealheal'],
+    uncommon: ['sanguinestrike','crimsonpact','bloodbank','drainlife','batform','shadowfeast','darkrite','bloodrush','nightstalk','cursedveins','ironwall','soulsteal','stealheal'],
     rare:     ['bloodlord','eternalhunger','vampiricform','darkascension','soulrend','bloodtide']
   },
   gambler: {
     common:   ['longshot','safepull','risktaker','oddscheck','chipsin','highorlow','doubldown','luckystrike','hedgebet','wildcard'],
-    uncommon: ['allin','loadeddie','pocketaces','doubleornothing','counttheodds','highstakes','bluff','soulsteal','stealheal'],
+    uncommon: ['allin','loadeddie','pocketaces','doubleornothing','counttheodds','highstakes','bluff','wildcardcombo','pressyourluck','jackpot','soulsteal','stealheal'],
     rare:     ['houseedge','luckystreak','gamblersfallacy','bettingitall','loadedhouse','devilsdeal']
   }
 };
@@ -491,6 +491,8 @@ function showReward() {
   document.getElementById('reward-gold').textContent = G.gold;
   document.getElementById('reward-souls').textContent = G.souls;
   showScreen('reward-screen');
+  const rewardSub = document.getElementById('reward-sub');
+  if (rewardSub) rewardSub.textContent = 'Choose your reward — a card';
   const pool = document.getElementById('reward-choices');
   pool.innerHTML = '';
 
@@ -581,6 +583,10 @@ function showDieReward() {
   document.getElementById('reward-gold').textContent = G.gold;
   document.getElementById('reward-souls').textContent = G.souls;
   showScreen('reward-screen');
+
+  // Die selection uses its own gold header below; hide the card subtitle
+  const rewardSub = document.getElementById('reward-sub');
+  if (rewardSub) rewardSub.textContent = '';
 
   const pool = document.getElementById('reward-choices');
   pool.innerHTML = '';

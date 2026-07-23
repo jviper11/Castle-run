@@ -458,6 +458,7 @@ function startTurn() {
   G._cardsPlayedThisTurn = 0;
   G._shadowMark = 0;
   G._disappearCount = 0;
+  G._freeSkillCount = 0;
   G._flyActive = false;
   G._dieSetThisTurn = false;
   G._guaranteedMax = G._guaranteedMax || 0;
@@ -681,6 +682,11 @@ if (G._shadowArtistDiscount > 0) { actualCost = Math.max(0, actualCost - 1); G._
 if (G._disappearCount > 0 && cardKey !== 'disappear') {
   G.energy += actualCost;
   G._disappearCount--;
+}
+// Cursed Veins — next Skill card free
+if (G._freeSkillCount > 0 && card.type === 'Skill' && cardKey !== 'cursedveins' && cardKey !== 'cursedveins+') {
+  G.energy += actualCost;
+  G._freeSkillCount--;
 }
 
   if (card.type === 'Skill' || card.type === 'Power') G._spellsThisTurn = (G._spellsThisTurn || 0) + 1;
