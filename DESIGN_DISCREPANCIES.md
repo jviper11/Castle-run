@@ -65,21 +65,13 @@ This file records unresolved conflicts between design documents, progress notes,
 
 ---
 
-## Normal ending castle outcome
+## ✅ RESOLVED — Normal ending castle outcome
 
-**Question:** In the Normal Ending, does the castle endure and continue the cycle, or crumble when Aldric is defeated?
+**Original question:** In the Normal Ending, does the castle endure and continue the cycle, or crumble when Aldric is defeated?
 
-**Partial finding:** `showAldricEnding()` in `js/ui.js` sets the Normal Ending text to *"Aldric dissipates into shadow. The castle endures. You were not ready. Return when you are."* — this directly contradicts `GDD.md`'s narrative description, which says the castle crumbles in the Normal Ending. In-code text currently says the castle **endures**, matching the "cycle continues" framing rather than the "castle crumbles" framing.
+**Resolution:** The castle **endures** — the cycle continues; the Normal Ending is an incomplete victory that invites a replay toward the True Ending. Code is source of truth: `showAldricEnding()` in `js/ui.js` reads *"Aldric dissipates into shadow. The castle endures. You were not ready. Return when you are."* The contrast is intentional — only the **True** Ending destroys the castle (you use the relics to shatter its hold and free Aldric); the Normal Ending leaves the castle standing.
 
-**Still needed:** A decision on which is actually intended, then align GDD.md and the in-code ending text.
-
-**Relevant files:**
-
-- `GDD.md` — Normal Ending narrative.
-- `PROGRESS.md` — Two Endings narrative.
-- `js/ui.js` — `showAldricEnding()` ending text.
-- `js/combat.js` — ending trigger flow.
-- `castle-run.html` — legacy ending text for comparison only.
+**Doc correction applied:** `GDD.md`'s Two Endings section previously said the castle "crumbles" in the Normal Ending — rewritten to match the in-game endures/cycle-continues framing. `PROGRESS.md`'s Two Endings line already said "Castle endures. Cycle continues." (no change needed there).
 
 ---
 

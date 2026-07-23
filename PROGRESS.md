@@ -91,7 +91,7 @@ See `DESIGN_DISCREPANCIES.md` before changing disputed rules.
 | Core Passive Bonuses | ❌ Not designed | ❌ Not built |
 | Magic Door Exclusive Pool | ✅ Complete | ✅ Built |
 | Card Rarity / Reward Odds | ✅ Complete | ✅ Built |
-| Hand Size Decision | ❌ Not decided | ❌ Not built |
+| Hand Size Decision | ✅ Complete | ✅ Built (5 draw / 8 cap) |
 
 ---
 
@@ -403,7 +403,6 @@ Categories: Gold events, HP-for-Gold trades, Curse card rewards, Risk events, Cl
 | Core passive bonuses | Medium | Cores drop on boss defeat — what do they DO mid-run? |
 | Magic Door exclusive event pool | Low | Currently pulls from normal room pool |
 | Card rarity system (Common/Uncommon/Rare reward odds) | Low | Can tune late |
-| Hand size — fixed 5 or per character | Low | Default 5 works as placeholder |
 
 ---
 

@@ -40,7 +40,7 @@ In the True Ending, he appears freed completely.
 ### The Two Endings
 
 **Normal Ending — The Slayer**
-Defeat King Aldric without all four True Ending Relics. You kill the king and break the castle's hold on him. The castle crumbles. Your companions are freed but changed. The kingdom survives, but without its king.
+Defeat King Aldric without all four True Ending Relics. You strike him down, but killing him never breaks the castle's hold — Aldric dissipates into shadow and the castle *endures*, the cycle continuing without its king. It is an incomplete victory: "You were not ready. Return when you are." The player is invited to come back and pursue the True Ending. (In-game text, `showAldricEnding()`: *"Aldric dissipates into shadow. The castle endures. You were not ready. Return when you are."*)
 
 **True Ending — The Liberator**
 Collect all four True Ending Relics (The Fractured Crown, The King's Sword, The Royal Sigil, The Knight's Vow) and defeat King Aldric. In Phase 3, instead of killing him you use the relics to shatter the castle's hold on his soul. Aldric is freed. The castle is destroyed. The king lives.
