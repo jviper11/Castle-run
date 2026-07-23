@@ -1,226 +1,146 @@
 # CLAUDE.md — Castle Run (Browser)
 
 ## Project Overview
-Castle Run is a browser-based HTML/JS deckbuilder roguelike. Single-player, mobile-first, hosted at jviper11.github.io/Castle-run/
 
-**GDD version:** v0.9
-**Status:** Active development — core systems complete, content and systems expansion ongoing.
+Castle Run is a single-player browser deck-building roguelite with turn-based card combat and one active die per turn. It is deployed through GitHub Pages from the repository root.
 
----
-
-## File Structure
-
-### THE GAME FILE
-**castle-run.html** — This is the entire game. One monolithic file containing all HTML, CSS, and JavaScript (~6300+ lines). This is the ONLY file you need to edit.
-
-### Everything else is dead/reference
-- index.html — Landing page (~379 lines), separate from the game
-- js/ folder (combat.js, data.js, game.js, ui.js, main.js) — Old split attempt, NOT imported by castle-run.html, NOT active. Do not edit these.
-- css/styles.css — Not imported by castle-run.html. Dead.
-- assets/ — Character and boss images (used via base64 in castle-run.html)
-- GDD.md, PROGRESS.md, CARD_UPGRADES_MASTER.md, AGENTS.md — Documentation only
-
-**Rule: When asked to edit the game, edit castle-run.html only.**
+**Design reference:** `GDD.md` v0.9
+**Development status:** Active development. Major systems are implemented, but implementation is not the same as verification. See `PROGRESS.md` for the current restart point and `DESIGN_DISCREPANCIES.md` for unresolved design conflicts.
 
 ---
 
-## Architecture (inside castle-run.html)
+## Active Runtime Architecture
 
-All code lives in one script block at the bottom of the file. Sections are clearly delimited with === comment banners:
+The deployed game is the split build:
 
-1. DATA — CHARACTERS, CARDS, CARD_UPGRADES, DICE_TYPES, FLOOR_ENEMIES, ELITES, BOSSES, EVENTS, SHOP_ITEMS, CHAR_REWARD_POOLS
-2. GAME STATE — G object, newGame(), buildMap()
-3. NAVIGATION — enterRoom(), proceedDoors(), showDoors(), chooseDoor(), useMirror()
-4. ALDRIC — Final boss, 3-phase fight, relic triggers, True Ending system
-5. COMBAT — startCombat(), startTurn(), rollDice(), playCard(), endTurn(), dealDamage(), gainBlock(), healPlayer(), applyStatus(), drawCards(), shuffleDeck(), checkCombatEnd()
-6. REST / SHOP / EVENT — showRestStop(), showShop(), showEvent()
-7. REWARD — showReward(), giveReward(), skipReward()
-8. BOSS INTRO — showBossIntro(), launchFinalBoss()
-9. RENDER — renderAll(), renderHP(), renderHand(), renderEnergy(), renderStatuses(), renderCores(), updateHUD(), floatDamage()
-10. MAP — toggleMap(), showPathSelect(), showPathConfirm(), renderMap()
-11. UI HELPERS — showScreen(), showMsg(), showGameOver(), showAldricEnding(), toggleDeckViewer(), toggleMenu()
-12. TITLE & CHAR SELECT — showCharSelect(), restartGame()
-13. UTILS — shuffle(), rand()
+- `index.html` — GitHub Pages entry point and active HTML structure.
+- `css/styles.css` — active stylesheet, including desktop and mobile/landscape layouts.
+- `js/data.js` — characters, cards, upgrades, enemies, bosses, events, dice, relic data, and embedded game images.
+- `js/game.js` — global game state, new-game flow, map generation, room navigation, paths, Magic Doors, and Mirror flow.
+- `js/combat.js` — combat turns, dice rolls, damage, Block, statuses, Power hooks, enemy intent/actions, bosses, and combat completion.
+- `js/ui.js` — card rendering, dynamic previews, rewards, rest, shop, relic UI, status rendering, tooltips, HUD, map, and screen helpers.
+- `js/main.js` — startup, viewport/orientation handling, and event wiring.
 
----
+Scripts are loaded by `index.html` in this order: `data.js`, `game.js`, `combat.js`, `ui.js`, then `main.js`. These files share browser globals, so load order and globally referenced names matter.
 
-## Global State (G)
+### Legacy snapshot
 
-The entire game state lives in one object G. Key fields:
+`castle-run.html` is a legacy/reference snapshot of the older monolithic build. It is not the GitHub Pages entry point and does not receive current runtime fixes.
 
-G.charKey — 'barbarian' | 'mage' | 'thief' | 'vampire' | 'gambler'
-G.char — CHARACTERS[charKey]
-G.hp / G.maxHp
-G.block
-G.energy / G.maxEnergy
-G.gold / G.souls
-G.deck — full deck (array of card key strings)
-G.drawPile / G.discardPile / G.hand
-G.activeDie — 'd6' | 'd8' | 'd10' | 'd12' | 'd4' | 'd20'
-G.diceMax — max face of active die
-G.currentDie — current roll value
-G.rerollUsed — bool, reroll consumed this turn
-G.map — array of 4 floor objects
-G.currentFloor — 0-3
-G.enemy — current enemy object (null outside combat)
-G.statuses — { player: [...], enemy: [...] }
-G.exhaustedPile — cards exhausted this combat
-G.inBoss — bool
-G.isFinalBoss — bool, true during Aldric fight
-G.cores — array of charKeys for collected boss cores
-G.turn — combat turn counter
-
-### Per-turn flags (reset in startTurn())
-G._cardsPlayedThisTurn
-G._spellsThisTurn — Skill/Power cards played (for Arcane Barrage)
-G._spellEcho — remaining echo triggers
-G._momentumCap — max die bumps from Arcane Momentum this turn
-G._manaSurge — next card costs 1 less
-G._manaWeaveCount — next N cards cost 1 less
-G._entrenchActive — block carries to next turn
-G._shadowMark — bonus damage on next attack
-G._disappearCount — next N cards cost 0
-G._shadowArtistDiscount — cards with discount remaining
-G._flyActive — damage taken halved
-G._dieSetThisTurn — can only set die once per turn
-G._guaranteedMax — next N rolls are max
-G._minRoll — minimum roll floor (default 2 for Gambler, 1 otherwise)
-G._fallacyCount — non-max rolls since last max (Gambler's Fallacy)
-G._fallacyThreshold — rolls needed to trigger guaranteed max (default 3)
-G._hungerDmgThisTurn — Eternal Hunger damage dealt this turn (capped 15)
+- Do not edit `castle-run.html` unless explicitly asked to compare builds or recover an older design.
+- Runtime code changes must be made in `index.html`, `css/styles.css`, or the appropriate split `js/*.js` file.
+- Do not copy fixes back into the monolith by default.
+- Preserve the split architecture unless an explicit refactor is requested.
 
 ---
 
-## Characters & Affinities
+## Global State (`G`)
 
-Barbarian — 90 HP — Even — Roll is even number
-Mage — 70 HP — High — Roll is 6 or higher
-Thief — 75 HP — Odd — Roll is odd number
-Vampire — 78 HP — Extreme — Roll = 1 OR roll = diceMax
-Gambler — 72 HP — d6 Specialist — Min roll 2, guaranteed-max system
+The run and combat state lives in the global `G` object. Important fields include:
 
----
+- `G.charKey` / `G.char` — selected hero key and character data.
+- `G.hp` / `G.maxHp` / `G.block`.
+- `G.energy` / `G.maxEnergy`.
+- `G.gold` / `G.souls`.
+- `G.deck`, `G.drawPile`, `G.discardPile`, `G.hand`.
+- `G.exhaustedPile` — cards removed for the current combat; they return afterward unless a rule explicitly says otherwise.
+- `G.activeDie`, `G.diceMax`, `G.currentDie`, `G.rerollUsed`.
+- `G.map`, `G.currentFloor`, and current path/room fields.
+- `G.enemy` — current enemy, or null outside combat.
+- `G.statuses` — `{ player: [...], enemy: [...] }`.
+- `G.inBoss`, `G.isFinalBoss`, `G.cores`, `G.turn`.
+- `G.relics` and reward-rarity state such as `G.rareOffset` where initialized by the active build.
 
-## Card System
+### Combat and per-turn flags
 
-Cards are defined in the CARDS object. Key: lowercase string (e.g. 'heavyblow').
-Upgraded versions: key + '+' suffix (e.g. 'heavyblow+').
-Upgrades defined in CARD_UPGRADES, auto-registered into CARDS at load.
+Underscore-prefixed fields implement temporary or combat-scoped effects. Relevant examples include:
 
-Card object shape:
-name, emoji, type (Attack | Skill | Power | Curse), cost, desc, dice (bool), affinityBonus ('even' | 'odd' | 'high' | 'gambler' | 'extreme'), effect: (g, roll) => { }
+- `G._cardsPlayedThisTurn`.
+- `G._spellsThisTurn` — Skill/Power count used by Arcane Barrage.
+- `G._spellEcho`.
+- `G._momentumCap`.
+- `G._manaSurge` / `G._manaWeaveCount`.
+- `G._entrenchActive`.
+- `G._shadowMark`.
+- `G._disappearCount` / `G._shadowArtistDiscount`.
+- `G._flyActive`.
+- `G._dieSetThisTurn` — enforces one forced die value per turn.
+- `G._guaranteedMax`, `G._minRoll`, `G._fallacyCount`, `G._fallacyThreshold`.
+- `G._hungerDmgThisTurn`.
 
-Per-character reward pools defined in CHAR_REWARD_POOLS.
-Starter decks defined per character in CHARACTERS[key].starterDeck.
-
----
-
-## Combat Flow
-
-startCombat() / startBossFight() / startAldricFight()
-  → shuffleDeck()
-  → startTurn()
-      → rollDice() — applies die bonuses, guaranteed max, min floor
-      → drawCards(5)
-      → renderAll()
-      → updateIntent()
-
-Player plays cards via playCard(key)
-  → cost deducted, card effect runs
-  → Shadow Mark, Spell Echo, Blood Lord, Arcane Momentum checked
-  → card moved to discardPile (or exhaustedPile for Powers)
-
-endTurn()
-  1. Burn ticks (before enemy)
-  2. Vulnerable ticks down
-  3. Regen ticks (heals player; Eternal Hunger deals damage)
-  4. renderAll + death check
-  5. Pre-attack specials (Stone Skin, Shield Up, etc.)
-  6. Enemy acts — Chill reduces damage here, Chill stack decrements
-  7. Poison ticks (after enemy)
-  8. Death check for Poison
-  9. Post-attack specials (hp triggers)
-  10. Intent alternation
-  11. Discard hand, checkCombatEnd(), startTurn()
-
-checkCombatEnd()
-  → hp <= 0: showGameOver()
-  → enemy hp <= 0: reward → proceedDoors() or floor transition
+Before adding or changing one of these fields, locate every initialization, reset, read, and write. Do not assume every underscore field resets at the same lifecycle boundary.
 
 ---
 
-## Status Effects
+## Cards and Rewards
 
-Burn — Enemy — Ticks BEFORE enemy acts
-Poison — Enemy — Ticks AFTER enemy acts
-Chill — Enemy — Consumes stack when enemy attacks
-Vulnerable — Enemy — +50% damage taken; ticks per turn
-Weak — Player — -25% damage dealt; ticks per hit
-Rage — Either — +1 dmg per stack on attacks
-Regen — Player — Heals stacks HP before enemy acts
-Fly — Player — Damage halved for that turn
+Base cards are defined in `CARDS` in `js/data.js`. Upgrades are defined in `CARD_UPGRADES` and registered under keys with a `+` suffix. Card objects generally contain:
 
-Cold Mastery modifier: base 35% Chill reduction (stacks=2 gives 50%)
-Burning Soul: Burn deals +1 extra per stack
-Poison Master: Poison deals +1 extra per stack
-Berserker's Oath: HP loss grants 3 Block (stacks=2 gives 4 Block)
+`name`, `emoji`, `type`, `cost`, `desc`, `dice`, `affinityBonus`, and `effect(g, roll)`.
 
----
+Card types include Attack, Skill, Power, and Curse. Starter decks live in character data. Rarity-bucketed hero reward pools are currently defined in `js/ui.js` as `CHAR_REWARD_POOLS`.
 
-## Map System
+When changing a card, verify all of the following separately:
 
-4 floors x 3 paths (A/B/C) x 13-15 rooms each + floor boss.
-Room types: battle, elite, event, shop, rest.
+1. Displayed base and upgraded descriptions.
+2. Displayed cost and the actual cost after modifiers.
+3. Compact/mobile preview values.
+4. Actual effect and damage calculation.
+5. Reward-pool membership and rarity.
+6. Exhaust/discard behavior.
 
-Player commits to one path at floor start via showPathSelect().
-Mirror appears at 60% through a path — costs gold to switch paths.
-Magic Door appears randomly from room 3+ — replaces current room or offers side room.
-
-Floor backgrounds: .floor-1-bg through .floor-4-bg CSS classes.
+Code presence does not prove that these layers agree.
 
 ---
 
-## Aldric (Final Boss)
+## Core Combat Rules
 
-3 phases, each with different mechanics.
+- Combat is turn-based.
+- The player has one active die per turn.
+- Base Energy is 3 per turn unless modified by a defined effect.
+- A die may be forced to a specific value only once per turn.
+- Affinity and dice-dependent card effects must use the active roll consistently.
+- Block, statuses, Powers, and enemy intent must be visible and must agree with the action that resolves.
+- Power cards provide combat-long effects and are expected to Exhaust on play when defined that way.
+- The combat loop must always reach a valid win, loss, or next-turn state.
 
-Phase 1 — Corrupted King (250 HP)
-Stone Heart: restores block each turn, starts at 30, decays -2 every 4 turns (min 2)
-Grieving Ground: attacks + adds Curse of Weakness to player deck
+### Typical flow
 
-Phase 2 — Shattered Ruler (200 HP)
-Boss Dice curse: rolls a number each turn, nullifies player affinity on match
-Memory Leech: every 3rd turn disables player affinity
-Fractured Strike: 8 damage x 3 (amplified if player has Burn/Poison)
+`startCombat()` / boss setup → `startTurn()` → roll die → draw/render/update intent → player cards → `endTurn()` → status timing → enemy action → post-action timing → discard/cleanup → completion check or next turn.
 
-Phase 3 — Soul's Burden (150 HP)
-No relics: immune to status, 20 dmg/turn
-With 4 cores (True Ending): Relic triggers at 100/75/50/25 HP thresholds
-
-True Ending requires: Collect all 4 boss cores before reaching Aldric.
+The exact order is implemented in `js/combat.js`. Do not rely on older prose for disputed timing rules; consult `DESIGN_DISCREPANCIES.md` and request a design decision where necessary.
 
 ---
 
-## Workflow Notes
+## UI and Mobile Rules
 
-- File is large (~6300 lines). Use grep/search to locate sections before editing.
-- Read the relevant section comment banner before making changes.
-- Card keys are lowercase, no spaces. Upgraded versions append +.
-- When adding a new card: add to CARDS, add upgrade to CARD_UPGRADES, add key to appropriate CHAR_REWARD_POOLS entry.
-- When adding a new status effect: add handling in endTurn(), add description to STATUS_DESCRIPTIONS, add icon to STATUS_ICONS in renderStatuses().
-- G._ prefixed flags are reset each turn in startTurn(). New per-turn flags must be added there.
-- Do NOT split the file. Keep everything in castle-run.html.
-
----
-
-## Debug
-
-#debug-floor2 URL hash skips to Floor 2 on new game (confirmed present in game.js copy — verify it exists in castle-run.html before relying on it).
+- Combat remains the visual focus.
+- Player and enemy alignment, HP, Block, Energy, die state, and intent must remain readable.
+- Mobile usability is landscape-first.
+- The hand must remain usable at short phone heights and with browser chrome visible.
+- Selecting a mobile card should show an unobstructed preview whose cost and values match the card that will actually resolve.
+- Avoid fixing mobile layout at the expense of desktop or introducing duplicate breakpoint rules without checking cascade order.
 
 ---
 
-## Documentation Files
-- GDD.md — Full game design document v0.9
-- PROGRESS.md — Current build status and session log
-- CARD_UPGRADES_MASTER.md — All 200+ card upgrade definitions
-- AGENTS.md — Agent workflow guidelines
+## Workflow
+
+- Read `AGENTS.md`, the relevant section of `GDD.md`, and `DESIGN_DISCREPANCIES.md` before changing behavior.
+- Search first, then make small edits in the file responsible for the behavior.
+- Preserve working combat flow and shared globals.
+- For cards, inspect `js/data.js`, relevant combat hooks, and `js/ui.js` previews/rewards together.
+- For statuses or Powers, inspect application, turn timing, damage calculation, rendering, tooltip text, and cleanup.
+- For enemy intent, compare `updateIntent()` with the exact branch used by the enemy action.
+- For mobile changes, test landscape widths and short viewport heights, including browser chrome.
+- Do not label a system Verified solely because its code exists. Record whether it is Implemented, Partially verified, Verified, a Known issue, or Deferred.
+- Do not update `castle-run.html` as part of normal runtime work.
+
+---
+
+## Documentation
+
+- `GDD.md` — intended game design; contains unresolved conflicts tracked separately.
+- `PROGRESS.md` — implementation status, restart point, and history.
+- `CARD_UPGRADES_MASTER.md` — card-upgrade reference; not automatically authoritative when it conflicts with active code or the discrepancy register.
+- `DESIGN_DISCREPANCIES.md` — unresolved design conflicts; records questions without deciding them.
+- `AGENTS.md` — priorities, invariants, verification areas, and editing rules.

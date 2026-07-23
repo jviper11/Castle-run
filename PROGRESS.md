@@ -1,11 +1,63 @@
 # PROGRESS.md — Castle Run (Browser)
-*Last updated: April 2026*
+*Last synchronized: July 22, 2026 (repository state through April 16, 2026)*
 *Platform: HTML/CSS/JS — browser-based, mobile-first*
 *Separate from Castle Run: Ascent (Roblox project)*
 
 ---
 
+## Current Active Architecture
+
+- The active game is the split build deployed through the repository-root `index.html`.
+- `index.html` loads `css/styles.css` and, in order, `js/data.js`, `js/game.js`, `js/combat.js`, `js/ui.js`, and `js/main.js`.
+- `castle-run.html` is a legacy/reference snapshot only. It is not the deployed entry point and should not receive routine runtime changes.
+- The split build contains the latest mobile combat layout, dice controls, dynamic card preview, status UI, Power-card hooks, and enemy-intent work.
+- Implementation means code is present. It does not mean the feature has been fully verified against descriptions, previews, timing rules, or all combat paths.
+
+### Status vocabulary
+
+- **Designed** — intended behavior is documented.
+- **Implemented** — relevant runtime code exists, but may not have complete testing.
+- **Partially verified** — some code paths or play scenarios have been checked.
+- **Verified** — behavior has been deliberately tested against the agreed design.
+- **Known issue** — a reproducible defect or direct code contradiction is documented.
+- **Deferred** — intentionally postponed.
+
+### Current high-level status
+
+| Area | Current status | Notes |
+|---|---|---|
+| Story and world | Designed | Ending details still contain documented conflicts. |
+| Core combat loop | Implemented / Partially verified | Requires systematic card/combat consistency testing. |
+| Five heroes and starter decks | Implemented | Do not infer every card interaction is verified. |
+| Hero reward pools and upgrades | Implemented | Substantially populated; GDD completeness conflicts remain. |
+| Status and Power systems | Implemented / Partially verified | Timing, descriptions, previews, and Exhaust need consistency tests. |
+| Enemy intent | Implemented / Partially verified | Compare every displayed intent with the action branch that resolves. |
+| Relic system | Implemented / Partially verified | Several hooks exist; some relics and reward flows remain Deferred. |
+| Mobile landscape combat | Implemented / Partially verified | April 16 responsive work landed; short-height/browser-chrome testing remains. |
+| Sir Crimson encounter | Designed / Deferred | Not established as active runtime flow. |
+| Consumables and meta-progression | Designed / Deferred | Runtime work remains. |
+
+---
+
+## Current Restart Point
+
+- Hero reward pools are substantially implemented.
+- Resume work with card/combat consistency testing, not new gameplay expansion.
+- Test displayed card cost versus actual Energy spent.
+- Test preview damage/effect values versus actual resolved damage/effects.
+- Test status application, timing, decrement, tooltip wording, and cleanup.
+- Test Power-card activation, ongoing behavior, and Exhaust/return-after-combat behavior.
+- Test enemy intent against the exact enemy action that occurs, including special and boss turns.
+- After combat verification, continue mobile combat layout polish, especially the hand, selected-card preview, short phone heights, and browser chrome.
+- Do not mark these systems Verified merely because their code exists.
+
+See `DESIGN_DISCREPANCIES.md` before changing disputed rules.
+
+---
+
 ## Quick Status Overview
+
+> Historical planning snapshot. Labels such as “Complete,” “Built,” and “In prototype” below predate the status vocabulary above and must not be read as verification. The current high-level status and restart point take precedence.
 
 | Area | Design | Built |
 |---|---|---|
@@ -157,13 +209,13 @@ All 5 characters have full 30-card pools designed including upgrades. Each chara
 ## Card Build Status — Detailed
 
 ### What's in the game right now
-Every hero has their **10-card starter deck** coded and working. Thief also has their common reward cards in the pool. Everyone else's reward pools are thin — 4-5 cards that are mostly just duplicates of starter cards.
+Every hero has an implemented starter deck and a substantially populated rarity-bucketed reward pool. Card presence and pool membership have not yet been systematically verified against every GDD entry, upgrade description, preview, or combat effect.
 
-### Card Build Status — ✅ Complete
-All 5 heroes fully coded including starters, reward cards, and upgrades. Shared pool complete.
+### Card Build Status — Implemented, verification pending
+All five heroes have implemented starters, reward cards, and upgrades, along with a shared pool. Missing-GDD-card and pool-completeness conflicts remain documented in `DESIGN_DISCREPANCIES.md`.
 
 ### Implementation note
-When adding cards to the file, use surgical grep approach — never read the full 5k line file. Target only the CARDS object and CHAR_REWARD_POOLS. Add per hero in one session each.
+Use targeted search before editing. Card definitions and upgrades are in `js/data.js`; active rarity-bucketed `CHAR_REWARD_POOLS` are in `js/ui.js`. Verify relevant hooks in `js/combat.js` and rendering/previews in `js/ui.js` rather than treating any one file as sufficient.
 
 ### Card rarity distribution in reward pools
 - Common reward cards — appear most frequently
@@ -173,7 +225,7 @@ When adding cards to the file, use surgical grep approach — never read the ful
 
 ---
 
-## Relics — ✅ Design Complete, ❌ Not Built
+## Relics — Designed; partially implemented and partially verified
 
 ### True Ending Relics (4) — Boss rewards on True Ending path
 | Relic | Effect in Aldric fight |
@@ -338,7 +390,7 @@ Categories: Gold events, HP-for-Gold trades, Curse card rewards, Risk events, Cl
 
 ---
 
-## King Aldric Final Boss — ✅ Design Complete, ✅ Built in prototype
+## King Aldric Final Boss — Designed and implemented; verification incomplete
 
 3 phases. Stone Heart mechanic. Dice corruption in Phase 2. True Ending trigger at 50 HP in Phase 2 if all 4 relics held.
 
@@ -363,8 +415,8 @@ Categories: Gold events, HP-for-Gold trades, Curse card rewards, Risk events, Cl
 | Boss reward relic choice screen | Pick 1 of 3 after each floor boss |
 | Consumable system | Carry/use from inventory during combat |
 | Soul meta-progression tree | UI + unlock system |
-| Enemy intent bug | Always starts on defend — fix pending |
-| Mobile UI polish | Intent overlap, dice area layout, selected card cutoff |
+| Enemy intent consistency testing | Intent logic received April 16 improvements; verify displayed intent against actual actions before recording a Known issue. |
+| Mobile UI polish | April 16 responsive, dice, preview, and overlap work landed; continue short-height and browser-chrome verification. |
 
 ---
 
@@ -378,3 +430,4 @@ Categories: Gold events, HP-for-Gold trades, Curse card rewards, Risk events, Cl
 | Early 2026 | King Aldric 3-phase fight. True Ending relic system. Two endings locked. |
 | Early 2026 | GDD v0.5 → v0.7. Floor hint system. Sir Crimson story arc early design. |
 | April 2026 | Sir Crimson full arc locked. Rare relics (10) + Character relics (15) designed. PROGRESS.md created. All 5 hero card pools coded (Barbarian 24, Mage 27, Thief 26, Vampire 28, Gambler 26). All upgrade versions coded for all 5 heroes. Reward pool fix — now shows full card variety. Status display system overhauled — Rage/Weak/Vulnerable/Chill all update card preview numbers with color coding. Status tooltip system added — tap icon to see description. Exhaust pile viewer added to deck overlay. Exhaust cards return to deck after combat. Burn changed to stacks × 1 (matching Poison). Burn/Poison timing split — Burn before enemy acts, Poison after. Chill only ticks on attack turns. Cold Mastery correctly reduces Chill percentage. Entrench block carry fixed. Energy display changed to single number. Time Warp redesigned as draw-focused card. rollDice() updated with full Gambler mechanics. Vulnerable per-turn tick (not per-hit). Card Rarity System — CHAR_REWARD_POOLS restructured into common/uncommon/rare buckets for all 5 characters. Shared cards distributed correctly. curseddice removed. Pity timer added (G.rareOffset, caps at 35%). Elite rewards use separate odds 55/35/10. Scholar's Lens shows 4 reward options. Relic System — Full RELICS object built with 30 relics. hasRelic() helper added. All common and most uncommon/rare hooks wired into combat. healPlayer() routes all healing for pale_contract. shopCost() applies King's Debt multiplier. Deferred: bone_key, shattered_mirror, void_compass. Shop Overhaul — Relics section (2 relics, floor-gated by rarity). Die section (1 die, 80 gold). Card removal service (75 gold). Upgrade Card moved to rest stop only. Die Progression — Die removed from reward screen. Dice now from shop, Magic Door (25% chance, floor-gated), and events only. File Split — castle-run.html split into index.html + css/styles.css + js/data.js + js/combat.js + js/ui.js + js/game.js + js/main.js. GitHub Pages confirmed working. Mobile confirmed playable. |
+| April 16, 2026 | Split-build follow-up: mobile selected-card preview fixes; deferred re-render so previews reflect status changes; intent overlap and enemy-intent presentation improvements; boss-intro scrolling and card-lift fixes; dice contrast and compact mobile dice controls; extensive responsive landscape layout, hand spacing, sprite sizing, and short-phone-height work. These changes are Implemented and require continued device/browser verification. |

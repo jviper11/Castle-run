@@ -112,6 +112,7 @@
       </div>
     </div>
 
+    <div class="hand-area" id="hand-area">
     <div class="dice-panel">
       <!-- Current roll -->
       <div class="dice-display">
@@ -123,7 +124,7 @@
       </div>
 
       <!-- Dice pool — shows all dice you own -->
-      <div style="display:flex;flex-direction:column;align-items:center;gap:0.2rem;">
+      <div class="dice-pool-panel" style="display:flex;flex-direction:column;align-items:center;gap:0.2rem;">
         <div style="font-size:0.6rem;color:var(--text3);letter-spacing:0.05em;text-transform:uppercase;">ACTIVE DIE</div>
         <div style="font-size:0.58rem;color:var(--text3);font-style:italic;">tap to see bonus</div>
         <div id="dice-pool-display" style="display:flex;gap:0.3rem;flex-wrap:wrap;justify-content:center;max-width:120px;"></div>
@@ -131,11 +132,11 @@
 
       <button class="btn reroll-btn" id="reroll-btn" onclick="useReroll()">🎲 REROLL</button>
       <div id="aldric-curse-indicator"></div>
-      <div class="energy-display">
-        <span>⚡</span>
-        <span id="energy-text">3</span>
-      </div>
-      <div style="display:flex;flex-direction:column;align-items:center;gap:0.2rem;">
+      <div class="combat-resources">
+        <div class="energy-display">
+          <span>⚡</span>
+          <span id="energy-text">3</span>
+        </div>
         <div style="font-size:0.58rem;color:var(--text3);text-align:center;">
           <span title="Cards in draw pile">📋 <span id="draw-count">0</span></span>
           &nbsp;
@@ -143,13 +144,8 @@
         </div>
       </div>
     </div>
-
-    <div class="hand-area" id="hand-area">
+      <div class="hand-scroll" id="hand-scroll"></div>
       <button class="btn end-turn-btn" onclick="endTurn()">END TURN</button>
-    </div>
-    <div id="dice-corner">
-      <div class="die" id="m-current-die">?</div>
-      <button class="btn reroll-btn" id="m-reroll-btn" onclick="useReroll()">🎲 REROLL (1)</button>
     </div>
   </div>
 

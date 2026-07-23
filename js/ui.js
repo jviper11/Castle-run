@@ -659,7 +659,6 @@ function renderAll() {
   renderStatuses();
   updateHUD();
   updateIntent();
-  syncMobileDice();
 }
 
 function renderHP() {
@@ -804,7 +803,7 @@ function getAffinityPreviewLabel(affinityBonus) {
 }
 
 function renderHand() {
-  const area = document.getElementById('hand-area');
+  const area = document.getElementById('hand-scroll');
   // remove old cards
   area.querySelectorAll('.card').forEach(c => c.remove());
   const preview = ensureMobileCardPreview();
@@ -927,7 +926,7 @@ if (key === 'arcanebarrage' || key === 'arcanebarrage+') {
         </div>
       `;
     }
-    area.insertBefore(el, area.querySelector('.end-turn-btn'));
+    area.appendChild(el);
   });
 
   if (selectedEl) {
@@ -952,22 +951,6 @@ function renderEnergy() {
   const discardEl = document.getElementById('discard-count');
   if (drawEl) drawEl.textContent = G.drawPile ? G.drawPile.length : 0;
   if (discardEl) discardEl.textContent = G.discardPile ? G.discardPile.length : 0;
-}
-
-function syncMobileDice() {
-  const srcDie = document.getElementById('current-die');
-  const mobileDie = document.getElementById('m-current-die');
-  if (mobileDie && srcDie) {
-    mobileDie.textContent = srcDie.textContent;
-    mobileDie.className = 'die' + (srcDie.classList.contains('affinity-match') ? ' affinity-match' : '');
-  }
-
-  const srcReroll = document.getElementById('reroll-btn');
-  const mobileReroll = document.getElementById('m-reroll-btn');
-  if (mobileReroll && srcReroll) {
-    mobileReroll.disabled = srcReroll.disabled;
-    mobileReroll.innerHTML = srcReroll.innerHTML;
-  }
 }
 
 function renderDicePool() {

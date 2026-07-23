@@ -52,12 +52,22 @@ All decisions must align with the Game Design Document (GDD.md).
 
 ---
 
-## Known Issues to Prioritize
-- Dice panel is too large
-- UI layout feels unbalanced
-- Player/enemy alignment needs improvement
-- Important stats are hard to see
+## Current Verification Areas
+
+The following areas require focused code review and play testing:
+
+- Card displayed cost versus actual cost
+- Card preview values versus actual effects
+- Status timing and tooltip consistency
+- Power-card behavior and Exhaust
+- Enemy intent versus actual enemy action
+- Mobile hand and selected-card preview
+- Phone-height clipping and browser chrome
+
+These are verification areas, not confirmed bugs unless supported by code inspection or reproducible testing.
 
 ## File Editing Rule
 - Prefer editing the correct split file (`css/styles.css`, `js/combat.js`, `js/ui.js`, etc.) instead of putting logic back into `index.html`.
 - Preserve the split architecture unless explicitly asked to refactor it.
+- `index.html` is the deployed game entry point.
+- `castle-run.html` is a legacy/reference snapshot. Do not edit it unless explicitly asked to compare or recover an older design.
