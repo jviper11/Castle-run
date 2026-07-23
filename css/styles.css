@@ -2201,11 +2201,11 @@ body {
     }
 
     .combatant-sprite {
-      width: clamp(56px, 9vw, 78px) !important;
-      height: clamp(68px, 12vw, 94px) !important;
-      max-width: 78px;
-      max-height: 94px;
-      font-size: 3.5rem;
+      width: clamp(50px, 8vw, 69px) !important;
+      height: clamp(60px, 10.5vw, 83px) !important;
+      max-width: 69px;
+      max-height: 83px;
+      font-size: 3rem;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -2250,6 +2250,17 @@ body {
     #enemy-combatant .combatant-info {
       gap: 0.08rem;
       padding-bottom: 0.08rem;
+    }
+
+    #enemy-combatant .combatant-name {
+      width: 112px;
+      max-width: min(112px, 42vw);
+      height: 1.1em;
+      min-height: 1.1em;
+      font-size: 0.68rem;
+      line-height: 1.1;
+      white-space: nowrap;
+      text-align: center;
     }
 
     .intent-box {
@@ -2516,11 +2527,11 @@ body {
     }
 
     .combatant-sprite {
-      width: clamp(56px, 8vw, 76px) !important;
-      height: clamp(68px, 11vw, 90px) !important;
-      max-width: 76px;
-      max-height: 90px;
-      font-size: 3rem;
+      width: clamp(50px, 7vw, 67px) !important;
+      height: clamp(60px, 9.5vw, 79px) !important;
+      max-width: 67px;
+      max-height: 79px;
+      font-size: 2.7rem;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -2574,6 +2585,17 @@ body {
     .status-icons {
       width: 82px;
       max-width: 82px;
+    }
+
+    #enemy-combatant .combatant-name {
+      width: 104px;
+      max-width: min(104px, 42vw);
+      height: 1.1em;
+      min-height: 1.1em;
+      font-size: 0.6rem;
+      line-height: 1.1;
+      white-space: nowrap;
+      text-align: center;
     }
 
     .combat-stat-row {
