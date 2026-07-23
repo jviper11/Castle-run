@@ -2214,8 +2214,31 @@ body {
       overflow: hidden;
     }
 
+    #player-sprite {
+      width: auto !important;
+      height: 96px !important;
+      max-width: none;
+      max-height: none;
+      aspect-ratio: 4 / 5;
+      font-size: 4rem;
+    }
+
+    #enemy-sprite {
+      width: auto !important;
+      height: 104px !important;
+      max-width: none;
+      max-height: none;
+      aspect-ratio: 4 / 5;
+      font-size: 4.25rem;
+    }
+
     .damage-float {
-      font-size: 1.35rem;
+      font-size: 20px;
+    }
+
+    .damage-float.dmg {
+      font-size: 20px;
+      text-shadow: 0 0 6px rgba(231,76,60,0.5);
     }
 
     .block-display {
@@ -2231,12 +2254,12 @@ body {
     }
 
     .block-display-icon {
-      font-size: 0.55rem;
+      font-size: 20px;
       line-height: 1;
     }
 
     .block-display-value {
-      font-size: 0.58rem;
+      font-size: 14px;
       line-height: 1;
     }
 
@@ -2577,7 +2600,11 @@ body {
     }
 
     .damage-float {
-      font-size: 1.25rem;
+      font-size: 20px;
+    }
+
+    .damage-float.dmg {
+      font-size: 20px;
     }
 
     .block-display {
@@ -2587,11 +2614,11 @@ body {
     }
 
     .block-display-icon {
-      font-size: 0.48rem;
+      font-size: 20px;
     }
 
     .block-display-value {
-      font-size: 0.5rem;
+      font-size: 14px;
     }
 
     .combatant-info {
