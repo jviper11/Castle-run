@@ -762,6 +762,13 @@ function endTurn() {
     if (vuln.stacks <= 0) G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '🫗Vulnerable');
   }
 
+  // ── STEP 2b: Weak ticks down (1 stack per turn, like Vulnerable) ──
+  const playerWeak = G.statuses.player.find(s => s.name === '😵Weak');
+  if (playerWeak) {
+    playerWeak.stacks--;
+    if (playerWeak.stacks <= 0) G.statuses.player = G.statuses.player.filter(s => s.name !== '😵Weak');
+  }
+
   // ── STEP 3: Regen ticks ──
   const regen = G.statuses.player.find(s => s.name === '💚Regen');
   if (regen) {
@@ -949,13 +956,11 @@ function calculatePlayerAttackDamage(g, amount, options = {}) {
     amount += 2;
   }
   // Apply Weak — player deals 25% less damage
+  // Note: Weak does NOT decay here. Like Vulnerable, it ticks down by exactly
+  // 1 stack once at end of turn (see endTurn), independent of hit/card count.
   const playerWeak = g.statuses.player.find(s => s.name === '😵Weak');
   if (playerWeak && playerWeak.stacks > 0) {
     amount = Math.floor(amount * 0.75);
-    if (consume) {
-      playerWeak.stacks--;
-      if (playerWeak.stacks <= 0) g.statuses.player = g.statuses.player.filter(s => s.name !== '😵Weak');
-    }
   }
   // Also apply Vulnerable — enemy takes 50% more damage
   const enemyVuln = enemyStatuses.find(s => s.name === '🫗Vulnerable' || s.name === 'Vulnerable' || String(s.name).includes('Vulnerable'));
@@ -1126,7 +1131,7 @@ function checkCombatEnd() {
       const boss = G.map[G.currentFloor].boss;
       G.cores.push(boss.charKey);
       renderCores();
-      showMsg(`Core of ${G.char.name} — collected!`);
+      showMsg(`Core of ${boss.name} — collected!`);
     }
 
     updateHUD();

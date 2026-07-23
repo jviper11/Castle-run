@@ -239,7 +239,7 @@ body {
 }
 
 /* HUD */
-#combat-screen { --combat-bottom-hud-height: 156px; }
+#combat-screen { --combat-bottom-hud-height: 172px; }
 .combat-hud {
   position: relative;
   z-index: 10;
@@ -270,6 +270,14 @@ body {
   scrollbar-width: none;
 }
 .hud-relics::-webkit-scrollbar { display: none; }
+.hud-owned-relics {
+  min-width: 0;
+  max-width: min(240px, 24vw);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+.hud-owned-relics::-webkit-scrollbar { display: none; }
 .hud-resource { font-size: 0.78rem; color: var(--text2); }
 .hud-gold { color: var(--gold); }
 .hud-souls { color: var(--text2); }
@@ -686,10 +694,10 @@ body {
 .hand-scroll::-webkit-scrollbar { display: none; }
 
 .card {
-  width: 95px;
-  height: 128px;
-  min-height: 128px;
-  max-height: 128px;
+  width: 112px;
+  height: 144px;
+  min-height: 144px;
+  max-height: 144px;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -1866,7 +1874,7 @@ body {
   background: radial-gradient(ellipse at 50% 50%, #1a1200 0%, var(--bg) 70%);
   z-index: 50;
   overflow-y: auto;
-  padding: 1.5rem 1rem 2rem;
+  padding: 1.5rem 1rem 0;
 }
 .shop-title { font-family: 'Cinzel', serif; font-size: 1.6rem; color: var(--gold); letter-spacing: 0.1em; }
 .shop-gold { font-size: 1rem; color: var(--gold); }
@@ -1887,7 +1895,20 @@ body {
 .shop-item-cost { font-size: 0.75rem; color: var(--energy); margin-top: 0.4rem; font-weight: 600; }
 .shop-item.sold { opacity: 0.3; cursor: not-allowed; }
 .shop-item.sold:hover { transform: none; border-color: var(--border); }
-.shop-leave { font-size: 0.8rem; padding: 0.4rem 1.2rem; }
+.shop-leave { font-size: 0.8rem; padding: 0.4rem 1.2rem; pointer-events: auto; }
+/* Sticky footer so "Leave Shop" is always reachable regardless of deck size */
+.shop-leave-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 60;
+  align-self: stretch;
+  display: flex;
+  justify-content: center;
+  margin-top: 0.4rem;
+  padding: 1rem 1rem calc(0.6rem + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(180deg, rgba(10,8,9,0) 0%, rgba(10,8,9,0.92) 42%, rgba(10,8,9,0.98) 100%);
+  pointer-events: none; /* let the transparent fade pass clicks through; button re-enables */
+}
 
 /* ── EVENT ── */
 #event-screen {
@@ -1979,6 +2000,21 @@ body {
   filter: grayscale(0);
   filter: drop-shadow(0 0 6px rgba(201,168,76,0.6));
 }
+
+.relics-display {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  flex-wrap: nowrap;
+  width: max-content;
+}
+.relic-icon {
+  font-size: 1.1rem;
+  cursor: help;
+  transition: transform 0.15s;
+  filter: drop-shadow(0 0 4px rgba(139,90,60,0.5));
+}
+.relic-icon:hover { transform: translateY(-2px) scale(1.12); }
 
 /* message log */
 .message-log {
@@ -2103,8 +2139,11 @@ body {
   .combat-hud-center { gap: 0.38rem; }
   .combat-hud-right { gap: 0.25rem; }
   .hud-relics { max-width: 64px; }
+  .hud-owned-relics { max-width: 72px; }
   .cores-display { gap: 0.25rem; }
   .core-icon { font-size: 0.9rem; }
+  .relics-display { gap: 0.22rem; }
+  .relic-icon { font-size: 0.9rem; }
   .hud-resource { font-size: 0.62rem; }
   .hud-floor { font-size: 0.75rem; }
   .hud-room { font-size: 0.7rem; }
@@ -2151,11 +2190,11 @@ body {
   .status-icon-value { font-size: 0.62rem; }
 
   .card {
-    width: 100px;
+    width: 112px;
     flex-shrink: 0;
     padding: 0.5rem 0.4rem;
-    min-height: 145px;
-    height: 145px;
+    min-height: 144px;
+    height: 144px;
   }
   /* No hover on mobile — active press instead */
   .card:hover { transform: none; border-color: var(--border); box-shadow: none; }
@@ -3175,7 +3214,7 @@ body {
   .rest-deck-card { padding: 0.3rem 0.5rem; }
 
   /* ── SHOP ── */
-  #shop-screen { padding: 1rem 0.8rem; gap: 0.8rem; }
+  #shop-screen { padding: 1rem 0.8rem 0; gap: 0.8rem; }
   .shop-title { font-size: 1.3rem; }
   .shop-item { width: 115px; padding: 0.8rem 0.6rem; }
   .shop-item-emoji { font-size: 1.5rem; }
@@ -3217,6 +3256,6 @@ body {
   .combat-arena { padding: 0 1rem 0.5rem; }
   .combatant-sprite { font-size: 4rem; }
   .hp-bar-wrap { width: 130px; }
-  .card { width: 90px; }
+  .card { width: 112px; }
 }
 

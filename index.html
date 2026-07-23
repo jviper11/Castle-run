@@ -59,6 +59,9 @@
         <div class="hud-relics" aria-label="Collected cores">
           <div class="cores-display" id="cores-display"></div>
         </div>
+        <div class="hud-owned-relics" aria-label="Owned relics">
+          <div class="relics-display" id="relics-display"></div>
+        </div>
       </div>
       <div class="combat-hud-center">
         <div class="hud-resource hud-gold" title="Gold">🪙 <span id="hud-gold">0</span></div>
@@ -267,7 +270,9 @@
       <div class="rest-deck-grid" id="shop-deck-grid"></div>
     </div>
 
-    <button class="btn shop-leave" onclick="leavShop()">Leave Shop</button>
+    <div class="shop-leave-bar">
+      <button class="btn shop-leave" onclick="leavShop()">Leave Shop</button>
+    </div>
 
     <!-- Card removal modal -->
     <div id="shop-remove-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:200;overflow-y:auto;padding:1.5rem 1rem;">

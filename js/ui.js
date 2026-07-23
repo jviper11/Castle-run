@@ -969,7 +969,7 @@ const STATUS_DESCRIPTIONS = {
   '💢Rage':          'Strength — attacks deal +1 dmg per stack.',
   '😵Weak':          'Attacks deal 25% less damage. Ticks down each turn.',
   '🫗Vulnerable':    'Takes 50% more damage from attacks. Ticks down each turn.',
-  '🔥Burn':          'Takes stacks × 2 damage at end of turn. Ticks down.',
+  '🔥Burn':          'Takes stacks damage at end of turn. Ticks down.',
   '❄️Chill':         'Attack reduced by 25%. Ticks down each turn.',
   '☠️Poison':        'Takes stacks damage at end of turn. Ticks down.',
   '💚Regen':         'Heals stacks HP at end of turn. Ticks down.',
@@ -1071,6 +1071,45 @@ function renderCores() {
   });
 }
 
+// Reuse the status-tooltip element for relic descriptions (mirrors showStatusTooltip)
+function showRelicTooltip(e, relicKey) {
+  const tooltip = document.getElementById('status-tooltip');
+  const relic = RELICS[relicKey];
+  if (!tooltip || !relic) return;
+  tooltip.textContent = `${relic.name} — ${relic.desc}`;
+  tooltip.classList.add('visible');
+
+  const clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+  const clientY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+  const x = Math.min(clientX, window.innerWidth - 220);
+  const y = clientY - 60;
+  tooltip.style.left = x + 'px';
+  tooltip.style.top = Math.max(10, y) + 'px';
+
+  clearTimeout(tooltip._hideTimer);
+  tooltip._hideTimer = setTimeout(() => tooltip.classList.remove('visible'), 2500);
+}
+
+function renderRelics() {
+  const el = document.getElementById('relics-display');
+  if (!el) return;
+  el.innerHTML = '';
+  (G.relics || []).forEach(key => {
+    const relic = RELICS[key];
+    if (!relic) return;
+    const span = document.createElement('span');
+    span.className = 'relic-icon';
+    span.textContent = relic.emoji || '💠';
+    span.setAttribute('aria-label', `${relic.name}: ${relic.desc}`);
+    span.title = `${relic.name} — ${relic.desc}`; // desktop hover
+    span.style.cursor = 'help';
+    span.addEventListener('click', (e) => showRelicTooltip(e, key)); // tap-to-view
+    span.addEventListener('touchstart', (e) => { e.preventDefault(); showRelicTooltip(e, key); });
+    span.addEventListener('mouseleave', hideStatusTooltip);
+    el.appendChild(span);
+  });
+}
+
 function updateHUD() {
   const floor = G.map ? G.map[G.currentFloor] : null;
   document.getElementById('hud-floor').textContent = `FLOOR ${G.currentFloor + 1}`;
@@ -1078,6 +1117,7 @@ function updateHUD() {
   document.getElementById('hud-room').textContent = `Room ${roomIdx + 1} · Path ${(floor && floor.currentPath ? floor.currentPath : 'A')}`;
   document.getElementById('hud-gold').textContent = G.gold;
   document.getElementById('hud-souls').textContent = G.souls;
+  renderRelics();
 }
 
 function updateFloorBG() {
