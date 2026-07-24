@@ -31,7 +31,7 @@ This file records unresolved conflicts between design documents, progress notes,
 
 **Resolution:** Code is source of truth — `js/combat.js` line ~752 does `G.enemy.hp -= burn.stacks` (stacks × 1), matching PROGRESS.md's note that Burn was changed to match Poison.
 
-**Remaining bug (not yet fixed):** `js/ui.js`'s `STATUS_DESCRIPTIONS` tooltip still reads *"Takes stacks × 2 damage at end of turn. Ticks down."* — this is stale and displays incorrect information to the player. Needs to be corrected to match actual (×1) behavior.
+**Tooltip:** corrected — `js/ui.js`'s `STATUS_DESCRIPTIONS` Burn tooltip now reads *"Takes stacks damage at end of turn. Ticks down."* (×1), matching the actual behavior. (The earlier stale *"× 2"* wording has been removed.)
 
 ---
 

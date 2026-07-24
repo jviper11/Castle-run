@@ -650,8 +650,9 @@ function proceedOrPath() {
 }
 
 // After the card reward is taken/skipped: Void Compass offers a choice of 3 relics following
-// an elite (never a boss — bosses leave lastFightWasElite stale). The _voidCompassOffered flag
-// (reset each combat) makes it fire at most once, so skipping the relic screen can't loop.
+// an elite. startBossFight() now clears lastFightWasElite, so bosses are already excluded; the
+// `!G.inBoss` check is kept as defensive redundancy. The _voidCompassOffered flag (reset each
+// combat) makes it fire at most once, so skipping the relic screen can't loop.
 function proceedAfterCardReward() {
   if (G.lastFightWasElite && !G.inBoss && hasRelic('void_compass') && !G._voidCompassOffered) {
     G._voidCompassOffered = true;
