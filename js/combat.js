@@ -416,6 +416,9 @@ function startBossFight() {
   G.statuses = { player: [], enemy: [] };
   G.exhaustedPile = [];
   G.inBoss = true;
+  G.lastFightWasElite = false; // a boss fight is never an elite — clear the flag so
+                               // "after elite" effects (iron_ration, grave_robber, Void
+                               // Compass) don't misfire on a boss that follows an elite
   G.phantomBladeFired = false;
   G.extraDraw = 0;
   G.startingDrawCount = 5;   // cards drawn at the start of each turn
