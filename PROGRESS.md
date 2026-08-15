@@ -1,5 +1,5 @@
 # PROGRESS.md — Castle Run (Browser)
-*Last synchronized: July 23, 2026 (repository state through July 23, 2026)*
+*Last synchronized: August 15, 2026 (design synced through July 25, 2026 session; repository state through July 23, 2026)*
 *Platform: HTML/CSS/JS — browser-based, mobile-first*
 *Separate from Castle Run: Ascent (Roblox project)*
 
@@ -74,8 +74,8 @@ See `DESIGN_DISCREPANCIES.md` before changing disputed rules.
 | Shared Card Pool | ✅ Complete | ✅ In prototype |
 | Enemy Roster (all floors) | ✅ Complete | ✅ In prototype |
 | Boss Debuff System | ✅ Complete | ✅ In prototype |
-| Events (18) | ✅ Complete | ✅ In prototype |
-| Economy (Gold/Souls) | ✅ Complete | ✅ In prototype |
+| Events | ⚠️ 18 designed, 5 built | ❌ Only 5 generic events exist in `js/data.js`. The "18 Complete" claim below was false — confirmed July 25, 2026. None of the 18 named GDD events match the 5 in code. Building toward all 18 over time is the intent; see Session Log. |
+| Economy (Gold/Souls) | ✅ Complete (Gold) / ⚠️ Souls redesigned | ✅ Gold in prototype. Souls redesigned July 25 — see Soul system section below, no longer a permanent currency. |
 | King Aldric Final Boss | ✅ Complete | ✅ In prototype |
 | Floor Boss Hint System | ✅ Complete | ✅ In prototype |
 | Sir Crimson — Story Arc | ✅ Complete | ❌ Not built |
@@ -84,11 +84,12 @@ See `DESIGN_DISCREPANCIES.md` before changing disputed rules.
 | Relics — Uncommon (10) | ✅ Complete | ✅ Built |
 | Relics — Rare (10) | ✅ Complete | ✅ Built (void_compass, bone_key, shattered_mirror deferred) |
 | Relics — Character (15) | ✅ Complete | ❌ Not built |
-| Relics — True Ending (4) | ✅ Complete | ❌ Not built |
+| Relics — True Ending (old 4, floor-reward) | ⚠️ Superseded | ❌ Not built. Replaced July 25, 2026 by the 5 per-hero Challenge relics — see `DESIGN_DISCREPANCIES.md`. |
+| Relics — Challenge (5, per-hero) | ✅ Complete (design) | ❌ Not built. Barbarian, Vampire, Mage, Thief, Gambler challenges all designed. |
 | Boss Reward Relic Screen | ✅ Complete | ❌ Not built |
 | Consumables (10) | ✅ Complete | ❌ Not built |
-| Soul Meta-Progression Tree | ✅ Complete (partial) | ❌ Not built |
-| Core Passive Bonuses | ❌ Not designed | ❌ Not built |
+| Soul In-Run Stat Menu | ⚠️ Draft design | ❌ Not built. Replaces the old permanent cross-run Soul tree entirely — see Soul system section below. |
+| Core Lore / Challenge-Unlock System | ✅ Complete (design) | ❌ Not built. Cores now have a defined job — see Soul system section below. |
 | Magic Door Exclusive Pool | ✅ Complete | ✅ Built |
 | Card Rarity / Reward Odds | ✅ Complete | ✅ Built |
 | Hand Size Decision | ✅ Complete | ✅ Built (5 draw / 8 cap) |
@@ -110,8 +111,9 @@ See `DESIGN_DISCREPANCIES.md` before changing disputed rules.
 - Beat all 4 corrupted companions → face King Aldric
 
 ### Two Endings
-- **Normal Ending** — defeat Aldric without all 4 True Ending Relics. Castle endures. Cycle continues.
-- **True Ending** — hold all 4 True Ending Relics, trigger at 50 HP in Phase 2. Aldric freed. Castle destroyed. Sir Crimson appears in true form.
+- **Normal Ending** — defeat Aldric without holding 4 of the 5 Challenge relics. Castle endures. Cycle continues.
+- **True Ending** — hold 4 of the 5 per-hero Challenge relics, trigger at 50 HP in Phase 2/3. Aldric freed. Castle destroyed. Sir Crimson appears in true form.
+- *(Redesigned July 25, 2026 — see Soul/Core/Challenge system section below and `DESIGN_DISCREPANCIES.md` for why the old floor-reward relic gate was replaced.)*
 
 ---
 
@@ -189,6 +191,8 @@ Echo mechanic: block cards give him block, damage cards hit you, status cards ap
 **Post-fight dialogue (True Ending hint):**
 *"The king... he didn't choose this. None of us did. The castle took everything from him — his grief was the door it walked through. If you want to free him... find what he lost. Four pieces. You'll know them when you see them."*
 
+⚠️ **Needs revisiting (flagged Aug 15, 2026):** this line was written for the old floor-reward relic framing (4 physical royal artifacts). Under the July 25 redesign, the 4 (of 5) relics are earned by out-dueling corrupted companions under Challenge conditions, not found as objects. The hint's wording ("find what he lost... you'll know them when you see them") may need to shift toward something like "prove yourself against the ones who fell" — not rewritten yet, just flagged.
+
 ---
 
 ## Cards — ✅ Complete
@@ -227,13 +231,26 @@ Use targeted search before editing. Card definitions and upgrades are in `js/dat
 
 ## Relics — Designed; partially implemented and partially verified
 
-### True Ending Relics (4) — Boss rewards on True Ending path
+### ⚠️ SUPERSEDED — True Ending Relics (4, floor-reward)
 | Relic | Effect in Aldric fight |
 |---|---|
 | The Fractured Crown | Aldric loses all Strength permanently |
 | The King's Sword | Aldric's damage halved for the fight |
 | The Royal Sigil | Fading Light disabled — stop losing HP each turn |
 | The Knight's Vow | Aldric stops attacking entirely. Fight ends without killing blow. |
+
+Replaced July 25, 2026 — floor bosses 1-3 are the only relic sources and floor 4 is Aldric himself, so no run could ever hold all 4. See Soul/Core/Challenge system below and `DESIGN_DISCREPANCIES.md`. Aldric's Phase 3 HP-threshold effects (this table) may still inform how the new Challenge relics manifest in the fight, but the specific relic-to-effect mapping needs redesigning against the new 5-relic (need 4 of 5) pool.
+
+### Challenge Relics (5, per-hero) — earned across runs, not picked mid-run
+| Hero | Challenge | Type |
+|---|---|---|
+| Barbarian | +1 Strength every 2 turns, starting turn 2 | Escalation |
+| Vampire | Drains 8 HP from you to heal itself, every 3 turns starting turn 3 | Escalation |
+| Mage | May never play a card that draws extra cards | Denial |
+| Thief | May never gain any Block | Denial |
+| Gambler | May never use a reroll | Denial |
+
+Need 4 of 5 to trigger Aldric Phase 3 / True Ending (never your own chosen hero's, since you can't fight yourself). Unlocked by first beating that hero as a corrupted floor boss (Normal Ending run), then re-attempting the fight under Challenge conditions in a later run.
 
 ### Common Relics (10) — Any floor, multiple sources
 | Relic | Effect |
@@ -331,9 +348,13 @@ Full roster across all 4 floors designed. Mix of classic fantasy and corrupted c
 
 ---
 
-## Events — ✅ Complete (18 events)
+## Events — ⚠️ 18 designed, only 5 built (corrected July 25, 2026)
 
-Categories: Gold events, HP-for-Gold trades, Curse card rewards, Risk events, Classic reworked. All implemented in prototype.
+Categories: Gold events, HP-for-Gold trades, Curse card rewards, Risk events, Classic reworked.
+
+**Correction:** this section previously read "✅ Complete (18 events) — all implemented in prototype." That was false — confirmed by direct code inspection: only **5 generic events** exist in `js/data.js`, and none of them match the 18 named events actually designed in `GDD.md`. This was a design-only gap, not a migration loss — the legacy monolith `castle-run.html` never had the 18 events either.
+
+Building toward all 18 over time is the intent (larger pool keeps outcomes unpredictable; comeback tools should exist by chance, not by the system detecting player struggle). The `bone_key` relic is paused (removed from shop/reward pools, definition preserved) because it depends on "The Locked Chest" event, which doesn't exist yet — see `DESIGN_DISCREPANCIES.md`.
 
 ---
 
@@ -367,9 +388,38 @@ Categories: Gold events, HP-for-Gold trades, Curse card rewards, Risk events, Cl
 
 ---
 
-## Soul Meta-Progression Tree — ✅ Partial Design, ❌ Not Built
+## Soul / Core / Challenge System — ✅ Redesigned July 25, 2026, ❌ Not Built
 
-3 branches. Shared across all characters (TBD — may go per-character).
+This entire section replaces the old permanent cross-run Soul meta-progression tree below it (kept struck-through for history — see `DESIGN_DISCREPANCIES.md` for the full resolution).
+
+**Souls (redesigned — now in-run only):**
+- Earned per floor, no longer a permanent cross-run currency.
+- Spent at a stat-upgrade screen that appears right after each floor boss's relic-reward pick.
+- Carries forward to the next floor checkpoint if saved; resets to 0 at the start of every run.
+- No cross-run banking — this replaces the old Power/Knowledge/Fortune branches entirely.
+- Draft Soul-spend menu (generic stat boosts, following the design principle that broad-appeal boosts beat narrow ones):
+  - Max HP increase
+  - Energy increase
+  - Card draw increase
+  - (Full menu with exact numbers/costs still TBD — draft exists in session history, needs to be finalized and written up formally.)
+
+**Cores (redesigned — now have a defined job):**
+- Beating a corrupted companion for the first time drops their Core.
+- This reveals their lore in the menu/hero-select AND unlocks that hero's Challenge details simultaneously.
+- Cores are not spent or consumed — they're a permanent lore/unlock record, viewable anytime.
+
+**Challenges (new system):**
+- See the Challenge Relics table above for all 5 designed challenges.
+- A Challenge is only attemptable once its Core has been collected (i.e., you've beaten that hero once as a corrupted boss).
+- Clearing a Challenge fight earns that hero's True Ending relic.
+
+⚠️ Still open: exact Soul menu costs/numbers, and the UI/screen flow for the in-run Soul-spend moment.
+
+---
+
+### ⚠️ SUPERSEDED — old permanent Soul Meta-Progression Tree
+
+3 branches. Shared across all characters. **Replaced entirely July 25, 2026 by the in-run system above — kept here for history only, do not implement.**
 
 **Power Branch**
 - Start each run with +5 max HP (2 Souls)
@@ -386,13 +436,11 @@ Categories: Gold events, HP-for-Gold trades, Curse card rewards, Risk events, Cl
 - Elite fights drop 1 consumable in addition to normal reward (3 Souls)
 - Once per run, reroll a relic choice for free (4 Souls)
 
-⚠️ Tree needs expansion — Soul drop rates not yet set.
-
 ---
 
 ## King Aldric Final Boss — Designed and implemented; verification incomplete
 
-3 phases. Stone Heart mechanic. Dice corruption in Phase 2. True Ending trigger at 50 HP in Phase 2 if all 4 relics held.
+3 phases. Stone Heart mechanic. Dice corruption in Phase 2. Phase 3 (and the True Ending trigger at 50 HP) only fires if 4 of 5 Challenge relics are held — redesigned July 25, 2026, see Soul/Core/Challenge System section above.
 
 ---
 
@@ -400,7 +448,8 @@ Categories: Gold events, HP-for-Gold trades, Curse card rewards, Risk events, Cl
 
 | Item | Priority | Notes |
 |---|---|---|
-| Core passive bonuses | Medium | Cores drop on boss defeat — what do they DO mid-run? |
+| Soul-spend menu — exact numbers/costs | Medium | Draft exists (generic stat boosts); needs finalizing before it can be built. |
+| 13 remaining events (of 18 designed) | Medium | Only 5 generic events exist in code; corrected July 25, 2026 — see Events section. |
 | Magic Door exclusive event pool | Low | Currently pulls from normal room pool |
 | Card rarity system (Common/Uncommon/Rare reward odds) | Low | Can tune late |
 
@@ -410,10 +459,13 @@ Categories: Gold events, HP-for-Gold trades, Curse card rewards, Risk events, Cl
 
 | Item | Notes |
 |---|---|
-| Sir Crimson encounter | Full fight + dialogue + story beats between floors |
+| Sir Crimson encounter | Full fight + dialogue + story beats between floors. Post-fight dialogue needs a rewrite pass — flagged above, written for the old relic framing. |
 | Boss reward relic choice screen | Pick 1 of 3 after each floor boss |
 | Consumable system | Carry/use from inventory during combat |
-| Soul meta-progression tree | UI + unlock system |
+| Soul in-run stat-upgrade screen | UI + logic; replaces old permanent-tree UI concept entirely |
+| Challenge-mode fight logic | Detect a Challenge attempt (chosen hero ≠ boss hero, Core already unlocked) and enforce the Challenge's constraint for that fight |
+| Core-drop "first time" gating | Core-drop logic needs to check first-time-beating-this-companion, not just Core-drop-happened, to gate lore + Challenge-unlock correctly |
+| 13 remaining events | Build out the 18-event pool designed in GDD.md; only 5 generic events currently exist |
 | Enemy intent consistency testing | Intent logic received April 16 improvements; verify displayed intent against actual actions before recording a Known issue. |
 | Mobile UI polish | April 16 responsive, dice, preview, and overlap work landed; continue short-height and browser-chrome verification. |
 
@@ -430,4 +482,6 @@ Categories: Gold events, HP-for-Gold trades, Curse card rewards, Risk events, Cl
 | Early 2026 | GDD v0.5 → v0.7. Floor hint system. Sir Crimson story arc early design. |
 | April 2026 | Sir Crimson full arc locked. Rare relics (10) + Character relics (15) designed. PROGRESS.md created. All 5 hero card pools coded (Barbarian 24, Mage 27, Thief 26, Vampire 28, Gambler 26). All upgrade versions coded for all 5 heroes. Reward pool fix — now shows full card variety. Status display system overhauled — Rage/Weak/Vulnerable/Chill all update card preview numbers with color coding. Status tooltip system added — tap icon to see description. Exhaust pile viewer added to deck overlay. Exhaust cards return to deck after combat. Burn changed to stacks × 1 (matching Poison). Burn/Poison timing split — Burn before enemy acts, Poison after. Chill only ticks on attack turns. Cold Mastery correctly reduces Chill percentage. Entrench block carry fixed. Energy display changed to single number. Time Warp redesigned as draw-focused card. rollDice() updated with full Gambler mechanics. Vulnerable per-turn tick (not per-hit). Card Rarity System — CHAR_REWARD_POOLS restructured into common/uncommon/rare buckets for all 5 characters. Shared cards distributed correctly. curseddice removed. Pity timer added (G.rareOffset, caps at 35%). Elite rewards use separate odds 55/35/10. Scholar's Lens shows 4 reward options. Relic System — Full RELICS object built with 30 relics. hasRelic() helper added. All common and most uncommon/rare hooks wired into combat. healPlayer() routes all healing for pale_contract. shopCost() applies King's Debt multiplier. Deferred: bone_key, shattered_mirror, void_compass. Shop Overhaul — Relics section (2 relics, floor-gated by rarity). Die section (1 die, 80 gold). Card removal service (75 gold). Upgrade Card moved to rest stop only. Die Progression — Die removed from reward screen. Dice now from shop, Magic Door (25% chance, floor-gated), and events only. File Split — castle-run.html split into index.html + css/styles.css + js/data.js + js/combat.js + js/ui.js + js/game.js + js/main.js. GitHub Pages confirmed working. Mobile confirmed playable. |
 | April 16, 2026 | Split-build follow-up: mobile selected-card preview fixes; deferred re-render so previews reflect status changes; intent overlap and enemy-intent presentation improvements; boss-intro scrolling and card-lift fixes; dice contrast and compact mobile dice controls; extensive responsive landscape layout, hand spacing, sprite sizing, and short-phone-height work. These changes are Implemented and require continued device/browser verification. |
+| July 25, 2026 | Design-only session, nothing implemented. Full redesign of the True Ending / Souls / Cores system after discovering the old floor-reward relic gate was structurally impossible (floors 1-3 are the only relic sources, floor 4 is Aldric — no run could ever hold all 4). New system: 5 per-hero Challenge relics (need 4 of 5, never your own), Cores repurposed as lore + Challenge-unlock triggers, Souls converted from a permanent cross-run tree to an in-run resource spent at a per-floor stat-upgrade screen. All 5 Challenges fully designed (Barbarian, Vampire, Mage, Thief, Gambler). Also resolved this session: confirmed only 5 of the 18 designed events exist in code (PROGRESS.md's old "18 Complete" claim was false); fixed a live `lastFightWasElite` stale-flag bug causing `iron_ration`/`grave_robber` to misfire after boss fights following an elite; corrected the Normal Ending castle-outcome and two stale Hand Size Decision entries; fixed an inaccurate Burn tooltip. |
+| August 15, 2026 | Doc sync only, nothing implemented. Propagated the July 25 redesign into `DESIGN_DISCREPANCIES.md`, `PROGRESS.md` (this file), and flagged the affected sections of `GDD.md` for the same treatment. Old True Ending Relics (4, floor-reward), permanent Soul tree, and "Events 18 Complete" all marked superseded/corrected rather than deleted, for history. |
 | July 23, 2026 | Card/combat consistency + systems session (split build). **7 missing GDD cards implemented** (base + upgrade, added to hero reward pools): Thief's Gambit, Gut Punch, Golden Strike (Thief); Cursed Veins (Vampire); Wild Combo, Press Your Luck, Jackpot (Gambler). **8 dormant Power-card hooks wired up**: Berserker's Oath (Block on HP loss), Burning Soul (+dmg per Burn stack), Poison Master (+dmg per Poison stack), Lethal Rhythm (dmg every 2 cards played), House Edge (min-roll floor), Gambler's Fallacy (guaranteed max after N non-max rolls), Vampiric Form (auto-Fly on extreme roll), and Shadow Artist base (2nd & 4th card each turn cost 0) — the base variant was previously a no-op. **2 bugs found + fixed along the way**: (1) House Edge / Gambler's Fallacy leaked across combats via persistent `_minRoll` / `_fallacyThreshold` flags — converted to status-gated so the effect clears with the exhausted card at combat end; (2) Fly's damage-halving was defined only as a tooltip and never wired into the enemy-attack calc — now applied (halves the hit, then clears). **Enemy-damage pipeline unified**: extracted `resolveEnemyAttack()` (Fly → Block → `loseHP` → on-HP-loss effects) shared by regular enemies AND Aldric (Aldric previously used a separate `dealDamage('player')` path, so it missed Fly); enemy specials (Ritual, Arcane Overload, Collapse) tagged enemy-direct and routed through the same pipeline so Fly halves them too (self-damage/DoT deliberately excluded). Collapse additionally got an opt-in `bypassBlock` flag on `resolveEnemyAttack()`: its damage equals the player's current Block, so the normal Block step made it net ~0 HP every time — bypassBlock sends it straight to HP (Fly still halves it first), so it now deals real damage that punishes defensive play. The flag is per-attack — only Collapse passes it; basic/Aldric/Ritual/Arcane Overload still respect Block. Survive-killing-blow relics (Rabbit Foot, Phylactery) centralized in `loseHP` so they now cover the basic attack, not just `dealDamage` sources. Berserker's Oath now fires on ALL player HP loss (enemy attacks, enemy specials, and self-damage cards) through the shared `loseHP` chokepoint. Also fixed an earlier draw-order bug where a card's own draw effect ran before the card left the hand, so in-turn draws hit the hand cap one slot early (e.g. Blood Price drew 0 at a full hand). **Hand size rule changed**: split the single `handLimit` into `startingDrawCount` (5) and `maxHandSize` (8) — turn-start draw stays exactly 5, while in-turn draw effects can now fill the hand up to 8 (excess draws blocked). **`curseddice` restored + renamed**: display name → Cursed Reroll / Cursed Reroll+ to resolve a collision with the d4 die also named "Cursed Die" (key unchanged); added to every hero's uncommon reward pool; its previously-missing `+` upgrade added (reroll, take 1 damage instead of 3). **Void Compass implemented**: after a non-boss elite, if the relic is held, offers a choice of 3 relics (via a shared `acquireRelic()` grant path reused by the shop); fires once per fight, otherwise elites behave as before (card reward only). **UI fixes**: relic display added (`renderRelics()`), shop "Leave Shop" sticky-footer fix, card width adjustment. All code changes are Implemented and were unit-tested via a headless harness against the real `js/data.js` / `js/combat.js` / `js/ui.js`; in-app device/browser verification still recommended. |

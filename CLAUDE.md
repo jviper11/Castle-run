@@ -4,7 +4,7 @@
 
 Castle Run is a single-player browser deck-building roguelite with turn-based card combat and one active die per turn. It is deployed through GitHub Pages from the repository root.
 
-**Design reference:** `GDD.md` v0.9
+**Design reference:** `GDD.md` v0.10
 **Development status:** Active development. Major systems are implemented, but implementation is not the same as verification. See `PROGRESS.md` for the current restart point and `DESIGN_DISCREPANCIES.md` for unresolved design conflicts.
 
 ---

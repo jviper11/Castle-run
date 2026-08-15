@@ -1,10 +1,10 @@
 # CASTLE RUN — Game Design Document
 ⚔ CASTLE RUN
-Game Design Document — v0.9
+Game Design Document — v0.10
 Turn-based deck-building roguelite
 Save your companions. Storm the castle. Free the king.
 
-*Last updated: April 2026*
+*Last updated: August 15, 2026 — Two Endings, Relic System, and Soul system sections rewritten to match the July 25, 2026 True Ending/Souls/Cores redesign. See `DESIGN_DISCREPANCIES.md` for the full resolution history.*
 
 ---
 
@@ -26,9 +26,9 @@ He accepted. He thought he was saving his kingdom. He was wrong. Now he rules fr
 ### The Story
 Five heroes answer the call to storm Castle Ashborne. Before they reach the gates, the castle acts: it captures four of them, pulling each into a different floor, corrupting them into something that wears their face.
 
-You play as the fifth hero — the one who made it through. Floor by floor you fight your way up, facing corrupted versions of your companions as floor bosses. Defeating them doesn't kill them — it releases the Core they were carrying, a fragment of their true self.
+You play as the fifth hero — the one who made it through. Floor by floor you fight your way up, facing corrupted versions of your companions as floor bosses. Defeating a corrupted companion for the first time releases their Core, a fragment of their true self — it reveals their lore and unlocks the ability to challenge them again in a future run under Challenge conditions, for a shot at their True Ending relic.
 
-With all four Cores, you face King Aldric Ashborne himself. What happens next depends on whether you've uncovered the truth — or simply fought your way to the top.
+You face King Aldric Ashborne after any four corrupted companions fall. What happens next depends on how many Challenge relics you've earned across your runs — or whether you've simply fought your way to the top.
 
 ### Sir Crimson
 Sir Crimson is not one of your companions. He was the king's most trusted knight — the man whose desperate act of loyalty set everything in motion. Consumed by the castle long before the events of Castle Run, he now serves as its enforcer and gatekeeper between floors.
@@ -39,11 +39,26 @@ In the True Ending, he appears freed completely.
 
 ### The Two Endings
 
+*Redesigned July 25, 2026. The original version of this section gated the True Ending on four named relics (The Fractured Crown, The King's Sword, The Royal Sigil, The Knight's Vow) picked as boss-reward choices on Floors 1–3. That design had a structural hole: floor bosses 1–3 are the only relic sources, and Floor 4 is Aldric himself, so no single run could ever hold all 4 relics walking into the final fight. The gate could never actually be met. See `DESIGN_DISCREPANCIES.md` for the full resolution history.*
+
+**How relics work now — Challenge Relics**
+Each of the 5 heroes has one Challenge, locked to them:
+
+| Hero | Challenge | Type |
+|---|---|---|
+| Barbarian | Gains +1 Strength every 2 turns, starting turn 2 | Escalation |
+| Vampire | Drains 8 HP from you to heal itself, every 3 turns starting turn 3 | Escalation |
+| Mage | You may never play a card that draws extra cards | Denial |
+| Thief | You may never gain any Block | Denial |
+| Gambler | You may never use a reroll | Denial |
+
+Beating a corrupted companion for the first time (a Normal Ending run) drops their Core, reveals their lore, and unlocks their Challenge details. In any future run where that same companion appears again as a corrupted floor boss, you can attempt the fight under Challenge conditions — clearing it earns that hero's **Challenge relic**. You only need **4 of the 5** relics for the True Ending, since you can never fight your own chosen hero — so pick which 4 challenges to chase across your runs; the 5th is always skipped.
+
 **Normal Ending — The Slayer**
-Defeat King Aldric without all four True Ending Relics. You strike him down, but killing him never breaks the castle's hold — Aldric dissipates into shadow and the castle *endures*, the cycle continuing without its king. It is an incomplete victory: "You were not ready. Return when you are." The player is invited to come back and pursue the True Ending. (In-game text, `showAldricEnding()`: *"Aldric dissipates into shadow. The castle endures. You were not ready. Return when you are."*)
+Reach King Aldric holding fewer than 4 of the 5 Challenge relics. You strike him down, but killing him never breaks the castle's hold — Aldric dissipates into shadow and the castle *endures*, the cycle continuing without its king. It is an incomplete victory: "You were not ready. Return when you are." The player is invited to come back and pursue the True Ending. (In-game text, `showAldricEnding()`: *"Aldric dissipates into shadow. The castle endures. You were not ready. Return when you are."*)
 
 **True Ending — The Liberator**
-Collect all four True Ending Relics (The Fractured Crown, The King's Sword, The Royal Sigil, The Knight's Vow) and defeat King Aldric. In Phase 3, instead of killing him you use the relics to shatter the castle's hold on his soul. Aldric is freed. The castle is destroyed. The king lives.
+Reach King Aldric holding 4 of the 5 Challenge relics. Aldric's Phase 3 actually triggers, and at 50 HP you're given the option to use the relics instead of the killing blow — shattering the castle's hold on his soul. Aldric is freed. The castle is destroyed. The king lives.
 
 ---
 
@@ -322,7 +337,7 @@ Which companion appears on which floor is random each run. Affinity hints appear
 **Phase 3: The Soul's Burden (HP: 150)**
 - Ability: Fading Light — at the start of each of your turns, you lose 5 HP
 - Attack: Final Decree — deals 20 damage and silences your highest-cost card for 1 turn
-- True Ending Trigger — if all 4 True Ending Relics are held, a special action appears at 50 HP: Use the Relics. This ends Phase 3 without dealing the killing blow and triggers the True Ending.
+- True Ending Trigger — if 4 of the 5 Challenge Relics are held, a special action appears at 50 HP: Use the Relics. This ends Phase 3 without dealing the killing blow and triggers the True Ending. (Redesigned July 25, 2026 — see §1 Two Endings.)
 
 ---
 
@@ -420,14 +435,21 @@ Which companion appears on which floor is random each run. Affinity hints appear
 
 Relics provide passive bonuses for the rest of the run. Collected from boss rewards, elites, shops, events, and Magic Doors.
 
-### True Ending Relics (Boss Rewards Only)
+### Challenge Relics (earned across runs, not a boss-reward pick)
 
-| Relic | Floor | Effect in Aldric fight |
+*Redesigned July 25, 2026 — replaces the old floor-reward relic gate below. The old version tied all 4 relics to Floors 1-3 boss rewards, but Floor 4 is Aldric himself, so no run could ever hold all 4 walking in. See `DESIGN_DISCREPANCIES.md`.*
+
+| Hero | Challenge | Type |
 |---|---|---|
-| The Fractured Crown | Floor 1 Boss | Aldric loses all Strength permanently |
-| The King's Sword | Floor 2 Boss | Aldric's damage halved for the fight |
-| The Royal Sigil | Floor 3 Boss | Fading Light disabled — stop losing HP each turn |
-| The Knight's Vow | Floor 4 Boss | Aldric stops attacking entirely. Fight ends without killing blow. |
+| Barbarian | Gains +1 Strength every 2 turns, starting turn 2 | Escalation |
+| Vampire | Drains 8 HP from you to heal itself, every 3 turns starting turn 3 | Escalation |
+| Mage | You may never play a card that draws extra cards | Denial |
+| Thief | You may never gain any Block | Denial |
+| Gambler | You may never use a reroll | Denial |
+
+Beating a corrupted companion for the first time drops their Core, reveals their lore, and unlocks their Challenge details. Re-encountering that same companion as a corrupted floor boss in a later run lets you attempt the fight under Challenge conditions — clearing it earns that hero's Challenge relic. You need 4 of the 5 (never your own chosen hero) to trigger Aldric's Phase 3 and the True Ending.
+
+The exact effect each Challenge relic has *in the Aldric fight itself* (Strength strip, damage halving, etc. — see the old table's flavor below) still needs to be redesigned against this 5-relic pool; the old per-relic effects were written for 4 named royal artifacts and don't map 1:1 onto 5 hero-tied relics.
 
 ### Common Relics
 
@@ -622,7 +644,7 @@ Exhausted cards are removed from combat for the rest of the fight. They return t
 | Currency | Earned By | Resets? | Used For |
 |---|---|---|---|
 | Gold | Combat wins, events, selling, bosses | Yes — resets each run | Shop purchases, card removal, upgrades |
-| Souls | Ash Pendant relic, Soul Market event, run completion | No — permanent | Meta-progression upgrades between runs |
+| Souls | Ash Pendant relic, Soul Market event, per-floor drops | No longer permanent — in-run only, resets to 0 each run (redesigned July 25, 2026) | Spent at a stat-upgrade screen right after each floor boss's relic-reward pick; carries to the next floor checkpoint if saved |
 
 ### Gold Income (Approximate)
 
@@ -667,26 +689,24 @@ One-time use items consumed during combat or from inventory. Carry up to 3 at a 
 
 ---
 
-## 15. Meta Progression
+## 15. In-Run Progression (Souls) — redesigned July 25, 2026
 
-Between runs, Souls are spent on permanent upgrades.
+*This section previously described a permanent cross-run Soul meta-progression tree (Power/Knowledge/Fortune branches, spent between runs). That system is gone — replaced by the design below. Kept as history in `DESIGN_DISCREPANCIES.md` and `PROGRESS.md`.*
 
-**Power Branch**
-- Start each run with +5 max HP (Cost: 2 Souls)
-- Start each run with +1 Energy on turn 1 (Cost: 3 Souls)
-- Starter deck includes 1 additional class card (Cost: 4 Souls)
+Souls are now an **in-run** resource, not a permanent currency:
+- Earned per floor.
+- Spent at a stat-upgrade screen that appears immediately after each floor boss's relic-reward pick.
+- Carries forward to the next floor checkpoint if saved; resets to 0 at the start of every run.
+- No cross-run banking.
 
-**Knowledge Branch**
-- See room types 1 room ahead on path (Cost: 2 Souls)
-- Shop shows 1 extra item per visit (Cost: 3 Souls)
-- Card rewards show 4 options instead of 3 (Cost: 5 Souls)
+Cross-run persistence now lives in the **Challenge Relic system** instead (see §9 Relic System and §1 Two Endings) — beating a corrupted companion permanently unlocks their Core lore and Challenge, and Challenge relics earned carry across runs toward the True Ending.
 
-**Fortune Branch**
-- Start each run with 30 bonus gold (Cost: 2 Souls)
-- Elite fights drop 1 consumable in addition to normal reward (Cost: 3 Souls)
-- Once per run, reroll a relic choice for free (Cost: 4 Souls)
+**Draft Soul-spend menu** (generic stat boosts, following the principle that broad-appeal boosts beat narrow niche ones):
+- Max HP increase
+- Energy increase
+- Card draw increase
 
-⚠ TBD: Full Soul tree to be expanded. Soul drop rates not yet set.
+⚠ TBD: Exact numbers and Soul costs for the menu above still need to be finalized. Soul drop rates per floor also still TBD.
 
 ---
 
@@ -701,14 +721,16 @@ Between runs, Souls are spent on permanent upgrades.
 - ⚠ TBD: Boss debuff system (Balatro-style carry-forward debuffs) — designed, not implemented
 - ⚠ TBD: Card rarity system (Common/Uncommon/Rare reward odds) — can tune late
 - ✅ Resolved: Hand size — draw 5 at turn start; in-turn card effects can raise the hand up to a max of 8 (implemented via `startingDrawCount` = 5 and `maxHandSize` = 8 in `js/combat.js`)
-- ⚠ TBD: Core passive bonuses — what do Cores DO mid-run?
+- ✅ Resolved (July 25, 2026): Core purpose — Cores drop on first-time defeat of a corrupted companion; they reveal lore and unlock that hero's Challenge (see §1, §9). Implementation (first-time-only gating logic) still TBD.
 - ⚠ TBD: Magic Door exclusive event pool
+- ⚠ TBD: 13 of the 18 designed events still need to be built — only 5 generic events currently exist in code (confirmed July 25, 2026)
 
 ### Systems
-- ⚠ TBD: Full Soul meta-progression tree (branches outlined, details TBD)
+- ✅ Resolved (July 25, 2026): Soul system redesigned as in-run only (see §15). Exact Soul-spend menu numbers/costs still TBD.
 - ⚠ TBD: Consumable inventory UI and interaction
 - ⚠ TBD: Relic system in combat (35+ relics designed, none active yet)
 - ⚠ TBD: Boss reward relic choice screen
+- ⚠ TBD: Challenge-mode fight logic (detecting a Challenge attempt and enforcing its constraint)
 
 ### Platform / Technical
 - ⚠ TBD: Background art per floor (dungeon, catacombs, shadow realm, throne room)

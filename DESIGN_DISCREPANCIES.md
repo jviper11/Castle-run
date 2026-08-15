@@ -4,24 +4,40 @@ This file records unresolved conflicts between design documents, progress notes,
 
 ---
 
-## ✅ RESOLVED — True Ending requirements
+## ⚠️ SUPERSEDED — True Ending requirements (floor-reward relic gate)
 
 **Original question:** Does the True Ending require collecting four companion Cores, four specific True Ending relics, or both?
 
-**Resolution (decided in session, [date to fill in]):** The True Ending is gated by the **four named True Ending Relics** (The Fractured Crown, The King's Sword, The Royal Sigil, The Knight's Vow) — NOT by Cores.
+**Original resolution:** The True Ending was gated by four named relics (The Fractured Crown, The King's Sword, The Royal Sigil, The Knight's Vow) picked as boss-reward choices on Floors 1–3.
 
-**Why:** Cores are collected automatically from every floor boss (Floors 1–3) as a mandatory story beat — every run that reaches Aldric has the same Core count, so Cores can never function as a meaningful gate. Relics are optional reward-screen picks (1 of 3 choices per floor boss), so gating on relics preserves an actual in-run decision.
+**Why this is superseded:** This resolution had a structural hole that made it impossible to satisfy. Floor bosses 1–3 are the only relic sources, and Floor 4 is Aldric himself — so no single run could ever hold all 4 relics walking into the final fight. The gate could never actually be met. See the new resolution below.
 
-**New design addition:** Each of the 4 True Ending relics will carry a real debuff, not just a passive opportunity cost. Player must weigh "take a strong build-supporting relic" vs. "take this relic, accept a debuff, and move toward the True Ending." Specific debuff values are still TBD — to be designed per relic, ideally thematically tied to what the relic undoes in the Aldric fight (e.g. a relic that strips Aldric's Strength might cost the player max HP).
+---
 
-**Implementation TODO:**
-- Change `G.aldricHasRelics` in `js/combat.js` (currently `G.cores.length >= 4`) to check `G.relics` for all 4 True Ending relic keys via the existing `hasRelic()` helper.
-- Rename the variable if practical — `aldricHasRelics` is currently misleading since it checks Cores, not relics.
-- Cores remain in the game but are no longer the True Ending gate — open question whether they get repurposed (e.g. as fodder for a future Soul-adjacent system) or just remain narrative/UI collectibles.
-- Design and implement the 4 relic debuffs.
-- Decide whether debuffs stack fully if a player collects all 4, or whether there's a combined cap.
+## ✅ RESOLVED — True Ending requirements (per-hero challenge relics)
 
-**Deferred, not yet decided:** A meta-progression branch (Soul-based) to reduce relic debuffs over multiple runs was discussed as a future system, but is explicitly lower priority than core gameplay/combat consistency work and Sir Crimson's build-out. Do not implement until those are stable. See PROGRESS.md priority order.
+**Resolution (decided in session, July 25, 2026):** The True Ending is now gated by **4 of 5 possible per-hero challenge relics**, earned across multiple runs rather than picked mid-run.
+
+**How it works:**
+- Each of the 5 heroes has one locked Challenge (Barbarian: +1 Strength every 2 turns from turn 2 — escalation; Vampire: drains 8 HP from the player to heal itself every 3 turns from turn 3 — escalation; Mage: may never play a card that draws extra cards — denial; Thief: may never gain any Block — denial; Gambler: may never use a reroll — denial).
+- Beating a corrupted companion for the first time (as a Normal Ending run) drops their **Core**, reveals their lore, and unlocks that hero's Challenge details.
+- In any future run where that same companion appears again as a corrupted floor boss, the player can attempt the fight under Challenge conditions. Clearing it earns that hero's **True Ending relic**.
+- The player only needs **4 of the 5 relics** — never their own chosen hero's, since you can't fight yourself. Player picks which 4 to chase; the 5th (their main) is always skipped.
+- Reach Aldric (Floor 4, fixed boss) holding fewer than 4 relics → Phase 1 + 2 only, **Normal Ending**.
+- Reach Aldric holding all 4 relics → **Phase 3 actually triggers**, and at 50 HP the True Ending option appears.
+
+**What this replaces:**
+- The old floor-reward relic gate above (structurally broken — see superseded entry).
+- Cores go from "mystery collectible, no defined purpose" to a specific job: lore reveal + Challenge-unlock trigger. They are no longer the True Ending gate, and never were meant to be (see original discrepancy question) — but now they're not just narrative filler either.
+- The old permanent cross-run Soul meta-progression tree (Power/Knowledge/Fortune branches) is gone. Souls are now an **in-run** resource — earned per floor, spent at a stat-upgrade screen that appears right after each floor boss's relic-reward pick, resets to 0 at run start, no cross-run banking.
+
+**Implementation TODO (not yet started):**
+- Core-drop logic needs to check "is this the first time beating this specific corrupted companion" (not just "did a Core drop") to gate the lore + Challenge-detail unlock correctly.
+- Challenge-mode fight logic: detect when the player is attempting a hero's Challenge (their chosen hero must differ from the boss hero) and enforce the Challenge's constraint (denial or escalation) for that fight.
+- `G.aldricHasRelics` (or its renamed equivalent) needs to check "player holds 4 of the 5 Challenge relics," not the old 4-named-relic set.
+- The 4 old True Ending relics (Crown/Sword/Sigil/Vow) and their planned per-relic debuffs are dropped entirely — replaced by the 5 Challenge relics above. No debuff mechanic carries over; Challenge relics are earned through difficulty, not opportunity cost.
+- Soul-spend menu contents/costs need to be finalized (draft exists, see PROGRESS.md Soul section) and built as an in-run screen, replacing the old permanent-tree UI concept.
+- All of GDD.md's Two Endings / Relic System sections and PROGRESS.md's True Ending / Soul tracker rows need rewriting to match — currently still describe the superseded floor-reward-relic-gate system.
 
 ---
 
@@ -110,3 +126,7 @@ This file records unresolved conflicts between design documents, progress notes,
 ## Session Notes
 
 *Session [date to fill in]:* Reviewed `js/ui.js` and `js/combat.js` in full. Resolved 3 discrepancies via direct code inspection (Burn damage, Mobile orientation, True Ending requirements — the latter via new design decision rather than existing-code confirmation). Advanced Weak timing to "needs playtest" status. Found one unrelated bug in passing: core-collection message in `checkCombatEnd()` displays `G.char.name` (player's own character) instead of the boss's name. `js/game.js` and `js/data.js` not yet reviewed — Mirror behavior, Blood Lord frequency, missing cards, and `curseddice` all require those files to resolve.
+
+*Session July 25, 2026:* Full redesign of the True Ending / Souls / Cores system, prompted by discovering the floor-reward relic gate was structurally impossible to satisfy (see superseded entry above). New system: per-hero Challenge relics (need 4 of 5), Cores as lore + Challenge-unlock triggers, Souls as an in-run resource instead of a permanent cross-run tree. All 5 hero Challenges fully designed. Soul-spend menu drafted (see PROGRESS.md). None of this is implemented yet — design-only session.
+
+*Session August 15, 2026:* Synced this file against the July 25 redesign — the True Ending entry above was still describing the superseded floor-reward-relic-gate system as current. GDD.md and PROGRESS.md are still out of date and need the same treatment next.
