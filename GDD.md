@@ -689,24 +689,58 @@ One-time use items consumed during combat or from inventory. Carry up to 3 at a 
 
 ---
 
-## 15. In-Run Progression (Souls) — redesigned July 25, 2026
+## 15. In-Run Progression (Souls) — redesigned July 25, 2026, menu finalized August 15, 2026
 
 *This section previously described a permanent cross-run Soul meta-progression tree (Power/Knowledge/Fortune branches, spent between runs). That system is gone — replaced by the design below. Kept as history in `DESIGN_DISCREPANCIES.md` and `PROGRESS.md`.*
 
-Souls are now an **in-run** resource, not a permanent currency:
+Souls are an **in-run** resource, not a permanent currency:
 - Earned per floor.
-- Spent at a stat-upgrade screen that appears immediately after each floor boss's relic-reward pick.
+- Spent at a stat-upgrade screen that appears immediately after each floor boss's relic-reward pick (Floors 1–3 only; Floor 4 is Aldric, no spend screen there).
 - Carries forward to the next floor checkpoint if saved; resets to 0 at the start of every run.
 - No cross-run banking.
 
-Cross-run persistence now lives in the **Challenge Relic system** instead (see §9 Relic System and §1 Two Endings) — beating a corrupted companion permanently unlocks their Core lore and Challenge, and Challenge relics earned carry across runs toward the True Ending.
+Cross-run persistence lives in the **Challenge Relic system** instead (see §9 Relic System and §1 Two Endings) — beating a corrupted companion permanently unlocks their Core lore and Challenge, and Challenge relics earned carry across runs toward the True Ending.
 
-**Draft Soul-spend menu** (generic stat boosts, following the principle that broad-appeal boosts beat narrow niche ones):
-- Max HP increase
-- Energy increase
-- Card draw increase
+### Design framing
 
-⚠ TBD: Exact numbers and Soul costs for the menu above still need to be finalized. Soul drop rates per floor also still TBD.
+The same three spend windows and no cross-run banking remain, but the upgrade pool is built around meaningful tradeoffs. Stronger effects either cost more Souls or carry an explicit downside, while several upgrades interact directly with the game's dice system rather than relying only on generic stat increases.
+
+At each spend window, 3 upgrades are offered at random from the full 8-option pool. Players choose from those offers rather than having access to the entire menu every time. Because Soul costs vary and income is limited — roughly 6–9 Souls per floor from regular wins, elites, and the boss kill that triggers the screen — the player must decide whether to spend now, take a risky bargain, or save for a potentially stronger option later.
+
+- **Pure stat upgrades** (Vitality, Grit) are safe, straightforward options — the fallback for a player who needs survivability more than build synergy.
+- **Power upgrades** (Momentum, Overdraw) provide some of the strongest run-long benefits, but carry the highest Soul costs and can only be purchased once per run.
+- **Bargain upgrades** (Reckless Surge, Gambler's Edge) offer powerful effects at a lower Soul price by attaching a real, visible cost: permanent Max HP loss, or giving up natural rolls of the hero's affinity maximum for the rest of the run.
+- **Dice-native upgrades** (Steady Hand, Second Die) do not increase raw stats at all. Instead, they give the player additional control over their rolls in ways deliberately bounded so they do not trivialize hero affinity checks or duplicate existing relic effects.
+
+### Soul-Spend Menu (8 options, offer 3 at random)
+
+| Upgrade | Effect | Cost | Repeatable this run? |
+|---|---|---|---|
+| Vitality | +6 Max HP, heals to new max | 3 Souls (rises +1 each rebuy) | Yes |
+| Grit | +5 Block at the start of every combat, rest of the run | 5 Souls | No |
+| Steady Hand | +1 reroll charge per combat, rest of the run | 6 Souls | No |
+| Second Die | Once per combat: after your roll, optionally add a d2 to it | 6 Souls | No |
+| Momentum | +1 Energy per turn, rest of the run | 8 Souls | No |
+| Overdraw | Draw +1 card at turn start, rest of the run | 8 Souls | No |
+| Reckless Surge | +1 Energy per turn, rest of the run — but −5 Max HP permanently this run | 4 Souls | No |
+| Gambler's Edge | Once per combat, force your die to any value — but die can never roll its own affinity max on a natural roll for the rest of the run | 6 Souls | No |
+
+### Soul income (per floor, resets to 0 each run)
+
+| Source | Souls |
+|---|---|
+| Regular combat win | 1 |
+| Elite win | 2 |
+| Floor boss win (triggers spend screen) | 3 |
+| Ash Pendant relic | +1 per battle, stacks on top |
+
+### Design history — options considered and cut
+
+- **True Roll** (minimum die result raised to 2) — cut. Conflicted with Mage's Frost Seal (rewards 3-or-under rolls), Gambler's low-roll payoffs (House Edge, Gambler's Fallacy), and Thief's odd affinity, since natural 1s matter to all three.
+- **Twinned Roll** (roll twice, sum both or take the higher) — cut. The sum branch trivialized threshold-style affinity checks like Mage's "high roll 6+" (near-guaranteed trigger) while being nearly dead for exact-value checks like Vampire's "1 or max face" (a sum can never equal 1, and rarely equals max face). Also overlapped with the existing Twinned Die and Fractured Die relics, which already do "roll twice, take higher."
+- **Second Die** was chosen instead — bounded (+1/+2 max, not a full second die), optional (never forces a hero off a roll they wanted), and gives roughly 50% odds to flip parity rather than guaranteeing it, closer in spirit to the rest of the dice system's odds-based design.
+
+⚠ Open: Soul-spend screen UI/flow not yet built. `bone_key` relic and the Soul Market event's flavor text still reference the old permanent system — see `DESIGN_DISCREPANCIES.md`.
 
 ---
 
