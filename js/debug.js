@@ -27,15 +27,24 @@
 //   gold     starting Gold                                  (default: 250)
 //   souls    starting Souls                                 (default: 12)
 //   hp       starting HP                                    (default: full)
-//   cores    number of Cores to pre-grant — 4 unlocks Aldric's Phase 3 path
+//   cores    number of in-run Cores to pre-grant (lore / Challenge-unlock system).
+//            NOTE: this no longer unlocks Aldric's Phase 3 — use `crelics` for that.
+//   crelics  Challenge relics to seed into the PERMANENT record, which is what Aldric's
+//            Phase 3 / True Ending gate reads (4 of 5). Either a count or a hero list:
+//            crelics=4  or  crelics=mage,thief,gambler,vampire
+//            Seeded IN MEMORY ONLY — never saved, so a real save is untouched.
+//   challenge  1 = make the upcoming floor boss Challenge-eligible (seeds their Core into the
+//              permanent record IN MEMORY ONLY — never saved, so a real save is untouched).
+//              Or pass a hero key (challenge=mage) to seed that hero specifically.
+//              Pair with `bossintro` to see the opt-in prompt: ?debug=bossintro&challenge=1
 //   relics   comma-separated relic keys, e.g. relics=ash_pendant,iron_vambrace
 //   upgrades comma-separated Soul upgrade keys, e.g. upgrades=grit,second_die
 //   weak / vulnerable / chill / rage / poison / burn
 //            status stacks applied once the fight starts (weak/chill/rage/poison/burn land on
 //            the enemy, vulnerable on the player) — for checking status maths without setup
 //
-// Example — Aldric at Phase 3 with debuffs already on him:
-//   ?debug=aldric&cores=4&weak=3&chill=2
+// Example — Aldric with the True Ending gate open and debuffs already on him:
+//   ?debug=aldric&crelics=4&weak=3&chill=2
 
 (function () {
   const DEFAULTS = { hero: 'mage', gold: 250, souls: 12 };
@@ -78,6 +87,47 @@
       G.cores = BOSSES.filter(b => b.charKey !== hero).slice(0, coreCount).map(b => b.charKey);
       if (typeof renderCores === 'function') renderCores();
     }
+
+    // relics=<n|list> seeds the PERMANENT Challenge relic record, which is what Aldric's Phase 3
+    // / True Ending gate now reads (hasTrueEndingRelics(), 4 of 5). `cores` above no longer
+    // unlocks Phase 3 — it grants in-run Cores only, which is a different system. Seeded in
+    // memory and never saveMeta()'d, so testing cannot write into a real player's save.
+    //   crelics=4                      -> 4 relics from heroes other than the chosen one
+    //   crelics=mage,thief,gambler     -> exactly those
+    if (opts.crelics !== undefined) {
+      const raw = String(opts.crelics).trim();
+      const asCount = parseInt(raw, 10);
+      let keys;
+      if (String(asCount) === raw && asCount >= 0) {
+        keys = Object.keys(CHALLENGES).filter(k => k !== hero).slice(0, asCount);
+      } else {
+        keys = raw.split(',').map(s => s.trim()).filter(Boolean);
+        keys.forEach(k => { if (!CHALLENGES[k]) warn(`unknown challenge hero "${k}"`); });
+        keys = keys.filter(k => CHALLENGES[k]);
+      }
+      META.challengeRelicsEarned = keys.slice();
+      info(`crelics: ${keys.length} Challenge relic(s) seeded in META (memory only) — ` +
+        (hasTrueEndingRelics() ? 'True Ending gate OPEN' : `gate needs ${TRUE_ENDING_RELICS_REQUIRED}`));
+    }
+
+    // challenge=1 makes the upcoming floor boss Challenge-eligible without the two real runs it
+    // would otherwise take (collect the Core in run 1, meet them again in run 2). It seeds the
+    // PERMANENT record in memory only — deliberately NOT saveMeta(), so testing can never write
+    // into a real player's save, exactly like the in-run `cores` option above.
+    // challenge=<heroKey> seeds that specific hero instead of the upcoming boss.
+    if (opts.challenge !== undefined && opts.challenge !== '0' && opts.challenge !== 'false') {
+      const floorBoss = G.map[G.currentFloor] && G.map[G.currentFloor].boss;
+      const wanted = CHALLENGES[opts.challenge] ? opts.challenge : (floorBoss && floorBoss.charKey);
+      if (!wanted) warn('challenge: no boss on this floor to make eligible');
+      else if (wanted === hero) warn(`challenge: ${wanted} is the chosen hero — you can never Challenge yourself`);
+      else {
+        if (!META.coresCollected.includes(wanted)) META.coresCollected.push(wanted);
+        // Earning it would make it ineligible (earned Challenges are never re-offered), so
+        // clear any earned entry too — this option means "let me attempt it now".
+        META.challengeRelicsEarned = META.challengeRelicsEarned.filter(k => k !== wanted);
+        info(`challenge: ${wanted} Core seeded in META (memory only) — boss intro will offer it`);
+      }
+    }
     if (opts.relics) {
       String(opts.relics).split(',').map(s => s.trim()).filter(Boolean).forEach(k => {
         if (RELICS[k]) acquireRelic(k); else warn(`unknown relic "${k}"`);
@@ -102,8 +152,8 @@
       const { floorNum } = setup(opts);
       launchFinalBoss();
       applyStatuses(opts);
-      info(`Aldric — floor ${floorNum}, cores ${G.cores.length}` +
-        (G.aldricHasRelics ? ' (Phase 3 path unlocked)' : ' (Phase 3 locked — pass cores=4 for it)'));
+      info(`Aldric — floor ${floorNum}, Challenge relics ${challengeRelicCount()}/${TRUE_ENDING_RELICS_REQUIRED}` +
+        (G.aldricHasRelics ? ' (Phase 3 + True Ending unlocked)' : ' (Phase 3 locked — pass crelics=4 for it)'));
     },
     boss(opts) {
       const { floorNum } = setup(opts);

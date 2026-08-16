@@ -34,11 +34,24 @@ const ALDRIC = {
   ]
 };
 
+// Phase 3 HP-threshold beats, reachable only once the True Ending gate has passed.
+//
+// These were THE CROWN / THE SWORD / THE SIGIL / THE VOW — four named relics from the
+// superseded True Ending design that no longer exist anywhere (see DESIGN_DISCREPANCIES.md).
+// The relic identities, icons and names are gone. What is kept is the pacing (a beat every
+// 25 HP, each pausing Aldric's attack for the turn) and Aldric's own dialogue, which is his
+// soul surfacing and was never relic-specific.
+//
+// The beats are deliberately UNATTRIBUTED: GDD §9 explicitly defers designing what the five
+// Challenge relics actually do inside this fight, so nothing here claims to be a given relic.
+// The 75 HP beat carried "Aldric damage is halved", which never worked — aldricAttackProfile()
+// hardcodes base 15 for a gate-passed Phase 3 and never reads G.enemy.damage. That dead effect
+// is removed; the beat itself stays, since skipping his attack is its real contribution.
 const ALDRIC_RELIC_TRIGGERS = [
-  { hp: 100, icon: '👑', name: 'THE CROWN',  quote: '"I remember… the throne…"',      effect: 'Aldric loses all Strength.' },
-  { hp: 75,  icon: '⚔️', name: 'THE SWORD',  quote: '"I swore to protect..."',           effect: 'Aldric damage is halved.' },
-  { hp: 50,  icon: '🔱', name: 'THE SIGIL',  quote: '"The pact... it is breaking..."',   effect: 'Your Reroll is now infinite.' },
-  { hp: 25,  icon: '🤝', name: 'THE VOW',    quote: '"I… am still here…"',             effect: 'Aldric stops attacking.' }
+  { hp: 100, quote: '"I remember… the throne…"',        effect: 'Aldric loses all Strength.' },
+  { hp: 75,  quote: '"I swore to protect..."',          effect: 'Aldric falters — no attack this turn.' },
+  { hp: 50,  quote: '"The pact... it is breaking..."',  effect: 'Your Reroll is now infinite.' },
+  { hp: 25,  quote: '"I… am still here…"',              effect: 'Aldric stops attacking.' }
 ];
 
 function startAldricFight() {
@@ -46,13 +59,23 @@ function startAldricFight() {
   G.aldricPhase = 1;
   G.aldricDamageDealt = 0;
   G.turn = 0;                // reset once for the whole fight, NOT per phase transition
+  G._challenge = null;       // Challenges are floor-boss only — Aldric is never one
   G.aldricTurns = 0;
   G.aldricStoneHeart = phase.stoneHeartBase;
   G.aldricRelicsTriggered = [];
   G.aldricAffinityDisabled = false;
   G.aldricInfiniteReroll = false;
   G.aldricStopped = false;
-  G.aldricHasRelics = G.cores && G.cores.length >= 4;
+  // THE TRUE ENDING GATE. Read once, here at fight start — Phase 3's escalation and the True
+  // Ending are decided before the first turn and never re-evaluated mid-fight, which is the
+  // timing the old check had and is preserved deliberately.
+  //
+  // Was `G.cores.length >= 4` — the count of Cores collected in THIS run. That was the
+  // superseded gate twice over: Cores are a different system (lore reveal + Challenge unlock),
+  // and a per-run count meant simply beating four floor bosses in one ordinary run unlocked the
+  // True Ending, which is precisely what the July 25 redesign removed. It now reads the
+  // permanent, cross-run Challenge relic record. G.cores is untouched and keeps its own job.
+  G.aldricHasRelics = hasTrueEndingRelics();
   G.aldricBossDice = 0;       // current boss dice roll (0 = not active yet)
   G.aldricDiceCurseActive = false; // Phase 2+ boss rolls each turn // True ending check
 
@@ -138,9 +161,10 @@ function aldricAttackProfile(g) {
     const hasBurn = g.statuses.player.find(s => s.name === '🔥Burn');
     if (hasPoison || hasBurn) base = Math.floor(base * 1.5);
   } else if (phase === 3 && g.aldricHasRelics) {
-    // Relic-weakened phase 3. Preserved as an explicit value: the phase's own enemy.damage is 20,
-    // and the Sword trigger's halving of enemy.damage has never reached this branch. Both belong
-    // to the superseded True Ending relic system — see DESIGN_DISCREPANCIES.md.
+    // Weakened phase 3, reachable only with the True Ending gate passed. Explicit value: the
+    // phase's own enemy.damage is 20. (The superseded Sword trigger used to halve enemy.damage
+    // and never reached this branch, which is why that dead effect has been removed — see
+    // ALDRIC_RELIC_TRIGGERS above and DESIGN_DISCREPANCIES.md.)
     base = 15;
   }
   return { base, hits };
@@ -238,29 +262,23 @@ function processAldricTurn() {
 }
 
 function showAldricRelicTrigger(trigger) {
-  // Apply effect
+  // Apply effect. Every beat also skips Aldric's attack for the turn — that happens in the
+  // caller, which returns early, and is the 75 HP beat's only contribution now that its dead
+  // damage-halving is gone.
   if (trigger.hp === 100) {
-    // Crown — Aldric loses all Strength
     G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '💢Rage');
-    showMsg('👑 ' + trigger.quote);
-  } else if (trigger.hp === 75) {
-    // Sword — damage halved
-    G.enemy.damage = Math.floor(G.enemy.damage / 2);
-    showMsg('⚔️ ' + trigger.quote);
   } else if (trigger.hp === 50) {
-    // Sigil — infinite reroll
     G.aldricInfiniteReroll = true;
-    showMsg('🔱 ' + trigger.quote);
   } else if (trigger.hp === 25) {
-    // Vow — stops attacking
     G.aldricStopped = true;
-    showMsg('🤝 ' + trigger.quote);
   }
+  showMsg('✨ ' + trigger.quote);
 
-  // Show dramatic overlay
+  // Show dramatic overlay. One shared banner for all four beats — the per-relic icons and
+  // names belonged to the deleted four-relic design.
   const overlay = document.getElementById('aldric-relic-msg');
-  document.getElementById('aldric-relic-icon').textContent = trigger.icon;
-  document.getElementById('aldric-relic-name').textContent = trigger.name;
+  document.getElementById('aldric-relic-icon').textContent = '✨';
+  document.getElementById('aldric-relic-name').textContent = 'THE RELICS PULSE';
   document.getElementById('aldric-relic-quote').textContent = trigger.quote;
   document.getElementById('aldric-relic-effect').textContent = trigger.effect;
   overlay.classList.add('visible');
@@ -378,15 +396,20 @@ function getMagicHint(type, floor) {
     event: 'Strange symbols glow faintly across the door surface.',
     shop: 'The scent of candle wax and gold drifts from beneath.',
     rest: 'Warm orange light bleeds under the door.',
+    die_reward: 'A faint rattle, like dice waiting to be claimed.',
   };
   return hints[type] || null;
 }
 
+// `die_reward` is a Magic-Door-only room type (see showDoors in js/game.js). It was missing from
+// both tables, so a REVEALED die-reward door fell through to the 🚪 / 'Unknown' defaults and
+// looked exactly like a hidden one — which, on Floors 1-2 where doors are never hidden, is every
+// die-reward door the player meets there.
 function roomEmoji(type) {
-  return { battle:'⚔️', elite:'💀', event:'❓', shop:'🛒', rest:'❤️', boss:'👑' }[type] || '🚪';
+  return { battle:'⚔️', elite:'💀', event:'❓', shop:'🛒', rest:'❤️', boss:'👑', die_reward:'🎲' }[type] || '🚪';
 }
 function roomLabel(type) {
-  return { battle:'Battle', elite:'Elite Fight', event:'Strange Event', shop:'Merchant', rest:'Rest Stop', boss:'Floor Boss' }[type] || 'Unknown';
+  return { battle:'Battle', elite:'Elite Fight', event:'Strange Event', shop:'Merchant', rest:'Rest Stop', boss:'Floor Boss', die_reward:'Dice Cache' }[type] || 'Unknown';
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -474,6 +497,9 @@ function startCombat(isElite) {
   G.maxHandSize = 8;         // cap that in-turn draw effects can fill up to
   G.cardsPlayedThisCombat = 0;
   G.turn = 0;                // per-combat turn counter; startTurn() takes it to 1 immediately
+  G._challenge = null;       // Challenges are floor-boss only — never a normal or elite fight
+                             // (startBossFight deliberately does NOT clear this: showBossIntro
+                             // sets it just before, and clearing would discard the opt-in)
   G._ashenCrownFired = false;
   // Relic hooks — start of combat
   // (iron_vambrace and hollow_throne Block are staged by stageCombatStartBlock below, so they
@@ -494,6 +520,59 @@ function startCombat(isElite) {
   shuffleDeck();
   startTurn();
   renderAll();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// CHALLENGE MODE — GDD §1, §9
+// ═══════════════════════════════════════════════════════════════════
+//
+// A floor boss can be fought under Challenge conditions when ALL of these hold:
+//   1. a Challenge exists for that hero,
+//   2. it is not the hero the player is currently playing — you can never fight yourself.
+//      (The boss pool already excludes the player's hero, so this states the rule locally
+//      rather than relying on map generation to keep enforcing it.)
+//   3. their Core was collected in an EARLIER run. This reads META, never G.cores: G.cores is
+//      rebuilt empty every run, so using it would let a companion qualify inside the very run
+//      that first beat them, which is not what "in a future run" means.
+//   4. their Challenge relic is not already earned — once earned, it is never offered again.
+//
+// The attempt is opt-in: showBossIntro() offers it and the player accepts before combat.
+// G._challenge holds the accepted hero key for the current fight, or null/undefined.
+function isChallengeEligible(g, bossCharKey) {
+  if (!bossCharKey || !CHALLENGES[bossCharKey]) return false;
+  if (bossCharKey === g.charKey) return false;
+  if (!hasCoreCollected(bossCharKey)) return false;
+  if (hasChallengeRelic(bossCharKey)) return false;
+  return true;
+}
+
+// Is a Challenge running right now, and is it this specific one?
+function challengeActive(g, charKey) {
+  if (!g || !g._challenge) return false;
+  return charKey === undefined ? true : g._challenge === charKey;
+}
+
+// Escalation Challenges tick here, from the same point in endTurn() where every other
+// turn-triggered enemy ability fires (STEP 5, before the enemy acts), so their cadence
+// matches existing specials. Gated on G.turn, which resets per combat and is already 1 on
+// the first player turn — so "every 2 turns from turn 2" is turns 2,4,6… and "every 3 turns
+// from turn 3" is turns 3,6,9…, with no separate counter to keep in sync.
+function tickChallengeEscalation(g) {
+  if (!challengeActive(g) || !g.enemy) return;
+  if (challengeActive(g, 'barbarian') && g.turn > 0 && g.turn % 2 === 0) {
+    // Rage IS Strength for enemies — dealt with by the same modifier path enemy attacks
+    // already run through, rather than a parallel stat.
+    applyStatus(g, 'enemy', '💢Rage', 1);
+    showMsg('⚔️ Challenge — The Berserker grows stronger! (+1 Strength)');
+  }
+  if (challengeActive(g, 'vampire') && g.turn > 0 && g.turn % 3 === 0) {
+    const drain = 8;
+    loseHP(g, drain);
+    floatDamage('player-combatant', drain, 'dmg');
+    g.enemy.hp = Math.min(g.enemy.maxHp, g.enemy.hp + drain);
+    floatDamage('enemy-combatant', drain, 'heal');
+    showMsg('🩸 Challenge — The Ancient drains ' + drain + ' HP!');
+  }
 }
 
 function startBossFight() {
@@ -589,13 +668,13 @@ function startTurn() {
     showMsg(activeDieData.emoji + ' Arcane Die — even roll restores 1 energy!');
   }
   if (activeDieData.bonus === 'max_draw' && roll === activeDieData.max) {
-    drawCards(G, 6 + (G.extraDraw || 0));
+    drawCards(G, 6 + (G.extraDraw || 0), { turnStart: true });
     renderAll();
     updateIntent();
     return;
   }
 
-  drawCards(G, (G.startingDrawCount || 5) + (G.extraDraw || 0));
+  drawCards(G, (G.startingDrawCount || 5) + (G.extraDraw || 0), { turnStart: true });
   renderAll();
   updateIntent();
 }
@@ -782,6 +861,11 @@ function checkAffinity(g, roll, affinity) {
 }
 
 function useReroll() {
+  // Gambler Challenge — the reroll button is disabled for the fight (renderEnergy), so this is
+  // a defensive backstop for any other route into it. Card effects that reroll the die
+  // (Risk Taker, Wild Combo) are deliberately NOT denied: they cost a card and Energy, which
+  // makes them a different resource from the free per-turn reroll this Challenge removes.
+  if (challengeActive(G, 'gambler')) { showMsg('🚫 Challenge — no rerolls this fight.'); return; }
   if (G._noReroll) { showMsg('💔 Fractured Die — no rerolls this run!'); return; }
   if (totalRerollsLeft() <= 0 && !G.aldricInfiniteReroll) return;
   if (!G.aldricInfiniteReroll) {
@@ -899,26 +983,48 @@ function doubleDown(g) {
   renderHand();
 }
 
+// Energy a card will ACTUALLY cost if played right now, including every discount.
+// Single source of truth for the cost, because it is read in two places that must agree:
+// playCard() charges it, and renderHand() prints it on the card tile and in the mobile
+// preview. renderHand() previously reproduced only the Mana Surge branch, so a card made
+// free by Soulbound Gauntlet or Shadow Artist displayed its printed cost — and, worse, the
+// same figure feeds `canPlay`, so a genuinely free card was greyed out as unaffordable and
+// could not be played at all. Follows the calculatePlayerAttackDamage(g, amount, {consume})
+// pattern already used for damage: callers that only want to display pass nothing, and
+// playCard() passes { consume: true } to spend the one-shot discounts.
+function getCardEnergyCost(g, cardKey, options = {}) {
+  const card = CARDS[cardKey];
+  if (!card) return 0;
+  const consume = !!options.consume;
+  let cost = card.cost;
+
+  // Mana Surge — the next card played after it costs 1 less
+  if (g._manaSurge && cardKey !== 'manasurge') {
+    cost = Math.max(0, cost - 1);
+    if (consume) g._manaSurge = false;
+  }
+  // Soulbound Gauntlet — first card each turn costs 0
+  if (!g._firstCardFree && hasRelic('soulbound_gauntlet')) {
+    cost = 0;
+    if (consume) g._firstCardFree = true;
+  }
+  // Shadow Artist (base, stacks 1) — the 2nd and 4th card played each turn cost 0.
+  // (The + version uses the _shadowArtistDiscount counter instead — see playCard below.)
+  const shadowArtistBase = g.statuses.player.find(s => s.name === '🎭ShadowArtist' && s.stacks === 1);
+  if (shadowArtistBase) {
+    const cardNumber = (g._cardsPlayedThisTurn || 0) + 1;
+    if (cardNumber === 2 || cardNumber === 4) cost = 0;
+  }
+  return cost;
+}
+
 function playCard(cardKey) {
   const card = CARDS[cardKey];
   if (!card) return;
 
-  // Apply Mana Surge cost reduction if active (only on the NEXT card after Mana Surge)
-  var actualCost = card.cost;
-  if (G._manaSurge && cardKey !== 'manasurge') {
-    actualCost = Math.max(0, card.cost - 1);
-    G._manaSurge = false; // consume the effect
-  }
-  // Soulbound Gauntlet — first card each turn costs 0
-  if (!G._firstCardFree && hasRelic('soulbound_gauntlet')) { actualCost = 0; G._firstCardFree = true; }
-
-  // Shadow Artist (base, stacks 1) — the 2nd and 4th card played each turn cost 0.
-  // (The + version uses the _shadowArtistDiscount counter instead — see below.)
-  const shadowArtistBase = G.statuses.player.find(s => s.name === '🎭ShadowArtist' && s.stacks === 1);
-  if (shadowArtistBase) {
-    const cardNumber = (G._cardsPlayedThisTurn || 0) + 1;
-    if (cardNumber === 2 || cardNumber === 4) actualCost = 0;
-  }
+  // Consumes the one-shot discounts before the affordability check below, which is the
+  // pre-existing order — deliberately unchanged here so this stays a refactor.
+  var actualCost = getCardEnergyCost(G, cardKey, { consume: true });
 
   if (G.energy < actualCost) { showMsg('Not enough energy!'); return; }
   if (!G.enemy && card.type === 'Attack') { showMsg('No enemy to attack!'); return; }
@@ -1127,6 +1233,15 @@ function endTurn() {
       if (sp.trigger === 'immune') sp.effect(G);
     } catch(err) { console.log('special ability error', err); }
   }
+
+  // Escalation Challenges tick alongside the enemy's own turn abilities, so they share the
+  // same "before the enemy acts" timing. Outside the try above because a Challenge misfiring
+  // should surface, not be swallowed with the data-driven specials.
+  tickChallengeEscalation(G);
+
+  // The Vampire drain can be lethal — resolve the loss now rather than letting the enemy
+  // also act on a player who is already dead.
+  if (G.hp <= 0) { checkCombatEnd(); return; }
 
   renderAll();
 
@@ -1497,6 +1612,13 @@ function resolveEnemyAttack(g, amount, bypassBlock) {
 }
 
 function gainBlock(g, target, amount) {
+  // Thief Challenge — the player may never gain Block. Denied at this one choke point so
+  // conditional grants ("Odd: gain 7 Block") are covered without a per-card list; the rest of
+  // the card resolves normally and still costs Energy. Enemy Block is untouched.
+  if (target === 'player' && challengeActive(g, 'thief')) {
+    showMsg('🚫 Challenge — no Block this fight.');
+    return;
+  }
   if (target === 'player') {
     g.block += amount;
     floatDamage('player-combatant', amount, 'block');
@@ -1528,7 +1650,22 @@ function applyStatus(g, target, name, stacks) {
   setTimeout(() => { renderAll(); checkAffinityHighlight(G, G.currentDie); }, 50);
 }
 
-function drawCards(g, n) {
+// options.turnStart marks the mandatory draw at the top of each turn. The Mage Challenge
+// denies EXTRA draws ("you may never draw extra cards"), not the hand you are dealt — blanket
+// suppression here would leave the player with no cards at all and softlock the fight.
+function drawCards(g, n, options = {}) {
+  // Mage Challenge — every extra-draw source is denied at this one choke point, which is why
+  // no per-card list is needed: cards that draw only on an affinity hit (Shadow Step, War Cry)
+  // are handled correctly by construction, and so are relic/status draws (Lucky Coin, Lucky
+  // Streak). The rest of the card still resolves and still costs Energy.
+  if (!options.turnStart && challengeActive(g, 'mage')) {
+    showMsg('🚫 Challenge — no extra cards this fight.');
+    return;
+  }
+  return drawCardsInner(g, n);
+}
+
+function drawCardsInner(g, n) {
   // Max hand size (default 8). Turn-start draw pulls startingDrawCount (5); in-turn draw
   // effects may push the hand above 5 up to this cap, after which further draws are blocked.
   const limit = g.maxHandSize || 8;
@@ -1602,8 +1739,26 @@ function checkCombatEnd() {
     if (G.inBoss) {
       const boss = G.map[G.currentFloor].boss;
       G.cores.push(boss.charKey);
+      // Permanent record, separate from the per-run G.cores above: this is what lets a
+      // later run know the companion's Challenge has been unlocked (GDD.md §1, §9).
+      // Guarded on !isFinalBoss because Aldric sets G.inBoss as well as G.isFinalBoss, so
+      // this branch also runs when he dies — at which point G.currentFloor is still 3 and
+      // `boss` is the floor-3 companion, who was already collected. Recording is a no-op
+      // in that case, but the guard keeps the intent honest rather than relying on dedupe.
+      if (!G.isFinalBoss) recordCoreCollected(boss.charKey);
       renderCores();
       showMsg(`Core of ${boss.name} — collected!`);
+      // Challenge cleared — winning the fight IS the clear condition. Permanent, first-time
+      // only (recordChallengeRelicEarned mirrors recordCoreCollected). Losing simply never
+      // reaches here, which is the whole of "a failed attempt costs nothing".
+      if (!G.isFinalBoss && challengeActive(G) && G._challenge === boss.charKey) {
+        const earned = recordChallengeRelicEarned(G._challenge);
+        const heroName = (CHARACTERS[G._challenge] && CHARACTERS[G._challenge].name) || G._challenge;
+        showMsg(earned
+          ? `🏆 Challenge complete — ${heroName}'s Challenge relic earned!`
+          : `🏆 Challenge complete — ${heroName}'s relic was already earned.`);
+        G._challenge = null;
+      }
     }
 
     updateHUD();

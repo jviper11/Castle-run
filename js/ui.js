@@ -663,22 +663,43 @@ function showDieReward() {
       <div class="reward-card-desc">${dieOpt.desc}<br><br><span style="color:var(--text3);font-size:0.85em">Rolls 1–${dieOpt.max}. Current: ${currentDieData.type} (1–${currentDieData.max})</span></div>
     `;
     el.onclick = () => {
+      const previousDie = currentDieData;
       G.activeDie = dieOpt.type;
       G.diceMax = dieOpt.max;
-      showMsg(dieOpt.emoji + ' ' + dieOpt.name + ' equipped!');
+      showMsg(dieGrantMessage(dieOpt, previousDie), 5000);
       proceedDoors();
     };
     pool.appendChild(el);
   });
 }
 
+// Builds the confirmation line for a die swap. A die is a persistent, run-defining stat, and
+// the swap replaces whatever you had, so the message names the die, its range, what it
+// replaced, and its bonus — enough that the player never has to infer the grant from a later
+// roll. Shared by every die-granting path so they cannot describe the same event differently.
+function dieGrantMessage(dieOpt, previousDie) {
+  const prev = previousDie ? ` (was ${previousDie.name}, 1–${previousDie.max})` : '';
+  const bonus = dieOpt.desc ? ` ${dieOpt.desc}` : '';
+  return `${dieOpt.emoji} ${dieOpt.name} equipped — rolls 1–${dieOpt.max}${prev}.${bonus}`;
+}
+
 function giveReward(g, type, rarity) {
   if (type === 'die') {
-    const availDice = Object.values(DICE_TYPES).filter(d => d.type !== 'd6' && d.type !== G.activeDie);
+    const previousDie = getDie(G.activeDie);
+    // d4 (Cursed Die, max 4) is excluded here specifically. This path is the *unseen* die grant
+    // — the player accepts an offer framed as "a powerful reward right now" and gets a random
+    // die with no preview, so handing them a strict downgrade from the starting d6 contradicts
+    // the offer they agreed to. The Cursed Die stays available wherever the player can see what
+    // they are taking (the Magic Door chooser shows each die's range and bonus before the pick).
+    const availDice = Object.values(DICE_TYPES)
+      .filter(d => d.type !== 'd6' && d.type !== 'd4' && d.type !== G.activeDie);
     const dieOpt = rand(availDice) || getDie('d8');
     G.activeDie = dieOpt.type;
     G.diceMax = dieOpt.max;
-    showMsg(dieOpt.emoji + ' ' + dieOpt.name + ' equipped!');
+    // Held longer than the default: this fires on the event screen and proceedDoors() swaps
+    // screens 800ms later, so a 2.5s toast spent most of its life mid-transition. The log is a
+    // body-level fixed element, so it survives the screen change and stays readable after it.
+    showMsg(dieGrantMessage(dieOpt, previousDie), 5000);
     setTimeout(proceedDoors, 800);
   } else {
     showReward();
@@ -848,6 +869,37 @@ function showBossIntro(boss) {
   document.getElementById('boss-intro-name').textContent = boss.name.toUpperCase();
   document.getElementById('boss-intro-subtitle').textContent = boss.title;
   document.getElementById('boss-intro-hint').textContent = boss.hint;
+  renderBossChallengeOffer(boss);
+}
+
+// Challenge opt-in, offered here and nowhere else. Always starts from "not accepted": this
+// screen is the only route into startBossFight(), so resetting on every showing means an
+// accepted-then-abandoned Challenge can never leak into a later fight.
+function renderBossChallengeOffer(boss) {
+  const panel = document.getElementById('boss-challenge');
+  if (!panel) return;
+  G._challenge = null;
+  G._challengeOffered = isChallengeEligible(G, boss && boss.charKey) ? boss.charKey : null;
+  if (!G._challengeOffered) { panel.hidden = true; return; }
+  panel.hidden = false;
+  document.getElementById('boss-challenge-rule').textContent = CHALLENGES[G._challengeOffered].rule;
+  updateBossChallengeToggle();
+}
+
+function toggleBossChallenge() {
+  if (!G._challengeOffered) return;
+  G._challenge = G._challenge ? null : G._challengeOffered;
+  updateBossChallengeToggle();
+}
+
+function updateBossChallengeToggle() {
+  const btn = document.getElementById('boss-challenge-toggle');
+  const panel = document.getElementById('boss-challenge');
+  if (!btn || !panel) return;
+  const on = !!G._challenge;
+  btn.textContent = on ? '✓ CHALLENGE ACCEPTED' : 'ATTEMPT CHALLENGE';
+  btn.classList.toggle('accepted', on);
+  panel.classList.toggle('accepted', on);
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -980,16 +1032,22 @@ function getCompactCardSummary(card) {
   return `${base}<span class="card-compact-bonus">${bonusText} ${bonusLabel}</span>`;
 }
 
+// The preview hangs directly above the hand row, so it is parented to the hand row
+// rather than to the combat screen. The screen is a column flex whose content does not
+// always fill the viewport — a short landscape phone can leave 45px+ of slack beneath
+// the hand — so anchoring to the screen's bottom edge let the preview settle that far
+// down and cover the cards it is describing. Anchored here, `bottom: calc(100% + Npx)`
+// is always N pixels above the cards regardless of the slack.
 function ensureMobileCardPreview() {
+  const host = document.getElementById('hand-area') || document.getElementById('combat-screen');
+  if (!host) return null;
   let preview = document.getElementById('mobile-card-preview');
   if (!preview) {
-    const combatScreen = document.getElementById('combat-screen');
-    if (!combatScreen) return null;
     preview = document.createElement('div');
     preview.id = 'mobile-card-preview';
     preview.className = 'mobile-card-preview';
-    combatScreen.appendChild(preview);
   }
+  if (preview.parentElement !== host) host.appendChild(preview);
   return preview;
 }
 
@@ -1035,9 +1093,12 @@ function renderHand() {
     const isSelected = mobileLandscape && G.selectedHandIndex === index && G.selectedHandKey === key;
     el.className = `card${c.dice ? ' dice-card' : ''}${affinityActive ? ' affinity-active' : ''}${mobileLandscape ? ' mobile-compressed' : ''}${isSelected ? ' selected' : ''}`;
     el.style.setProperty('--card-index', index);
-    // Calculate actual cost accounting for Mana Surge
-    const actualCost = (G._manaSurge && key !== 'manasurge') ? Math.max(0, c.cost - 1) : c.cost;
-    const costStyle = (G._manaSurge && key !== 'manasurge' && c.cost > 0) ? 'background:#2980b9' : '';
+    // Cost that will really be charged — shared with playCard() via getCardEnergyCost so the
+    // tile, the mobile preview and the actual charge cannot disagree. Passing no options means
+    // nothing is consumed by merely rendering the hand.
+    const actualCost = getCardEnergyCost(G, key);
+    // Highlight whenever the card is discounted, whichever effect did it — not Mana Surge only.
+    const costStyle = (actualCost < c.cost) ? 'background:#2980b9' : '';
     // Use actualCost for playability — not raw c.cost
     const canPlay = G.energy >= actualCost && !G._voidChannelSelecting;
     if (!canPlay) el.classList.add('unplayable');
@@ -1162,9 +1223,16 @@ function renderEnergy() {
   const rerollBtn = document.getElementById('reroll-btn');
   // Count shows this turn's base charge plus any of Steady Hand's combat-long bonus still unspent.
   const rerollsLeft = G.aldricInfiniteReroll ? '∞' : totalRerollsLeft();
-  rerollBtn.disabled = !G.aldricInfiniteReroll && totalRerollsLeft() <= 0;
-  rerollBtn.innerHTML = `🎲 REROLL <span style="font-size:0.7em;opacity:0.8">(${rerollsLeft})</span>`;
-  rerollBtn.title = (G._bonusRerolls > 0) ? 'Includes 1 Steady Hand bonus reroll for this combat' : '';
+  // Gambler Challenge denies the reroll outright, so the button is disabled rather than left
+  // live-looking and refusing on click.
+  const challengeBlocksReroll = challengeActive(G, 'gambler');
+  rerollBtn.disabled = challengeBlocksReroll || (!G.aldricInfiniteReroll && totalRerollsLeft() <= 0);
+  rerollBtn.innerHTML = challengeBlocksReroll
+    ? '🚫 NO REROLL'
+    : `🎲 REROLL <span style="font-size:0.7em;opacity:0.8">(${rerollsLeft})</span>`;
+  rerollBtn.title = challengeBlocksReroll
+    ? "Challenge: you may never use a reroll this fight"
+    : ((G._bonusRerolls > 0) ? 'Includes 1 Steady Hand bonus reroll for this combat' : '');
   renderSoulDiceControls();
   renderDicePool();
   const drawEl = document.getElementById('draw-count');
@@ -1834,7 +1902,7 @@ function showAldricEnding() {
 
   if (hasTrueEnding) {
     if (title) title.textContent = 'THE CASTLE FALLS';
-    if (sub) sub.textContent = '"I… am still here…" — The Vow glows. The walls crumble. Sir Crimson steps forward from the shadows to help Aldric stand. The cycle is broken.';
+    if (sub) sub.textContent = '"I… am still here…" — The relics blaze. The walls crumble. Sir Crimson steps forward from the shadows to help Aldric stand. The cycle is broken.';
   } else {
     if (title) title.textContent = 'THE CYCLE CONTINUES…';
     if (sub) sub.textContent = 'Aldric dissipates into shadow. The castle endures. You were not ready. Return when you are.';
@@ -1846,12 +1914,15 @@ function showGameOver() {
   document.getElementById('gameover-souls').textContent = G.runSouls;
 }
 
-function showMsg(txt) {
+// ms lets a caller hold an important confirmation on screen longer than the 2.5s default —
+// used for grants that change a persistent stat and are otherwise easy to miss during a
+// screen transition (see giveReward's die swap).
+function showMsg(txt, ms = 2500) {
   const el = document.getElementById('message-log');
   el.textContent = txt;
   el.classList.add('visible');
   clearTimeout(el._t);
-  el._t = setTimeout(() => el.classList.remove('visible'), 2500);
+  el._t = setTimeout(() => el.classList.remove('visible'), ms);
 }
 
 function animateSpriteAttack(attackerEl, direction = 'right') {

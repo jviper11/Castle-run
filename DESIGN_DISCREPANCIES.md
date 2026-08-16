@@ -31,10 +31,15 @@ This file records unresolved conflicts between design documents, progress notes,
 - Cores go from "mystery collectible, no defined purpose" to a specific job: lore reveal + Challenge-unlock trigger. They are no longer the True Ending gate, and never were meant to be (see original discrepancy question) — but now they're not just narrative filler either.
 - The old permanent cross-run Soul meta-progression tree (Power/Knowledge/Fortune branches) is gone. Souls are now an **in-run** resource — earned per floor, spent at a stat-upgrade screen that appears right after each floor boss's relic-reward pick, resets to 0 at run start, no cross-run banking.
 
-**Implementation TODO (not yet started):**
-- Core-drop logic needs to check "is this the first time beating this specific corrupted companion" (not just "did a Core drop") to gate the lore + Challenge-detail unlock correctly.
-- Challenge-mode fight logic: detect when the player is attempting a hero's Challenge (their chosen hero must differ from the boss hero) and enforce the Challenge's constraint (denial or escalation) for that fight.
-- `G.aldricHasRelics` (or its renamed equivalent) needs to check "player holds 4 of the 5 Challenge relics," not the old 4-named-relic set.
+**Implementation TODO:**
+- ✅ RESOLVED (Aug 16, 2026): Core-drop first-time gating. `recordCoreCollected()` in `js/meta.js` writes only on the first-ever defeat of a given companion and returns true only then, backed by `localStorage`. The lore *reveal* UI is still unbuilt — only the unlock state is tracked.
+- ✅ RESOLVED (Aug 16, 2026): Challenge-mode fight logic. Eligibility (`isChallengeEligible()`), opt-in at the boss intro, per-hero enforcement, and relic earning on a win all exist in `js/combat.js` / `js/ui.js`. Design questions settled with the project owner this session: the attempt is **opt-in** at the boss-intro screen (not automatic); Denial rules are enforced by **suppressing the effect at its choke point** (`drawCards()` / `gainBlock()`) rather than gating the card, so affinity-conditional grants are handled without a per-card list; Gambler's denial disables the **reroll button only**, leaving card-driven rerolls (Risk Taker, Wild Combo) intact since those cost a card and Energy; a lost attempt is an ordinary run loss with nothing tracked; attempts are unlimited, but a Challenge already earned is **never re-offered**.
+- ✅ RESOLVED (Aug 16, 2026): `G.aldricHasRelics` now reads `hasTrueEndingRelics()` (4 of 5 from `META.challengeRelicsEarned`), evaluated once at Aldric fight start exactly as the old check was. It previously read `G.cores.length >= 4`, which was wrong twice over: Cores are a different system, and a per-run count meant beating four floor bosses in one ordinary run unlocked the True Ending — the precise exploit this redesign existed to remove. **The True Ending path is now wired end to end**: Core collected → Challenge unlocked in a later run → Challenge cleared → relic persisted → gate reads it.
+- ✅ RESOLVED (Aug 16, 2026): the four named relics (Crown/Sword/Sigil/Vow) are gone from code. `ALDRIC_RELIC_TRIGGERS` keeps its four Phase 3 HP-threshold beats and Aldric's own dialogue, but they are now **unattributed** — no relic names, icons, or ownership claims — pending the deferred design below. The Sword's `G.enemy.damage` halving was confirmed unreachable (`aldricAttackProfile()` hardcodes base 15 for a gate-passed Phase 3 and never reads `G.enemy.damage`) and was deleted; its 75 HP beat remains, since pausing Aldric's attack was its only real contribution.
+
+**Still deferred (design, not bugs):**
+- ⚠ GDD §9 leaves unspecified what the five Challenge relics actually DO inside the Aldric fight. They are currently **earn-and-store only**: holding 4 opens Phase 3 and the True Ending, but no relic has an individual effect. The four unattributed threshold beats are placeholders holding the fight's pacing until this is designed.
+- ⚠ GDD §1 describes "at 50 HP you're given the option to use the relics instead of the killing blow." **That choice does not exist in code.** The True Ending currently fires when Aldric is killed with the gate passed; the 50 HP beat grants infinite rerolls instead. The path is wired, but not yet told the way the GDD describes it.
 - The 4 old True Ending relics (Crown/Sword/Sigil/Vow) and their planned per-relic debuffs are dropped entirely — replaced by the 5 Challenge relics above. No debuff mechanic carries over; Challenge relics are earned through difficulty, not opportunity cost.
 - Soul-spend menu contents/costs need to be finalized (draft exists, see PROGRESS.md Soul section) and built as an in-run screen, replacing the old permanent-tree UI concept.
 - All of GDD.md's Two Endings / Relic System sections and PROGRESS.md's True Ending / Soul tracker rows need rewriting to match — currently still describe the superseded floor-reward-relic-gate system.
@@ -214,6 +219,51 @@ Scope established by inspection and test rather than assumed:
 - **Collapse is unaffected and was never at risk.** It belongs to **Void Colossus** (Floor 4 elite) with `trigger:'attack'`, not to Bone Golem — whose live ability is Bone Wall (`trigger:'skill'`). The "Bone Golem: Collapse — deals 20 damage when broken below 50% HP" pairing existed only in the pre-sync `GDD.md` roster and never in code. Denying Collapse by killing the enemy before it attacks is ordinary racing, available to any damage type, not a DoT-specific loophole.
 
 **Revisit if** an HP-threshold ability that *harms* the player is ever added — under this ordering, players could avoid its damage by finishing with poison or burn. That is the one case where this rule would stop being harmless, and it is flagged in the GDD text.
+
+---
+
+## ✅ RESOLVED — Three events promised things they did not deliver (Aug 16, 2026)
+
+Found while investigating a "Magic Door gave me a reward with no confirmation" report. All three
+were text-vs-behaviour mismatches rather than broken mechanics, and all three are now fixed.
+
+- **Gambler's Curse — "Next 3 Magic Doors are hidden" did nothing.** `G.mapBlind += 3` was written
+  and never read anywhere, so the advertised risk was decoration and the offer was pure upside.
+  Now implemented in `showDoors()`. Note the baseline is narrower than GDD §"Always hidden"
+  implies: `isHidden` requires `G.currentFloor >= 2`, so Magic Doors are **always revealed on
+  Floors 1-2** and only ~60% hidden on Floors 3-4 — and hidden ones still show a room-identifying
+  hint. A blinded door is therefore forced hidden **and** stripped of the hint, charged once per
+  Magic Door actually reached. **If GDD.md's "Always hidden" wording is meant literally, the code
+  has never matched it and that is a separate open question.**
+- **Gambler's Curse — "a powerful reward" could be a downgrade.** The unseen die grant could roll
+  the d4 Cursed Die (max 4), worse than the starting d6. d4 is now excluded from that pool only;
+  it remains available in the Magic Door chooser, where the player sees the die before taking it.
+- **Hidden Cache — promised an item that does not exist.** "Take it all (25 Gold + item)" and
+  "a stash of gold and something extra" granted Gold only. There is no consumable or item-grant
+  path in the codebase (Consumables designed, unbuilt), so the text was corrected on both the
+  choice and the description rather than inventing an item system for one event.
+
+**✅ RESOLVED (Aug 16, 2026):** `die_reward` was absent from `roomEmoji()`, `roomLabel()` and
+`getMagicHint()`, so a *revealed* die-reward door fell through to `🚪` / "Unknown" and looked
+identical to a hidden one. Now `🎲` / "Dice Cache", with the hint "A faint rattle, like dice
+waiting to be claimed." matching the other hints' one-sentence style. **Label wording was not
+specified in the request** — `Dice Cache` was chosen to sit alongside Battle / Elite Fight /
+Strange Event / Merchant / Rest Stop and to echo the hint; trivially changed if another noun
+phrase is preferred.
+
+---
+
+## ✅ RESOLVED — GDD's "Magic Door: Always hidden" never matched the code (Aug 16, 2026)
+
+The Room Types table claimed Magic Doors are "Always hidden". The code has never done that:
+`isHidden = G.currentFloor >= 2 ? Math.random() < 0.6 : false`. With `G.currentFloor`
+zero-indexed, that is **revealed on Floors 1-2, and a 60% per-door roll on Floors 3-4**.
+
+Resolved as **doc-wrong, code-right** by owner decision: the early-game reveal is intentional
+easing, so `isHidden` is unchanged and GDD.md was corrected to state the exact threshold and
+probability, quote the condition, and note the zero-indexing so "Floor 3-4" cannot be misread as
+"index 3-4". The Gambler's Curse override (forced hidden *and* hint stripped, charged per Magic
+Door reached) is documented alongside it so the two entries agree with each other and the code.
 
 ---
 

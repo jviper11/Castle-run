@@ -317,6 +317,13 @@
     <div class="boss-intro-name" id="boss-intro-name">THE CORRUPTED</div>
     <div class="boss-intro-subtitle" id="boss-intro-subtitle">A familiar face, twisted beyond recognition</div>
     <div class="boss-intro-hint" id="boss-intro-hint"></div>
+    <!-- Challenge opt-in. Hidden unless this boss is Challenge-eligible; see showBossIntro(). -->
+    <div class="boss-challenge" id="boss-challenge" hidden>
+      <div class="boss-challenge-label">⚔️ CHALLENGE AVAILABLE</div>
+      <div class="boss-challenge-rule" id="boss-challenge-rule"></div>
+      <button class="btn boss-challenge-toggle" id="boss-challenge-toggle" onclick="toggleBossChallenge()">ATTEMPT CHALLENGE</button>
+      <div class="boss-challenge-reward">Clear the fight under this condition to earn their Challenge relic — permanently.</div>
+    </div>
     <button class="btn" onclick="startBossFight()" style="margin-top:0.5rem;">FACE THEM</button>
   </div>
 
@@ -415,8 +422,10 @@
 
   <div id="aldric-relic-msg">
     <div class="aldric-relic-inner">
-      <div class="aldric-relic-icon" id="aldric-relic-icon">👑</div>
-      <div class="aldric-relic-name" id="aldric-relic-name">THE CROWN</div>
+      <!-- Placeholders only; every field is filled by showAldricRelicTrigger(). Was "THE CROWN",
+           one of the four named relics the superseded True Ending design used. -->
+      <div class="aldric-relic-icon" id="aldric-relic-icon">✨</div>
+      <div class="aldric-relic-name" id="aldric-relic-name">THE RELICS PULSE</div>
       <div class="aldric-relic-quote" id="aldric-relic-quote">"I remember… the throne…"</div>
       <div class="aldric-relic-effect" id="aldric-relic-effect">Aldric loses all Strength.</div>
     </div>
@@ -433,6 +442,9 @@
   </div>
 
   <div class="message-log" id="message-log"></div>
+<!-- Cross-run persistence. Loaded first: it self-initializes META on load and has no
+     dependencies, so permanent unlock state exists before any run state is built. -->
+<script src="js/meta.js"></script>
 <script src="js/data.js"></script>
 <script src="js/game.js"></script>
 <script src="js/combat.js"></script>

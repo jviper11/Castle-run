@@ -126,7 +126,25 @@ Dark gothic aesthetic. Inspired by Castlevania and Slay the Spire. Character art
 | Rest | 🔥 | Heal HP or upgrade a card | Always shown |
 | Shop | 💰 | Buy cards, relics, consumables | Always shown |
 | Event | ? | Random event with choices | Hidden on Floor 3-4 |
-| Magic Door | 🪄 | High risk / high reward mystery | Always hidden |
+| Magic Door | 🪄 | High risk / high reward mystery | Revealed on Floors 1-2; on Floors 3-4, 60% chance hidden |
+
+**Magic Door visibility, precisely.** Corrected August 16, 2026 — this entry previously read
+"Always hidden", which the code has never done. From `showDoors()` in `js/game.js`:
+`isHidden = G.currentFloor >= 2 ? Math.random() < 0.6 : false`. `G.currentFloor` is zero-indexed,
+so the threshold is Floors 3 and 4, and the roll is an independent 60% per door.
+
+- **Floors 1-2** — never hidden. The door shows the real room's icon and label (e.g. 🛒 Merchant).
+- **Floors 3-4** — 60% hidden, rolled per door. A hidden door shows 🚪 and `???` plus a flavour
+  hint naming the room type obliquely ("The scent of candle wax and gold drifts from beneath.").
+  The other 40% are revealed exactly as on Floors 1-2.
+
+This is deliberate early-game easing, not a defect: the mystery tightens as the run gets harder.
+
+**Gambler's Curse override.** The Gambler's Curse event grants a die and sets `G.mapBlind = 3`.
+While that counter is above zero, the next 3 Magic Doors **actually reached** are forced hidden
+*and* stripped of the flavour hint — strictly blinder than an ordinary hidden door on any floor.
+One charge is spent per Magic Door encountered, never per room or per floor. This is the only
+thing in the game that conceals a Magic Door on Floors 1-2.
 
 ### Mirror Mechanic
 At the halfway point of each path, an optional Mirror appears, reflecting the rooms of another path on the current floor. The player may **Step Through** — paying Gold (30/50/70/100 by floor) to switch to that reflected path — or **Walk Away** for free. It is a paid path-switch, implemented in `useMirror()` in `js/game.js`; it is NOT a forced event and NOT a shadow-deck fight.

@@ -15,6 +15,7 @@ The deployed game is the split build:
 
 - `index.html` — GitHub Pages entry point and active HTML structure.
 - `css/styles.css` — active stylesheet, including desktop and mobile/landscape layouts.
+- `js/meta.js` — cross-run persistence (`META`, localStorage). The only state that survives a run; see "Cross-run persistence" below.
 - `js/data.js` — characters, cards, upgrades, enemies, bosses, events, dice, relic data, and embedded game images.
 - `js/game.js` — global game state, new-game flow, map generation, room navigation, paths, Magic Doors, and Mirror flow.
 - `js/combat.js` — combat turns, dice rolls, damage, Block, statuses, Power hooks, enemy intent/actions, bosses, and combat completion.
@@ -23,7 +24,64 @@ The deployed game is the split build:
 
 - `js/debug.js` — dev/testing jump tool. Not a player feature and not reachable through any UI.
 
-Scripts are loaded by `index.html` in this order: `data.js`, `game.js`, `combat.js`, `ui.js`, `main.js`, then `debug.js`. These files share browser globals, so load order and globally referenced names matter.
+Scripts are loaded by `index.html` in this order: `meta.js`, `data.js`, `game.js`, `combat.js`, `ui.js`, `main.js`, then `debug.js`. These files share browser globals, so load order and globally referenced names matter.
+
+### Cross-run persistence (`js/meta.js`)
+
+`G` is per-run and wiped by `newGame()`. `META` is the separate, permanent state that outlives a run,
+saved to `localStorage` under `castleRunProgress` as `{ version, coresCollected, challengeRelicsEarned }`.
+It holds only the two permanent unlock facts the True Ending path needs (GDD §1, §9) — nothing else
+belongs in it. Souls, deck, relics held, Gold, HP, floor progress and hero pick stay per-run.
+
+- `recordCoreCollected(charKey)` — call when a companion's Core is collected. Writes only on the
+  first time ever for that companion and returns `true` only then; `G.cores` cannot answer that
+  question because it is rebuilt every run.
+- `hasCoreCollected(charKey)` / `loadMeta()` / `saveMeta()`.
+- Loading is defensive: a missing, malformed, or unknown-version save degrades to empty rather than
+  throwing, and is left untouched on disk instead of being overwritten.
+- `challengeRelicsEarned` is a **reserved, unwritten slot** — Challenge-mode fight logic does not
+  exist yet. It round-trips through load/save so it can be adopted without a migration.
+- `recordChallengeRelicEarned(charKey)` / `hasChallengeRelic(charKey)` — same first-time-only
+  contract, written when a Challenge fight is cleared.
+- `js/debug.js` sets `G.cores` directly and deliberately does **not** touch `META`, so testing
+  cannot pollute a real save. Its `challenge=` option seeds `META` in memory only, never saving.
+
+### Challenge mode (GDD §1, §9)
+
+Per-hero Challenges are defined in `CHALLENGES` (`js/data.js`), keyed by hero `charKey`.
+
+- **Eligibility** — `isChallengeEligible(g, bossCharKey)` in `js/combat.js`: a Challenge exists,
+  the boss is not the player's own hero, their Core was collected in an **earlier** run
+  (`META.coresCollected`, never `G.cores`), and the relic is not already earned.
+- **Opt-in** — offered on the boss-intro screen only. `G._challenge` holds the accepted hero key
+  for the current fight. Cleared by `startCombat()` and `startAldricFight()`, and reset on every
+  `showBossIntro()`. `startBossFight()` deliberately does **not** clear it.
+- **Denial** rules are enforced by suppressing the effect at its choke point — `gainBlock()`
+  (Thief) and `drawCards()` (Mage) — not by gating cards, because draw and Block are often
+  affinity-conditional and a static card list would misfire. `drawCards(g, n, { turnStart: true })`
+  exempts the mandatory turn-start deal; denying that would softlock the fight.
+- **Escalation** rules tick in `tickChallengeEscalation()` from `endTurn()` STEP 5, alongside the
+  enemy's own turn abilities, gated on `G.turn`. Enemy `'💢Rage'` *is* Strength.
+- **Earning** happens on a win, in `checkCombatEnd()`. Losing earns nothing and needs no state.
+- Challenge relics currently have **no individual in-fight effect** — earn-and-store only
+  (GDD §9 defers that design). Holding 4 is what opens Aldric's Phase 3 and the True Ending.
+
+### True Ending gate
+
+`G.aldricHasRelics = hasTrueEndingRelics()` — 4 of 5 from `META.challengeRelicsEarned`,
+evaluated **once** in `startAldricFight()` and never re-checked mid-fight. Do not count the
+array inline; the 4-of-5 rule lives in `hasTrueEndingRelics()` (`js/meta.js`).
+
+It previously read `G.cores.length >= 4`, a per-run count of a different system — beating four
+floor bosses in one run unlocked the True Ending, which the July 25 redesign existed to remove.
+`G.cores` still serves its own purpose (HUD display, and first-ever collection via
+`META.coresCollected` gating Challenge eligibility) and must not be repurposed as the gate.
+
+Phase 3's four HP-threshold beats (`ALDRIC_RELIC_TRIGGERS`) are deliberately **unattributed**
+placeholders. They were the deleted Crown/Sword/Sigil/Vow relics; the pacing and Aldric's
+dialogue were kept, the identities removed. Two things remain unbuilt by design, not oversight:
+per-relic Aldric-fight effects (GDD §9), and GDD §1's "use the relics at 50 HP instead of the
+killing blow" choice — today the True Ending fires on the killing blow with the gate passed.
 
 ### Dev jump tool (`js/debug.js`)
 

@@ -668,6 +668,26 @@ const BOSSES = [
     particles:'🩸', particleColor:'#880e4f' },
 ];
 
+// ═══════════════════════════════════════════════════════════════════
+// CHALLENGES — GDD §1 Two Endings, §9 Relic System
+// ═══════════════════════════════════════════════════════════════════
+//
+// One Challenge per hero, keyed by the same charKey as CHARACTERS and BOSSES. A Challenge is
+// only attemptable against that hero's corrupted floor-boss form, only if their Core was
+// collected in an EARLIER run, and never against the hero the player is currently playing —
+// which is why 4 of 5 is the True Ending gate, not 5 of 5. Clearing one earns that hero's
+// Challenge relic permanently (META.challengeRelicsEarned).
+//
+// `rule` is the player-facing one-liner shown on the boss-intro screen. Enforcement lives in
+// js/combat.js — Escalation in the turn hook, Denial at the choke point the rule names.
+const CHALLENGES = {
+  barbarian: { type:'Escalation', rule:'The Berserker gains +1 Strength every 2 turns, from turn 2.' },
+  vampire:   { type:'Escalation', rule:'The Ancient drains 8 HP from you to heal itself every 3 turns, from turn 3.' },
+  mage:      { type:'Denial',     rule:'You may never draw extra cards.' },
+  thief:     { type:'Denial',     rule:'You may never gain Block.' },
+  gambler:   { type:'Denial',     rule:'You may never use a reroll.' },
+};
+
 const EVENTS = [
   {
     icon:'📜', title:'Ancient Tome',
@@ -688,9 +708,14 @@ const EVENTS = [
   },
   {
     icon:'🪙', title:'Hidden Cache',
-    desc:'Behind a loose stone you find a stash of gold and something extra.',
+    // Text corrected to match the effect: this grants Gold and nothing else. Both the
+    // description ("something extra") and the choice label ("+ item") promised an item that was
+    // never granted — there is no consumable or item-grant path in the codebase to hand out
+    // (Consumables are designed but unbuilt), so the promise was removed rather than a new
+    // item system invented for one event.
+    desc:'Behind a loose stone you find a stash of gold.',
     choices:[
-      { text:'Take it all (25 Gold + item)', risk:'', effect:(g)=>{ g.gold += 25; updateHUD(); showMsg('+25 Gold!'); setTimeout(proceedDoors,800); } },
+      { text:'Take it all (25 Gold)', risk:'', effect:(g)=>{ g.gold += 25; updateHUD(); showMsg('💰 +25 Gold!'); setTimeout(proceedDoors,800); } },
     ]
   },
   {

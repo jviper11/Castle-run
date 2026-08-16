@@ -218,8 +218,24 @@ function showDoors(nextIsBoss) {
     const magicType = Math.random() < 0.25
       ? 'die_reward'
       : rand(['battle','elite','event','shop','rest']);
-    const isHidden = G.currentFloor >= 2 ? Math.random() < 0.6 : false;
-    const hint = isHidden ? getMagicHint(magicType, G.currentFloor) : null;
+    // Gambler's Curse — "Next 3 Magic Doors are hidden". Charged once per Magic Door actually
+    // reached, never per room or per floor, and stamped on the room object so the same door
+    // cannot burn a second charge if this ever re-renders.
+    //
+    // A blinded door is forced hidden AND loses the hint an ordinarily-hidden door shows.
+    // Both halves are needed: Floors 1-2 never conceal a Magic Door at all, so forcing hidden
+    // is the whole downside there; but on Floors 3-4 roughly 60% of doors already roll hidden,
+    // and those come with a hint that names the room type fairly plainly ("The scent of candle
+    // wax and gold" = shop). Without dropping the hint, a charge spent on an already-hidden
+    // Floor 3-4 door would buy the player nothing.
+    if ((G.mapBlind || 0) > 0 && !nextRoom._blinded) {
+      G.mapBlind--;
+      nextRoom._blinded = true;
+    }
+    const blinded = !!nextRoom._blinded;
+
+    const isHidden = blinded || (G.currentFloor >= 2 ? Math.random() < 0.6 : false);
+    const hint = (isHidden && !blinded) ? getMagicHint(magicType, G.currentFloor) : null;
     const lbl = isHidden ? '???' : roomLabel(magicType);
     const ico = isHidden ? '🚪' : roomEmoji(magicType);
 
