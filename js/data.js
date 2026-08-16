@@ -121,7 +121,7 @@ const CARDS = {
   // ── BARBARIAN rare rewards ──
   berserkersoath:{ name:"Berserker's Oath",emoji:'🔥', type:'Power',  cost:2, desc:'Exhaust. Each time you lose HP, gain 3 Block.', dice:false, effect:(g)=>{ if(!g.exhaustedPile) g.exhaustedPile=[]; g.exhaustedPile.push('berserkersoath'); applyStatus(g,'player','🔥BerserkOath',1); showMsg("🔥 Berserker's Oath — HP loss now grants Block!"); } },
   warlordspresence:{ name:"Warlord's Presence",emoji:'👑',type:'Power',cost:2,desc:'Exhaust. All attacks deal +2 dmg this combat.',dice:false,effect:(g)=>{ if(!g.exhaustedPile) g.exhaustedPile=[]; g.exhaustedPile.push('warlordspresence'); applyStatus(g,'player','💢Rage',2); showMsg("👑 Warlord's Presence — +2 Strength!"); } },
-  deathrattle:   { name:'Death Rattle',    emoji:'💀', type:'Attack', cost:2, desc:'Deal 16 dmg. Only playable below 50% HP. Even: deal 24.', dice:true, affinityBonus:'even', effect:(g,r)=>{ if(g.hp > g.maxHp*0.5){ showMsg('Death Rattle — must be below 50% HP!'); g.energy+=2; return; } dealDamage(g,'enemy', checkAffinity(g,r,'even')?24:16); } },
+  deathrattle:   { name:'Death Rattle',    emoji:'💀', type:'Attack', cost:2, desc:'Deal 16 dmg. Only playable below 50% HP. Even: deal 24.', dice:true, affinityBonus:'even', effect:(g,r)=>{ if(g.hp > g.maxHp*0.5){ showMsg('Death Rattle — must be below 50% HP!'); refundCardCost(g); return; } dealDamage(g,'enemy', checkAffinity(g,r,'even')?24:16); } },
   laststand:     { name:'Last Stand',      emoji:'🛡️', type:'Skill',  cost:1, desc:'Gain 10 Block. Below 30% HP: gain 20. Even: gain 14/28.', dice:true, affinityBonus:'even', effect:(g,r)=>{ const isEven=checkAffinity(g,r,'even'); const isLow=g.hp<=g.maxHp*0.3; const amt=isLow?(isEven?28:20):(isEven?14:10); gainBlock(g,'player',amt); if(isLow) showMsg('🛡️ Last Stand — desperation Block!'); } },
   battletrance:  { name:'Battle Trance',   emoji:'⚡', type:'Skill',  cost:1, desc:'Gain 2 Energy. Lose 6 HP. Even: lose 4 HP.',  dice:true, affinityBonus:'even', effect:(g,r)=>{ const loss=checkAffinity(g,r,'even')?4:6; g.energy=Math.min(g.energy+2,g.maxEnergy+2); loseHP(g,loss,1); floatDamage('player-combatant',loss,'dmg'); showMsg('⚡ Battle Trance — +2 Energy!'); renderAll(); } },
   // ── MAGE new cards ──
@@ -167,7 +167,7 @@ const CARDS = {
 
   // ── THIEF uncommon rewards ──
   envenomdagger: { name:'Envenom',        emoji:'🗡️', type:'Attack', cost:1, desc:'Deal 4 dmg + 2 Poison. Odd: deal 4 + 4 Poison.', dice:true, affinityBonus:'odd', effect:(g,r)=>{ dealDamage(g,'enemy',4); applyStatus(g,'enemy','☠️Poison', checkAffinity(g,r,'odd')?4:2); } },
-  backstab:      { name:'Backstab',       emoji:'🔪', type:'Attack', cost:1, desc:'Deal 10 dmg. Only as first card this turn. Odd: deal 14.', dice:true, affinityBonus:'odd', effect:(g,r)=>{ if((g._cardsPlayedThisTurn||0)>0){ showMsg('Backstab — must be first card played!'); g.energy+=1; return; } dealDamage(g,'enemy', checkAffinity(g,r,'odd')?14:10); } },
+  backstab:      { name:'Backstab',       emoji:'🔪', type:'Attack', cost:1, desc:'Deal 10 dmg. Only as first card this turn. Odd: deal 14.', dice:true, affinityBonus:'odd', effect:(g,r)=>{ if(!isFirstCardThisTurn(g)){ showMsg('Backstab — must be first card played!'); refundCardCost(g); return; } dealDamage(g,'enemy', checkAffinity(g,r,'odd')?14:10); } },
   cripple:       { name:'Cripple',        emoji:'🦵', type:'Skill',  cost:1, desc:'Apply Weak 2 + Vulnerable 1. Odd: Weak 2 + Vulnerable 2.', dice:true, affinityBonus:'odd', effect:(g,r)=>{ applyStatus(g,'enemy','😵Weak',2); applyStatus(g,'enemy','🫗Vulnerable', checkAffinity(g,r,'odd')?2:1); } },
   shadowmark:    { name:'Shadow Mark',    emoji:'🎯', type:'Skill',  cost:1, desc:'Next attack deals +5 dmg. Odd: next attack +8 dmg.', dice:true, affinityBonus:'odd', effect:(g,r)=>{ g._shadowMark=checkAffinity(g,r,'odd')?8:5; showMsg('🎯 Shadow Mark — next attack +'+(g._shadowMark)+' dmg!'); } },
   poisoncloud:   { name:'Poison Cloud',   emoji:'☁️', type:'Skill',  cost:1, desc:'Apply 4 Poison. Odd: apply 6 Poison.',          dice:true, affinityBonus:'odd', effect:(g,r)=>applyStatus(g,'enemy','☠️Poison', checkAffinity(g,r,'odd')?6:4) },
@@ -196,7 +196,7 @@ const CARDS = {
 
   // ── GAMBLER uncommon rewards ──
   allin:         { name:'All In',         emoji:'💰', type:'Attack', cost:2, desc:'Deal dmg equal to roll × 4. Max: roll × 5.',     dice:true, affinityBonus:'gambler', effect:(g,r)=>{ const mult=r===g.diceMax?5:4; dealDamage(g,'enemy',r*mult); showMsg('💰 All In — '+(r*mult)+' damage!'); } },
-  loadeddie:     { name:'Loaded Die',     emoji:'🎲', type:'Skill',  cost:1, desc:'Set die to any value 3-5. Max: set to any 3-6.',  dice:true, affinityBonus:'gambler', effect:(g,r)=>{ if(g._dieSetThisTurn){ showMsg('Can only set die once per turn!'); g.energy+=1; return; } const max=r===g.diceMax?6:5; const newVal=Math.floor(Math.random()*(max-2))+3; g.currentDie=newVal; g._dieSetThisTurn=true; const dieEl=document.getElementById('current-die'); if(dieEl){ dieEl.classList.remove('rolling'); void dieEl.offsetWidth; dieEl.classList.add('rolling'); setTimeout(()=>{ dieEl.textContent=g.currentDie; dieEl.classList.remove('rolling'); checkAffinityHighlight(g,g.currentDie); },200); } showMsg('🎲 Loaded Die — set to '+newVal+'!'); } },
+  loadeddie:     { name:'Loaded Die',     emoji:'🎲', type:'Skill',  cost:1, desc:'Set die to any value 3-5. Max: set to any 3-6.',  dice:true, affinityBonus:'gambler', effect:(g,r)=>{ if(g._dieSetThisTurn){ showMsg('Can only set die once per turn!'); refundCardCost(g); return; } const max=r===g.diceMax?6:5; const newVal=Math.floor(Math.random()*(max-2))+3; g.currentDie=newVal; g._dieSetThisTurn=true; const dieEl=document.getElementById('current-die'); if(dieEl){ dieEl.classList.remove('rolling'); void dieEl.offsetWidth; dieEl.classList.add('rolling'); setTimeout(()=>{ dieEl.textContent=g.currentDie; dieEl.classList.remove('rolling'); checkAffinityHighlight(g,g.currentDie); },200); } showMsg('🎲 Loaded Die — set to '+newVal+'!'); } },
   pocketaces:    { name:'Pocket Aces',    emoji:'🃏', type:'Skill',  cost:1, desc:'Next attack deals +roll dmg. Max: +(roll × 2) dmg.', dice:true, affinityBonus:'gambler', effect:(g,r)=>{ const bonus=r===g.diceMax?r*2:r; g._shadowMark=(g._shadowMark||0)+bonus; showMsg('🃏 Pocket Aces — next attack +'+bonus+' dmg!'); } },
   doubleornothing:{ name:'Double or Nothing',emoji:'⚡',type:'Attack',cost:1,desc:'Deal 6 dmg. 50/50: deal 14 or take 6 dmg. Max: deal 20 or take 3.', dice:true, affinityBonus:'gambler', effect:(g,r)=>{ const isMax=r===g.diceMax; dealDamage(g,'enemy',6); const flip=Math.random()<0.5; if(flip){ dealDamage(g,'enemy',isMax?14:8); showMsg('⚡ Double or Nothing — WIN! Extra damage!'); } else { const selfDmg=isMax?3:6; loseHP(g,selfDmg,1); floatDamage('player-combatant',selfDmg,'dmg'); showMsg('⚡ Double or Nothing — LOSS! Took '+selfDmg+' damage.'); } } },
   counttheodds:  { name:'Count the Odds', emoji:'👁️', type:'Skill',  cost:0, desc:'Look at top 2 cards, keep 1 discard 1. Max: look at top 3, keep 2.', dice:true, affinityBonus:'gambler', effect:(g,r)=>{ const isMax=r===g.diceMax; const count=isMax?3:2; const keep=isMax?2:1; const drawn=[]; for(let i=0;i<count;i++){ if(g.drawPile.length>0) drawn.push(g.drawPile.pop()); } g.hand.push(...drawn.slice(0,keep)); g.discardPile.push(...drawn.slice(keep)); showMsg('👁️ Count the Odds — kept '+keep+' card'+(keep>1?'s':'')+'!'); renderHand(); } },
@@ -300,7 +300,7 @@ const CARD_UPGRADES = {
   warcallecho:   { name:'War Call+',       emoji:'📢', type:'Skill',  cost:0, desc:'Draw 2 cards. Even: draw 2 + Weak 1.',          dice:true, affinityBonus:'even', effect:(g,r)=>{ drawCards(g,2); if(checkAffinity(g,r,'even')) applyStatus(g,'enemy','😵Weak',1); } },
   berserkersoath:{ name:"Berserker's Oath+",emoji:'🔥',type:'Power',  cost:2, desc:'Exhaust. HP loss grants 4 Block instead of 3.', dice:false, effect:(g)=>{ if(!g.exhaustedPile) g.exhaustedPile=[]; g.exhaustedPile.push('berserkersoath+'); applyStatus(g,'player','🔥BerserkOath',2); showMsg("🔥 Berserker's Oath+ — HP loss grants 4 Block!"); } },
   warlordspresence:{ name:"Warlord's Presence+",emoji:'👑',type:'Power',cost:2,desc:'Exhaust. All attacks deal +3 dmg this combat.',dice:false,effect:(g)=>{ if(!g.exhaustedPile) g.exhaustedPile=[]; g.exhaustedPile.push('warlordspresence+'); applyStatus(g,'player','💢Rage',3); showMsg("👑 Warlord's Presence+ — +3 Strength!"); } },
-  deathrattle:   { name:'Death Rattle+',   emoji:'💀', type:'Attack', cost:2, desc:'Deal 20 dmg. Below 50% HP. Even: deal 26.',     dice:true, affinityBonus:'even', effect:(g,r)=>{ if(g.hp > g.maxHp*0.5){ showMsg('Death Rattle+ — must be below 50% HP!'); g.energy+=2; return; } dealDamage(g,'enemy', checkAffinity(g,r,'even')?26:20); } },
+  deathrattle:   { name:'Death Rattle+',   emoji:'💀', type:'Attack', cost:2, desc:'Deal 20 dmg. Below 50% HP. Even: deal 26.',     dice:true, affinityBonus:'even', effect:(g,r)=>{ if(g.hp > g.maxHp*0.5){ showMsg('Death Rattle+ — must be below 50% HP!'); refundCardCost(g); return; } dealDamage(g,'enemy', checkAffinity(g,r,'even')?26:20); } },
   laststand:     { name:'Last Stand+',     emoji:'🛡️', type:'Skill',  cost:1, desc:'Gain 12 Block. Below 30% HP: gain 24. Even: gain 16/32.', dice:true, affinityBonus:'even', effect:(g,r)=>{ const isEven=checkAffinity(g,r,'even'); const isLow=g.hp<=g.maxHp*0.3; const amt=isLow?(isEven?32:24):(isEven?16:12); gainBlock(g,'player',amt); if(isLow) showMsg('🛡️ Last Stand+ — maximum desperation!'); } },
   battletrance:  { name:'Battle Trance+',  emoji:'⚡', type:'Skill',  cost:1, desc:'Gain 2 Energy. Lose 4 HP. Even: lose 2 HP.',    dice:true, affinityBonus:'even', effect:(g,r)=>{ const loss=checkAffinity(g,r,'even')?2:4; g.energy=Math.min(g.energy+2,g.maxEnergy+2); loseHP(g,loss,1); floatDamage('player-combatant',loss,'dmg'); showMsg('⚡ Battle Trance+ — +2 Energy!'); renderAll(); } },
 // ── MAGE upgrades ──
@@ -336,7 +336,7 @@ const CARD_UPGRADES = {
   pickpocket:    { name:'Pick Pocket+',    emoji:'💰', type:'Skill',  cost:1, desc:'Draw 2 cards. Odd: draw 2 + gain 8 Gold.',     dice:true, affinityBonus:'odd', effect:(g,r)=>{ drawCards(g,2); if(checkAffinity(g,r,'odd')){ g.gold+=8; updateHUD(); showMsg('💰 Pick Pocket+ — 8 Gold!'); } } },
   smokescreen:   { name:'Smoke Screen+',   emoji:'💨', type:'Skill',  cost:1, desc:'Gain 9 Block. Discard 1, draw 1.',            dice:false, effect:(g)=>{ gainBlock(g,'player',9); if(g.hand.length>0){ const idx=Math.floor(Math.random()*g.hand.length); g.discardPile.push(g.hand.splice(idx,1)[0]); drawCards(g,1); showMsg('💨 Smoke Screen+!'); } } },
   envenomdagger: { name:'Envenom+',        emoji:'🗡️', type:'Attack', cost:1, desc:'Deal 6 dmg + 3 Poison. Odd: deal 6 + 6 Poison.', dice:true, affinityBonus:'odd', effect:(g,r)=>{ dealDamage(g,'enemy',6); applyStatus(g,'enemy','☠️Poison', checkAffinity(g,r,'odd')?6:3); } },
-  backstab:      { name:'Backstab+',       emoji:'🔪', type:'Attack', cost:1, desc:'Deal 13 dmg. Only as first card this turn. Odd: deal 18.', dice:true, affinityBonus:'odd', effect:(g,r)=>{ if((g._cardsPlayedThisTurn||0)>0){ showMsg('Backstab+ — must be first card played!'); g.energy+=1; return; } dealDamage(g,'enemy', checkAffinity(g,r,'odd')?18:13); } },
+  backstab:      { name:'Backstab+',       emoji:'🔪', type:'Attack', cost:1, desc:'Deal 13 dmg. Only as first card this turn. Odd: deal 18.', dice:true, affinityBonus:'odd', effect:(g,r)=>{ if(!isFirstCardThisTurn(g)){ showMsg('Backstab+ — must be first card played!'); refundCardCost(g); return; } dealDamage(g,'enemy', checkAffinity(g,r,'odd')?18:13); } },
   cripple:       { name:'Cripple+',        emoji:'🦵', type:'Skill',  cost:1, desc:'Apply Weak 3 + Vulnerable 2. Odd: Weak 3 + Vulnerable 3.', dice:true, affinityBonus:'odd', effect:(g,r)=>{ applyStatus(g,'enemy','😵Weak',3); applyStatus(g,'enemy','🫗Vulnerable', checkAffinity(g,r,'odd')?3:2); } },
   shadowmark:    { name:'Shadow Mark+',    emoji:'🎯', type:'Skill',  cost:1, desc:'Next attack deals +8 dmg. Odd: next attack +12 dmg.', dice:true, affinityBonus:'odd', effect:(g,r)=>{ g._shadowMark=checkAffinity(g,r,'odd')?12:8; showMsg('🎯 Shadow Mark+ — next attack +'+(g._shadowMark)+' dmg!'); } },
   poisoncloud:   { name:'Poison Cloud+',   emoji:'☁️', type:'Skill',  cost:1, desc:'Apply 6 Poison. Odd: apply 9 Poison.',          dice:true, affinityBonus:'odd', effect:(g,r)=>applyStatus(g,'enemy','☠️Poison', checkAffinity(g,r,'odd')?9:6) },
@@ -378,7 +378,7 @@ const CARD_UPGRADES = {
   oddscheck:     { name:'Odds Check+',     emoji:'📊', type:'Skill',  cost:0, desc:'Draw 2. If roll 4+: draw 3. Max: draw 3 + 8 Gold.', dice:true, affinityBonus:'gambler', effect:(g,r)=>{ const isMax=r===g.diceMax; drawCards(g,isMax?3:r>=4?3:2); if(isMax){ g.gold+=8; updateHUD(); showMsg('📊 Odds Check+ — max roll! +8 Gold!'); } } },
   chipsin:       { name:'Chips In+',       emoji:'🪙', type:'Skill',  cost:0, desc:'Gain 8 Gold. Max: gain 8 Gold + draw 1.',           dice:true, affinityBonus:'gambler', effect:(g,r)=>{ g.gold+=8; updateHUD(); if(r===g.diceMax) drawCards(g,1); showMsg('🪙 Chips In+ — +8 Gold!'); } },
   allin:         { name:'All In+',         emoji:'💰', type:'Attack', cost:2, desc:'Deal dmg equal to roll × 5. Max: roll × 7.',        dice:true, affinityBonus:'gambler', effect:(g,r)=>{ const mult=r===g.diceMax?7:5; dealDamage(g,'enemy',r*mult); showMsg('💰 All In+ — '+(r*mult)+' damage!'); } },
-  loadeddie:     { name:'Loaded Die+',     emoji:'🎲', type:'Skill',  cost:1, desc:'Set die to any value 4-6. Max: set to any 4-max.', dice:true, affinityBonus:'gambler', effect:(g,r)=>{ if(g._dieSetThisTurn){ showMsg('Can only set die once per turn!'); g.energy+=1; return; } const min=4; const max=r===g.diceMax?g.diceMax:6; const newVal=Math.floor(Math.random()*(max-min+1))+min; g.currentDie=newVal; g._dieSetThisTurn=true; const dieEl=document.getElementById('current-die'); if(dieEl){ dieEl.classList.remove('rolling'); void dieEl.offsetWidth; dieEl.classList.add('rolling'); setTimeout(()=>{ dieEl.textContent=g.currentDie; dieEl.classList.remove('rolling'); checkAffinityHighlight(g,g.currentDie); },200); } showMsg('🎲 Loaded Die+ — set to '+newVal+'!'); } },
+  loadeddie:     { name:'Loaded Die+',     emoji:'🎲', type:'Skill',  cost:1, desc:'Set die to any value 4-6. Max: set to any 4-max.', dice:true, affinityBonus:'gambler', effect:(g,r)=>{ if(g._dieSetThisTurn){ showMsg('Can only set die once per turn!'); refundCardCost(g); return; } const min=4; const max=r===g.diceMax?g.diceMax:6; const newVal=Math.floor(Math.random()*(max-min+1))+min; g.currentDie=newVal; g._dieSetThisTurn=true; const dieEl=document.getElementById('current-die'); if(dieEl){ dieEl.classList.remove('rolling'); void dieEl.offsetWidth; dieEl.classList.add('rolling'); setTimeout(()=>{ dieEl.textContent=g.currentDie; dieEl.classList.remove('rolling'); checkAffinityHighlight(g,g.currentDie); },200); } showMsg('🎲 Loaded Die+ — set to '+newVal+'!'); } },
   pocketaces:    { name:'Pocket Aces+',    emoji:'🃏', type:'Skill',  cost:1, desc:'Next attack deals +(roll × 2) dmg. Max: +(roll × 3).', dice:true, affinityBonus:'gambler', effect:(g,r)=>{ const mult=r===g.diceMax?3:2; const bonus=r*mult; g._shadowMark=(g._shadowMark||0)+bonus; showMsg('🃏 Pocket Aces+ — next attack +'+bonus+' dmg!'); } },
   doubleornothing:{ name:'Double or Nothing+',emoji:'⚡',type:'Attack',cost:1,desc:'Deal 8 dmg. 50/50: deal 18 or take 4 dmg. Max: deal 24 or take 2.', dice:true, affinityBonus:'gambler', effect:(g,r)=>{ const isMax=r===g.diceMax; dealDamage(g,'enemy',8); const flip=Math.random()<0.5; if(flip){ dealDamage(g,'enemy',isMax?16:10); showMsg('⚡ Double or Nothing+ — WIN!'); } else { const selfDmg=isMax?2:4; loseHP(g,selfDmg,1); floatDamage('player-combatant',selfDmg,'dmg'); showMsg('⚡ Double or Nothing+ — LOSS! Took '+selfDmg+' dmg.'); } } },
   counttheodds:  { name:'Count the Odds+', emoji:'👁️', type:'Skill',  cost:0, desc:'Look at top 3 cards, keep 2 discard 1. Max: look at top 4, keep 3.', dice:true, affinityBonus:'gambler', effect:(g,r)=>{ const isMax=r===g.diceMax; const count=isMax?4:3; const keep=isMax?3:2; const drawn=[]; for(let i=0;i<count;i++){ if(g.drawPile.length>0) drawn.push(g.drawPile.pop()); } g.hand.push(...drawn.slice(0,keep)); g.discardPile.push(...drawn.slice(keep)); showMsg('👁️ Count the Odds+ — kept '+keep+' cards!'); renderHand(); } },
@@ -401,6 +401,44 @@ const CARD_UPGRADES = {
   pressyourluck: { name:'Press Your Luck+',emoji:'🎰',type:'Attack', cost:2, desc:'Deal 13 dmg. Reroll die — if higher, deal 7 more. Max: deal 18, +11 more.', dice:true, affinityBonus:'gambler', effect:(g,r)=>{ const isMax=r===g.diceMax; const base=isMax?18:13; const bonus=isMax?11:7; dealDamage(g,'enemy',base); const before=g.currentDie; rollDice(g); if(g.currentDie>before){ dealDamage(g,'enemy',bonus); showMsg('🎰 Press Your Luck+ — higher roll! +'+bonus+' dmg!'); } else { showMsg('🎰 Press Your Luck+ — no luck this time.'); } } },
   jackpot:       { name:'Jackpot+',       emoji:'🤑', type:'Skill',  cost:1, desc:'Gain Gold equal to roll × 5. Max: gain 50 Gold. Exhaust.', dice:true, affinityBonus:'gambler', effect:(g,r)=>{ const gold=r===g.diceMax?50:r*5; g.gold+=gold; updateHUD(); if(!g.exhaustedPile) g.exhaustedPile=[]; g.exhaustedPile.push('jackpot+'); showMsg('🤑 Jackpot+ — +'+gold+' Gold!'); } },
 };
+
+// ═══════════════════════════════════════════════════════════════════
+// CARD PLAY CONDITIONS — hard gates, shown in hand before the card is played
+// ═══════════════════════════════════════════════════════════════════
+// Only for cards that can be flat-out REJECTED: their effect() returns early without doing
+// anything, and the play is still spent. Roll-conditional bonus branches do NOT belong here —
+// those always resolve, and renderHand()'s dynamic preview already shows them.
+//
+// Every met(g) is evaluated BEFORE the card is played, while it is still sitting in G.hand.
+// That is off by one from the same test inside effect(), which runs after playCard() has pulled
+// the card out of the hand and counted it. Each entry below therefore pairs with — but does not
+// duplicate — its effect-side check:
+//
+//   card         hand-side (here)              effect-side (js/data.js effect)
+//   backstab     wouldBeFirstCardThisTurn()    isFirstCardThisTurn()      (counter includes self)
+//   voidchannel  hand.length >= 3              hand.length >= 2           (self already removed)
+//   arcaneboost  hand.length >= 2              hand.length >= 1           (self already removed)
+//   deathrattle  hp <= 50%                     hp <= 50%                  (same)
+//   loadeddie    !_dieSetThisTurn              !_dieSetThisTurn           (same)
+//
+// Keyed by BASE card key — '+' upgrades inherit the same condition automatically, and any new
+// card whose key starts with one of these gets the treatment for free.
+const CARD_PLAY_CONDITIONS = {
+  backstab:    { met: (g) => wouldBeFirstCardThisTurn(g), reason: 'Must be the first card played this turn' },
+  deathrattle: { met: (g) => g.hp <= g.maxHp * 0.5,       reason: 'Only playable below 50% HP' },
+  loadeddie:   { met: (g) => !g._dieSetThisTurn,          reason: 'Die can only be set once per turn' },
+  voidchannel: { met: (g) => g.hand.length >= 3,          reason: 'Needs 2 other cards in hand' },
+  arcaneboost: { met: (g) => g.hand.length >= 2,          reason: 'Needs another card in hand to discard' },
+};
+
+// Why a card in hand cannot currently resolve, or null when it is fine to play.
+// This is a WARNING only — playCard() and the card's own effect() remain the source of truth,
+// and a player who taps anyway still gets the real rejection.
+function getCardBlockReason(g, cardKey) {
+  const cond = CARD_PLAY_CONDITIONS[String(cardKey).replace(/\+$/, '')];
+  if (!cond) return null;
+  return cond.met(g) ? null : cond.reason;
+}
 
 // Register upgraded cards into CARDS with a '+' suffix key
 Object.entries(CARD_UPGRADES).forEach(([key, card]) => {
@@ -438,6 +476,63 @@ const DICE_TYPES = {
 
 // Helper to get die by type string
 function getDie(type) { return DICE_TYPES[type] || DICE_TYPES.d6; }
+
+// ═══════════════════════════════════════════════════════════════════
+// SOUL UPGRADES — in-run only (GDD §15)
+// ═══════════════════════════════════════════════════════════════════
+// 8 options; 3 are offered at random after each floor boss (Floors 1-3).
+// Souls reset to 0 at the start of every run — there is no cross-run banking.
+//
+// `apply` runs once at purchase time for the upgrades that are a one-off state change.
+// Upgrades whose effect is continuous (Grit, Overdraw, Steady Hand) or per-combat
+// (Second Die, Gambler's Edge) have no apply — they are read live from G.soulUpgrades by
+// applySoulCombatStart() / rerollAllowance() / the dice-control buttons in js/combat.js.
+const SOUL_UPGRADES = {
+  vitality: {
+    name: 'Vitality', emoji: '❤️', cost: 3, repeatable: true,
+    desc: '+6 Max HP. Heals to the new maximum.',
+    note: 'Cost rises by 1 Soul each time you buy it this run.',
+    apply: (g) => { g.maxHp += 6; g.hp = g.maxHp; }
+  },
+  grit: {
+    name: 'Grit', emoji: '🛡️', cost: 5, repeatable: false,
+    desc: '+5 Block at the start of every combat, rest of the run.'
+  },
+  steady_hand: {
+    name: 'Steady Hand', emoji: '✋', cost: 6, repeatable: false,
+    desc: '+1 reroll charge per combat, rest of the run.',
+    note: 'One extra reroll for the whole fight — it does not refresh each turn.'
+  },
+  second_die: {
+    name: 'Second Die', emoji: '🎲', cost: 6, repeatable: false,
+    desc: 'Once per combat: after your roll, optionally add a d2 to it.',
+    note: 'Optional — the button appears next to your die.'
+  },
+  momentum: {
+    name: 'Momentum', emoji: '⚡', cost: 8, repeatable: false,
+    desc: '+1 Energy per turn, rest of the run.',
+    apply: (g) => { g.maxEnergy += 1; }
+  },
+  overdraw: {
+    name: 'Overdraw', emoji: '🃏', cost: 8, repeatable: false,
+    desc: 'Draw +1 card at the start of every turn, rest of the run.'
+  },
+  reckless_surge: {
+    name: 'Reckless Surge', emoji: '💥', cost: 4, repeatable: false,
+    desc: '+1 Energy per turn, rest of the run — but −5 Max HP permanently this run.',
+    note: 'The Max HP loss applies once, immediately.',
+    apply: (g) => {
+      g.maxEnergy += 1;
+      g.maxHp = Math.max(1, g.maxHp - 5);
+      g.hp = Math.min(g.hp, g.maxHp);
+    }
+  },
+  gamblers_edge: {
+    name: "Gambler's Edge", emoji: '♠️', cost: 6, repeatable: false,
+    desc: 'Once per combat, force your die to any value — but a natural roll can never count as your affinity maximum for the rest of the run.',
+    note: 'Forced values (this upgrade, Loaded Die, Safe Pull…) are exempt from the downside.'
+  },
+};
 
 // ── ENEMY POOLS BY FLOOR ──
 // Each enemy has: name, emoji, hp, block, damage, reward, souls, special ability

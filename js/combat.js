@@ -74,6 +74,8 @@ function startAldricFight() {
   G.exhaustedPile = [];
   G.inBoss = true;
   G.isFinalBoss = true;
+  stageCombatStartBlock(G, false);
+  applySoulCombatStart(G, false);
 
   showScreen('combat-screen');
   updateCombatSprites(G.charKey, 'aldric');
@@ -359,6 +361,57 @@ function roomLabel(type) {
 // COMBAT
 // ═══════════════════════════════════════════════════════════════════
 
+// Soul-upgrade hooks that fire at the start of every combat (GDD §15). Called from
+// startCombat(), startBossFight() and startAldricFight() so the run-long upgrades apply to
+// every fight, including Aldric — the last spend window is after the Floor 3 boss, so an
+// upgrade bought there has to survive into the final fight.
+// `includeDraw` is false for the Aldric fight only: startAldricFight() does not reset
+// G.extraDraw (so it inherits the Floor 3 boss fight's value, relic bonuses included), and
+// adding Overdraw's +1 on top of a value that already contains it would double the bonus.
+function applySoulCombatStart(g, includeDraw = true) {
+  if (includeDraw && hasSoulUpgrade('overdraw')) g.extraDraw = (g.extraDraw || 0) + 1;
+  // Steady Hand is ONE extra reroll for the whole fight, not one per turn. It lives in its own
+  // pool because G.rerollsLeft refreshes every turn (see startTurn) — this pool deliberately
+  // does not, so the bonus is scarce: use it on turn 1 and it is gone for the rest of the combat.
+  g._bonusRerolls = hasSoulUpgrade('steady_hand') ? 1 : 0;
+  // Both dice upgrades are once per combat — cleared here, not at run level, so they come
+  // back every fight.
+  g._secondDieUsed = false;
+  g._gamblersEdgeUsed = false;
+}
+
+// Start-of-combat Block is STAGED rather than added to G.block directly.
+//
+// Bug fix (Aug 15, 2026): startTurn() zeroes G.block on the first turn of every combat, and it
+// runs after these hooks — so every start-of-combat Block grant was wiped before the player
+// ever saw it. Iron Vambrace granted nothing, and Hollow Throne was pure downside (−8 max HP
+// for 20 Block that never arrived). startTurn() now applies this staged total immediately after
+// its reset, so all three grants land on turn 1 as their descriptions have always claimed.
+//
+// `includeRelics` is false for the Aldric fight, which has never run the relic start-of-combat
+// hooks at all (torn_page, rusted_chain, ashen_crown are all absent there too — a separate
+// pre-existing gap). Grit still applies there, since the Floor 3 spend window precedes it.
+function stageCombatStartBlock(g, includeRelics = true) {
+  g._pendingCombatBlock = 0;
+  if (includeRelics) {
+    if (hasRelic('iron_vambrace')) g._pendingCombatBlock += 6;
+    if (hasRelic('hollow_throne')) g._pendingCombatBlock += 20;
+  }
+  if (hasSoulUpgrade('grit')) g._pendingCombatBlock += 5;
+}
+
+// Base reroll charges granted at the start of every TURN. Steady Hand is not counted here —
+// it is a separate once-per-combat pool (see applySoulCombatStart).
+function rerollAllowance() {
+  return 1;
+}
+
+// Everything the player can still spend right now: this turn's base charge plus whatever is
+// left of Steady Hand's combat-long bonus.
+function totalRerollsLeft() {
+  return Math.max(0, G.rerollsLeft || 0) + Math.max(0, G._bonusRerolls || 0);
+}
+
 function startCombat(isElite) {
   let pool;
   if (isElite) {
@@ -390,12 +443,14 @@ function startCombat(isElite) {
   G.cardsPlayedThisCombat = 0;
   G._ashenCrownFired = false;
   // Relic hooks — start of combat
-  if (hasRelic('iron_vambrace')) G.block += 6;
-  if (hasRelic('cracked_hourglass')) G.rerollUsed = false;
+  // (iron_vambrace and hollow_throne Block are staged by stageCombatStartBlock below, so they
+  // survive startTurn's turn-1 Block reset)
+  if (hasRelic('cracked_hourglass')) { G.rerollUsed = false; G.rerollsLeft = rerollAllowance(); }
   if (hasRelic('rusted_chain')) G.statuses.enemy.push({ name:'🫗Vulnerable', stacks:1 });
   if (hasRelic('torn_page')) G.extraDraw += 1;
   if (hasRelic('cursed_hourglass')) { G.extraDraw += 2; G.maxHandSize = 4; }
-  if (hasRelic('hollow_throne')) G.block += 20;
+  stageCombatStartBlock(G);
+  applySoulCombatStart(G);
 
   updateCombatSprites(G.charKey, null);
   document.getElementById('player-name').textContent = G.char.name.toUpperCase();
@@ -426,12 +481,14 @@ function startBossFight() {
   G.cardsPlayedThisCombat = 0;
   G._ashenCrownFired = false;
   // Relic hooks — start of combat
-  if (hasRelic('iron_vambrace')) G.block += 6;
-  if (hasRelic('cracked_hourglass')) G.rerollUsed = false;
+  // (iron_vambrace and hollow_throne Block are staged by stageCombatStartBlock below, so they
+  // survive startTurn's turn-1 Block reset)
+  if (hasRelic('cracked_hourglass')) { G.rerollUsed = false; G.rerollsLeft = rerollAllowance(); }
   if (hasRelic('rusted_chain')) G.statuses.enemy.push({ name:'🫗Vulnerable', stacks:1 });
   if (hasRelic('torn_page')) G.extraDraw += 1;
   if (hasRelic('cursed_hourglass')) { G.extraDraw += 2; G.maxHandSize = 4; }
-  if (hasRelic('hollow_throne')) G.block += 20;
+  stageCombatStartBlock(G);
+  applySoulCombatStart(G);
 
   showScreen('combat-screen');
   document.getElementById('player-sprite').textContent = G.char.emoji;
@@ -456,9 +513,18 @@ function startTurn() {
   // Ashen Crown — +1 energy on first turn of each combat
   if (hasRelic('ashen_crown') && !G._ashenCrownFired) { G.energy++; G._ashenCrownFired = true; }
   if (G._entrenchActive) { G._entrenchActive = false; } else { G.block = 0; }
+  // Start-of-combat Block staged by stageCombatStartBlock() — applied after the reset above so
+  // it actually reaches the first turn (see the note there).
+  if (G._pendingCombatBlock) { G.block += G._pendingCombatBlock; G._pendingCombatBlock = 0; }
   G._spellsThisTurn = 0;
   G._manaSurge = false; // reset each turn
   // Enemy block persists until player damages through it — does NOT reset each turn
+  // Base reroll charge refreshes here, matching the pre-existing per-turn cadence. Steady
+  // Hand's bonus charge (G._bonusRerolls) deliberately does NOT refresh — it is granted once at
+  // combat start and lasts the whole fight.
+  // G.rerollUsed is kept in sync as "no charges left at all" so older call sites still read
+  // correctly.
+  G.rerollsLeft = rerollAllowance();
   G.rerollUsed = false;
   G.diceRolled = false;
   G._cardsPlayedThisTurn = 0;
@@ -542,10 +608,16 @@ function rollDice(g, isInitial = false) {
 
   g.currentDie = roll;
   g.diceRolled = true;
+  // Stamp the value this die landed on naturally. Gambler's Edge's downside only applies while
+  // currentDie still equals this stamp — the moment a card or upgrade forces the die to another
+  // value, the two disagree and the roll counts as forced (and so is exempt). See
+  // naturalMaxSuppressed().
+  g._naturalDieValue = roll;
 
   // Lucky Coin — affinity exact match draws 1 card (Gambler excluded)
   if (hasRelic('lucky_coin') && g.charKey !== 'gambler') {
-    const lcMatch = g.charKey === 'mage' ? roll === 6 : checkAffinity(g, roll, g.char.diceAffinity);
+    const lcMatch = (g.charKey === 'mage' ? roll === 6 : checkAffinity(g, roll, g.char.diceAffinity))
+      && !naturalMaxSuppressed(g, roll);
     if (lcMatch) {
       drawCards(g, 1);
       showMsg('🍀 Lucky Coin — affinity match! Draw 1!');
@@ -554,7 +626,7 @@ function rollDice(g, isInitial = false) {
 
   // Lucky Streak — max roll draws 1 card + deals 4 dmg
   const luckyStreak = G.statuses.player.find(s => s.name === '⭐LuckyStreak');
-if (roll === g.diceMax && luckyStreak) {
+if (roll === g.diceMax && luckyStreak && !naturalMaxSuppressed(g, roll)) {
   drawCards(g, 1);
   const dmg = luckyStreak.stacks === 2 ? 6 : 4;
   if (g.enemy) { g.enemy.hp -= dmg; floatDamage('enemy-combatant', dmg, 'dmg'); }
@@ -564,7 +636,9 @@ if (roll === g.diceMax && luckyStreak) {
   const vampForm = G.statuses.player.find(s => s.name === '🧛VampiricForm');
   if (vampForm) {
     const dieMax = (g.currentDieType && g.currentDieType.max) ? g.currentDieType.max : g.diceMax;
-    if ((roll === 1 || roll === dieMax) && !g.statuses.player.find(s => s.name === '🦇Fly')) {
+    // Gambler's Edge suppresses the max-face side of the extreme check; a natural 1 still counts.
+    const extremeHit = roll === 1 || (roll === dieMax && !naturalMaxSuppressed(g, roll));
+    if (extremeHit && !g.statuses.player.find(s => s.name === '🦇Fly')) {
       applyStatus(g, 'player', '🦇Fly', 1);
       if (vampForm.stacks === 2) applyStatus(g, 'player', '💚Regen', 2);
       showMsg('🧛 Vampiric Form — Fly activated!');
@@ -612,10 +686,54 @@ function checkAffinityHighlight(g, roll) {
   renderHand();
 }
 
+// Gambler's Edge (Soul upgrade) downside — a NATURAL roll of the die's max face no longer
+// counts as an affinity hit for the rest of the run. Forced values are exempt: rollDice()
+// stamps _naturalDieValue, so any card/upgrade that changes currentDie afterwards breaks the
+// match and the roll counts normally again. Card "Max:" bonus branches are untouched — only
+// affinity-max triggers are suppressed.
+function naturalMaxSuppressed(g, roll) {
+  if (!hasSoulUpgrade('gamblers_edge')) return false;
+  const dieMax = (g.currentDieType && g.currentDieType.max) ? g.currentDieType.max : g.diceMax;
+  return roll === dieMax && g._naturalDieValue === roll && g.currentDie === roll;
+}
+
+// True while the card currently resolving is the first card played this turn.
+//
+// BUG FIX (Aug 15, 2026): card effects run AFTER playCard() increments G._cardsPlayedThisTurn,
+// so by the time an effect executes the counter already includes its own card. Backstab checked
+// `(g._cardsPlayedThisTurn || 0) > 0` and therefore rejected itself on every turn of every
+// fight, including as the genuine first card. The per-turn reset in startTurn() was never the
+// problem. Effects that care about being first MUST use this helper instead of reading the
+// counter directly. (Effects that care about a later position — Lethal Rhythm, Soulbound Tome —
+// read the counter from inside playCard() before the effect runs, so they are unaffected.)
+function isFirstCardThisTurn(g) {
+  return (g._cardsPlayedThisTurn || 0) <= 1;
+}
+
+// Refund the Energy actually paid for the card currently resolving, for effects that decline to
+// resolve. See G._lastCardCostPaid in playCard().
+function refundCardCost(g) {
+  g.energy += (g._lastCardCostPaid || 0);
+}
+
+// Pre-play companion to isFirstCardThisTurn(): true when a card sitting in hand WOULD be the
+// first card played this turn if it were played right now. Used by the hand renderer to warn
+// before the player commits.
+//
+// The two differ by exactly one, and the difference is the whole point: playCard() increments
+// G._cardsPlayedThisTurn before running effects, so isFirstCardThisTurn() (called from inside an
+// effect) sees a counter that already includes its own card, while this one is called while the
+// card is still in hand and uncounted. Keep them in step — CARD_PLAY_CONDITIONS in js/data.js
+// pairs each hand-side check with the effect-side check it mirrors.
+function wouldBeFirstCardThisTurn(g) {
+  return (g._cardsPlayedThisTurn || 0) === 0;
+}
+
 function checkAffinity(g, roll, affinity) {
   if (roll === null || roll === undefined || !affinity) return false;
   // Aldric Memory Leech — disable affinity for this turn
   if (g.aldricAffinityDisabled) return false;
+  if (naturalMaxSuppressed(g, Number(roll))) return false;
   const r = Number(roll);
   if (affinity === 'even') return r % 2 === 0;
   if (affinity === 'odd') return r % 2 !== 0;
@@ -631,11 +749,20 @@ function checkAffinity(g, roll, affinity) {
 
 function useReroll() {
   if (G._noReroll) { showMsg('💔 Fractured Die — no rerolls this run!'); return; }
-  if (G.rerollUsed && !G.aldricInfiniteReroll) return;
+  if (totalRerollsLeft() <= 0 && !G.aldricInfiniteReroll) return;
   if (!G.aldricInfiniteReroll) {
-    G.rerollUsed = true;
-    document.getElementById('reroll-btn').disabled = true;
+    // Spend the per-turn charge first, so Steady Hand's single combat-long charge is only
+    // consumed once this turn's normal reroll is gone.
+    if ((G.rerollsLeft || 0) > 0) {
+      G.rerollsLeft -= 1;
+    } else {
+      G._bonusRerolls = Math.max(0, (G._bonusRerolls || 0) - 1);
+      showMsg('✋ Steady Hand — bonus reroll spent (none left this combat).');
+    }
+    G.rerollUsed = totalRerollsLeft() <= 0;
+    if (G.rerollUsed) document.getElementById('reroll-btn').disabled = true;
   }
+  renderEnergy(); // refresh the charge counter on the button immediately
   const preRerollValue = G.currentDie;
   rollDice(G, false);
   // Bone Dice — reroll can never land lower than the original roll
@@ -654,6 +781,75 @@ function useReroll() {
   } else {
     showMsg('Reroll used!');
   }
+}
+
+// ── Soul upgrade: Second Die — once per combat, optionally add a d2 to the current roll.
+// The sum is capped at the die's max face so every existing `roll === diceMax` check and the
+// Vampire/Gambler affinity-max checks keep seeing values the dice system already understands.
+function useSecondDie() {
+  if (!hasSoulUpgrade('second_die')) return;
+  if (G._secondDieUsed) { showMsg('Second Die already used this combat!'); return; }
+  if (!G.diceRolled) { showMsg('Roll first!'); return; }
+
+  const bonus = Math.floor(Math.random() * 2) + 1; // d2
+  const before = G.currentDie || 1;
+  G.currentDie = Math.min(before + bonus, G.diceMax);
+  G._secondDieUsed = true;
+
+  animateDieTo(G.currentDie);
+  showMsg('🎲 Second Die — rolled ' + bonus + (G.currentDie === before
+    ? ' (already at max ' + G.diceMax + ')'
+    : ' → die is now ' + G.currentDie + '!'));
+  renderAll();
+}
+
+// ── Soul upgrade: Gambler's Edge — once per combat, force the die to any value.
+// Respects the one-forced-value-per-turn rule (G._dieSetThisTurn), same as Loaded Die/Safe Pull.
+function openGamblersEdge() {
+  if (!hasSoulUpgrade('gamblers_edge')) return;
+  if (G._gamblersEdgeUsed) { showMsg("Gambler's Edge already used this combat!"); return; }
+  if (G._dieSetThisTurn) { showMsg('Die can only be set once per turn!'); return; }
+  const picker = document.getElementById('gamblers-edge-picker');
+  if (!picker) return;
+  if (picker.classList.contains('visible')) { picker.classList.remove('visible'); return; }
+
+  picker.innerHTML = '';
+  for (let v = 1; v <= G.diceMax; v++) {
+    const b = document.createElement('button');
+    b.className = 'btn edge-value-btn';
+    b.textContent = v;
+    b.onclick = () => applyGamblersEdge(v);
+    picker.appendChild(b);
+  }
+  picker.classList.add('visible');
+}
+
+function applyGamblersEdge(value) {
+  const picker = document.getElementById('gamblers-edge-picker');
+  if (picker) picker.classList.remove('visible');
+  if (!hasSoulUpgrade('gamblers_edge') || G._gamblersEdgeUsed) return;
+  if (G._dieSetThisTurn) { showMsg('Die can only be set once per turn!'); return; }
+
+  G.currentDie = Math.max(1, Math.min(value, G.diceMax));
+  G._dieSetThisTurn = true;
+  G._gamblersEdgeUsed = true;
+  animateDieTo(G.currentDie);
+  showMsg("♠️ Gambler's Edge — die forced to " + G.currentDie + '!');
+  renderAll();
+}
+
+// Shared die-face animation used by the Soul dice upgrades (same shape the dice cards use).
+function animateDieTo(value) {
+  const dieEl = document.getElementById('current-die');
+  if (!dieEl) { checkAffinityHighlight(G, value); return; }
+  dieEl.classList.remove('rolling');
+  void dieEl.offsetWidth;
+  dieEl.classList.add('rolling');
+  setTimeout(() => {
+    dieEl.textContent = value;
+    dieEl.classList.remove('rolling');
+    checkAffinityHighlight(G, value);
+  }, 200);
 }
 
 function doubleDown(g) {
@@ -694,6 +890,10 @@ function playCard(cardKey) {
   if (!G.enemy && card.type === 'Attack') { showMsg('No enemy to attack!'); return; }
 
   G.energy -= actualCost;
+  // Energy actually paid for the card currently resolving. An effect that refuses to resolve
+  // (Backstab played out of position) must refund THIS, not the card's printed cost — with
+  // Shadow Artist or Mana Surge the two differ, and refunding the printed cost minted Energy.
+  G._lastCardCostPaid = actualCost;
   G._cardsPlayedThisTurn = (G._cardsPlayedThisTurn || 0) + 1;
   G.cardsPlayedThisCombat = (G.cardsPlayedThisCombat || 0) + 1;
   // Gilded Quill — every 10th card played deals double damage
@@ -757,6 +957,12 @@ if (G._arcaneMomentum && G._momentumCap > 0 && (card.type === 'Skill' || card.ty
   const idx = G.hand.indexOf(cardKey);
   if (idx >= 0) G.hand.splice(idx, 1);
 
+  // Most Exhaust cards push their own key onto G.exhaustedPile inside effect() (js/data.js).
+  // Record how many copies of THIS key are already exhausted so the placement step below can
+  // tell whether the effect exhausted the card itself — counting by key rather than by total
+  // length so a second copy of the same card played later in the combat is still handled.
+  const exhaustedBefore = (G.exhaustedPile || []).filter(k => k === cardKey).length;
+
   card.effect(G, roll);
 
   // Spell Echo — repeat Attack effect
@@ -770,23 +976,40 @@ if (G.statuses.player.find(s => s.name === '👑BloodLord') && card.type === 'At
   const healAmt = lordStacks.stacks === 2 ? 3 : 2; // + version heals 3, base heals 2
   healPlayer(G, healAmt);
 }
-  // Gambler lucky streak
-  if (G.charKey === 'gambler' && roll === G.diceMax && !G.rerollUsed) {
+  // Gambler lucky streak — max roll refreshes the reroll (suppressed by Gambler's Edge on a
+  // natural max, since that is the Gambler's affinity maximum)
+  if (G.charKey === 'gambler' && roll === G.diceMax && !G.rerollUsed && !naturalMaxSuppressed(G, roll)) {
     showMsg('Lucky Streak! Bonus reroll!');
+    G.rerollsLeft = Math.max(G.rerollsLeft || 0, 1);
     G.rerollUsed = false;
     setTimeout(() => {
       const btn = document.getElementById('reroll-btn');
-      btn.disabled = false;
-      btn.innerHTML = '🎲 REROLL <span style="font-size:0.7em;opacity:0.8">(1)</span>';
+      if (btn) btn.disabled = false;
+      renderEnergy();
     }, 100);
   }
 
   // Send the played card to its pile AFTER the effect resolves (see note above).
+  //
+  // Cards are string KEYS and G.deck is the persistent master list: playing a card does not
+  // remove it from G.deck, and neither does exhausting it. G.exhaustedPile is purely a
+  // this-combat exclusion list (see shuffleDeck / drawCards), which is why it must never be
+  // pushed back into G.deck at combat end.
+  //
+  // A card lands in exactly ONE pile. Previously a Power that exhausted itself inside effect()
+  // was pushed a second time here (2 entries per play), and a self-exhausting Skill/Attack
+  // (Spell Echo, Jackpot, Betting It All, Loaded House) went into the exhausted pile AND the
+  // discard pile — so it could be redrawn during the very combat it "exhausted".
   if (idx >= 0) {
-    if (card.type === 'Power') {
-      // Power cards are exhausted — removed from combat, not discarded
-      // They stay in the deck for future runs but don't cycle back this combat
-      if (!G.exhaustedPile) G.exhaustedPile = [];
+    if (!G.exhaustedPile) G.exhaustedPile = [];
+    const exhaustedNow = G.exhaustedPile.filter(k => k === cardKey).length;
+    if (exhaustedNow > exhaustedBefore) {
+      // effect() already exhausted this card. Trim any surplus entries in case the effect ran
+      // more than once (Spell Echo repeats an Attack's effect) — one play, one entry.
+      let surplus = exhaustedNow - (exhaustedBefore + 1);
+      while (surplus-- > 0) G.exhaustedPile.splice(G.exhaustedPile.lastIndexOf(cardKey), 1);
+    } else if (card.type === 'Power') {
+      // Powers always Exhaust, including any whose effect() does not place them itself.
       G.exhaustedPile.push(cardKey);
     } else {
       G.discardPile.push(cardKey);
@@ -1211,8 +1434,13 @@ function drawCards(g, n) {
     if (g.hand.length >= limit) break;
     if (g.drawPile.length === 0) {
       if (g.discardPile.length > 0) {
-        const exh = g.exhaustedPile || [];
-        g.drawPile = shuffle(g.discardPile.filter(k => !exh.includes(k)));
+        // Recycle the discard pile as-is. This used to filter out any card whose key appeared
+        // in G.exhaustedPile — but an exhausted card is never in the discard pile (it goes to
+        // the exhausted pile instead), so the filter only ever hit *other copies* of the same
+        // card and deleted them from circulation outright. Holding two Spell Echoes and playing
+        // one made the second vanish mid-combat while still being counted in G.deck, which is
+        // the deck viewer's header-vs-pile-sum mismatch.
+        g.drawPile = shuffle(g.discardPile);
         g.discardPile = [];
         showMsg('🔀 Deck reshuffled.');
       }
@@ -1223,9 +1451,21 @@ function drawCards(g, n) {
   }
 }
 
+// Remove one entry from `cards` per exhausted entry, matching by key. Holding two copies of
+// the same card and exhausting one must remove one copy, not both.
+function excludeExhausted(cards, exhaustedPile) {
+  const pending = [...(exhaustedPile || [])];
+  const out = [];
+  for (const key of cards) {
+    const i = pending.indexOf(key);
+    if (i >= 0) pending.splice(i, 1);   // this copy is the exhausted one
+    else out.push(key);
+  }
+  return out;
+}
+
 function shuffleDeck() {
-  const exhausted = G.exhaustedPile || [];
-  G.drawPile = shuffle(G.deck.filter(k => !exhausted.includes(k)));
+  G.drawPile = shuffle(excludeExhausted(G.deck, G.exhaustedPile));
   G.discardPile = [];
   G.hand = [];
 }
@@ -1239,8 +1479,13 @@ function checkCombatEnd() {
   if (G.enemy && G.enemy.hp <= 0) {
     G.enemy.hp = 0;
     G.gold += G.enemy.reward;
-    G.souls += G.enemy.souls;
-    G.runSouls += G.enemy.souls;
+    // Soul income is a flat rate per fight type (GDD §15): 1 regular / 2 elite / 3 boss.
+    // The per-enemy `souls` values still in js/data.js belong to the superseded permanent-Soul
+    // design and are deliberately no longer read — they would pay ~40 Souls per floor against
+    // a menu priced at 3-8 Souls.
+    const soulGain = G.inBoss ? 3 : (G.lastFightWasElite ? 2 : 1);
+    G.souls += soulGain;
+    G.runSouls += soulGain;
     // Relic hooks — post-combat
     if (hasRelic('bloodsoaked_rag')) healPlayer(G, 3);
     if (hasRelic('ash_pendant'))   { G.souls += 1; G.runSouls += 1; }

@@ -141,6 +141,12 @@
       </div>
 
       <button class="btn reroll-btn" id="reroll-btn" onclick="useReroll()">🎲 REROLL</button>
+      <!-- Soul dice upgrades — shown only when owned and unused this combat -->
+      <div id="soul-die-controls">
+        <button class="btn soul-die-btn" id="second-die-btn" onclick="useSecondDie()" style="display:none;">➕ +d2</button>
+        <button class="btn soul-die-btn" id="gamblers-edge-btn" onclick="openGamblersEdge()" style="display:none;">♠️ SET DIE</button>
+        <div id="gamblers-edge-picker"></div>
+      </div>
       <div id="aldric-curse-indicator"></div>
     </div>
       <div class="hand-viewport">
@@ -164,7 +170,7 @@
     </div>
 <p class="reward-sub" id="reward-sub">Choose your reward — a card</p>
     <div class="reward-choices" id="reward-choices"></div>
-    <button class="btn skip-btn" onclick="skipReward()">Skip Reward (+10 💰)</button>
+    <button class="btn skip-btn" id="reward-skip-btn" onclick="skipReward()">Skip Reward (+10 💰)</button>
   </div>
 
   <!-- PATH SELECT — shown at start of each floor -->

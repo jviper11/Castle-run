@@ -19,12 +19,15 @@ function newGame(charKey) {
     hp: ch.hp, maxHp: ch.hp,
     block: 0, energy: 3, maxEnergy: 3,
     gold: 30, souls: 0,
+    soulUpgrades: [], _vitalityBuys: 0,   // in-run Soul spending — both reset with the run
     relics: [], rareOffset: 0, lastFightWasElite: false, phantomBladeFired: false,
     extraDraw: 0, startingDrawCount: 5, maxHandSize: 8, _noReroll: false, cardsPlayedThisCombat: 0,
     deck: [...ch.starterDeck],
     drawPile: [], discardPile: [], hand: [],
     activeDie: 'd6',  // single active die — type string key into DICE_TYPES
     currentDie: null, diceMax: 6, diceRolled: false, rerollUsed: false,
+    rerollsLeft: 1,      // base charge, refreshed every turn
+    _bonusRerolls: 0,    // Steady Hand — granted once per combat, does NOT refresh per turn
     map, currentFloor: 0,
     needsPathSelect: true,
     floorBosses: shuffledBosses,
@@ -47,6 +50,46 @@ function newGame(charKey) {
   updateHUD();
   G.needsPathSelect = true;
   showPathSelect();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SOUL UPGRADES (in-run) — GDD §15
+// ═══════════════════════════════════════════════════════════════════
+
+function hasSoulUpgrade(key) { return !!(G.soulUpgrades && G.soulUpgrades.includes(key)); }
+
+// Vitality is the only repeatable option: 3 Souls, then 4, then 5… Everything else is a
+// flat one-time cost, so the buy counter only ever moves for Vitality.
+function soulUpgradeCost(key) {
+  const up = SOUL_UPGRADES[key];
+  if (!up) return Infinity;
+  if (key === 'vitality') return up.cost + (G._vitalityBuys || 0);
+  return up.cost;
+}
+
+// Pick 3 distinct offers from the 8-option pool. Non-repeatable upgrades already owned are
+// filtered out, so an offer can never duplicate itself or something you already hold.
+// Same shuffle-then-slice pattern the relic offers (showEliteRelicReward / renderShopRelics) use.
+function soulUpgradeOffer(count = 3) {
+  const eligible = Object.keys(SOUL_UPGRADES).filter(k => SOUL_UPGRADES[k].repeatable || !hasSoulUpgrade(k));
+  return shuffle([...eligible]).slice(0, count);
+}
+
+function buySoulUpgrade(key) {
+  const up = SOUL_UPGRADES[key];
+  if (!up) return false;
+  if (!up.repeatable && hasSoulUpgrade(key)) { showMsg('Already purchased this run!'); return false; }
+  const cost = soulUpgradeCost(key);
+  if (G.souls < cost) { showMsg('Not enough Souls!'); return false; }
+
+  G.souls -= cost;
+  if (!G.soulUpgrades.includes(key)) G.soulUpgrades.push(key);
+  if (key === 'vitality') G._vitalityBuys = (G._vitalityBuys || 0) + 1;
+  if (typeof up.apply === 'function') up.apply(G);
+
+  showMsg(`${up.emoji} ${up.name} — ${up.desc}`);
+  updateHUD();
+  return true;
 }
 
 function buildMap(bosses) {

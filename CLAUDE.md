@@ -88,6 +88,18 @@ When changing a card, verify all of the following separately:
 4. Actual effect and damage calculation.
 5. Reward-pool membership and rarity.
 6. Exhaust/discard behavior.
+7. Condition-met visual state, for cards with a hard play gate.
+
+A **hard play gate** is a condition that makes the card's `effect()` return early without doing
+anything (the play is still spent) — as opposed to a roll-conditional bonus branch, which always
+resolves and is covered by the dynamic preview. Such cards are declared in `CARD_PLAY_CONDITIONS`
+in `js/data.js`, keyed by base card key so the `+` upgrade inherits the condition, and
+`renderHand()` dims the tile and shows the reason when the condition is not met. The indicator is
+a warning only — the card stays tappable and `effect()` remains the source of truth.
+
+The hand-side check runs while the card is still in `G.hand`; the effect-side check runs after
+`playCard()` has removed and counted it. The two are off by one, deliberately (compare
+`wouldBeFirstCardThisTurn()` with `isFirstCardThisTurn()`). Change one, change the other.
 
 Code presence does not prove that these layers agree.
 

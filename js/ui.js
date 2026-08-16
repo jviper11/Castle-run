@@ -489,16 +489,21 @@ const CHAR_REWARD_POOLS = {
 
 function showReward() {
 
-   // Return exhausted cards to deck after combat
-  if (G.exhaustedPile && G.exhaustedPile.length > 0) {
-    G.deck.push(...G.exhaustedPile);
-    G.exhaustedPile = [];
-  }
+  // Exhausted cards "return to the deck" after combat by simply being released from the
+  // exclusion list — they never left G.deck in the first place.
+  //
+  // BUG FIX (Aug 15, 2026): this used to `G.deck.push(...G.exhaustedPile)` before clearing.
+  // Cards are string keys and G.deck is the persistent master list; exhausting a card only
+  // adds its key to G.exhaustedPile, which shuffleDeck()/drawCards() use to keep it out of the
+  // draw pile for the current fight. Nothing ever removed it from G.deck — so pushing it back
+  // permanently added a duplicate copy for every exhaust, every combat.
+  G.exhaustedPile = [];
 
   document.getElementById('reward-hp').textContent = G.hp + '/' + G.maxHp;
   document.getElementById('reward-gold').textContent = G.gold;
   document.getElementById('reward-souls').textContent = G.souls;
   showScreen('reward-screen');
+  setRewardSkipVisible(true);
   const rewardSub = document.getElementById('reward-sub');
   if (rewardSub) rewardSub.textContent = 'Choose your reward — a card';
   const pool = document.getElementById('reward-choices');
@@ -590,6 +595,7 @@ function showDieReward() {
   document.getElementById('reward-gold').textContent = G.gold;
   document.getElementById('reward-souls').textContent = G.souls;
   showScreen('reward-screen');
+  setRewardSkipVisible(true);
 
   // Die selection uses its own gold header below; hide the card subtitle
   const rewardSub = document.getElementById('reward-sub');
@@ -659,7 +665,91 @@ function proceedAfterCardReward() {
     showEliteRelicReward();
     return;
   }
+  // Soul-spend window — after a floor boss's reward pick, Floors 1-3 only (GDD §15).
+  // checkCombatEnd() has already incremented G.currentFloor by this point, so the guard reads
+  // the floor being entered: 1, 2 or 3. The Floor 4 boss goes straight to Aldric and never
+  // reaches this screen, and Aldric himself is excluded by !G.isFinalBoss.
+  // NOTE: the boss relic-choice screen (1 of 3) is still unbuilt — when it lands it belongs
+  // between the card reward and this call, leaving the Soul screen last as the design specifies.
+  if (G.inBoss && !G.isFinalBoss && G.currentFloor >= 1 && G.currentFloor <= 3) {
+    showSoulSpend();
+    return;
+  }
   proceedOrPath();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SOUL-SPEND SCREEN (GDD §15) — 3 of 8 upgrades, offered after each floor boss
+// ═══════════════════════════════════════════════════════════════════
+
+// The shared reward screen owns a fixed "Skip Reward (+10 Gold)" button. The Soul screen has
+// its own decline action (keeping your Souls, no gold), so it hides that button and every other
+// reward screen re-shows it.
+function setRewardSkipVisible(visible) {
+  const btn = document.getElementById('reward-skip-btn');
+  if (btn) btn.style.display = visible ? '' : 'none';
+}
+
+function showSoulSpend() {
+  const offer = soulUpgradeOffer(3);
+
+  document.getElementById('reward-hp').textContent = G.hp + '/' + G.maxHp;
+  document.getElementById('reward-gold').textContent = G.gold;
+  document.getElementById('reward-souls').textContent = G.souls;
+  showScreen('reward-screen');
+  setRewardSkipVisible(false);
+  const rewardSub = document.getElementById('reward-sub');
+  if (rewardSub) rewardSub.textContent = '';
+
+  const pool = document.getElementById('reward-choices');
+  pool.innerHTML = '';
+
+  const hdr = document.createElement('div');
+  hdr.style.cssText = 'width:100%;text-align:center;font-family:Cinzel,serif;color:var(--gold);font-size:0.9rem;letter-spacing:0.05em;margin-bottom:0.4rem;';
+  hdr.innerHTML = '💀 SOUL FORGE — you carry <span id="soul-spend-count">' + G.souls + '</span> Souls';
+  pool.appendChild(hdr);
+
+  if (offer.length === 0) {
+    // Everything non-repeatable is owned and Vitality somehow isn't offerable — nothing to sell.
+    const none = document.createElement('div');
+    none.style.cssText = 'width:100%;text-align:center;color:var(--text3);font-size:0.8rem;';
+    none.textContent = 'The forge has nothing left to offer you.';
+    pool.appendChild(none);
+  }
+
+  offer.forEach(key => {
+    const up = SOUL_UPGRADES[key];
+    const cost = soulUpgradeCost(key);
+    const canAfford = G.souls >= cost;
+    const el = document.createElement('div');
+    el.className = 'reward-card soul-upgrade-card';
+    if (!canAfford) el.classList.add('unaffordable');
+    el.innerHTML = `
+      <span class="reward-card-emoji">${up.emoji}</span>
+      <div class="reward-card-name">${up.name}</div>
+      <div class="reward-card-type" style="color:${canAfford ? 'var(--gold)' : 'var(--red2)'}">💀 ${cost} Soul${cost === 1 ? '' : 's'}${up.repeatable ? ' · Repeatable' : ''}</div>
+      <div class="reward-card-desc">${up.desc}${up.note ? `<br><span style="color:var(--text3);font-size:0.85em">${up.note}</span>` : ''}</div>
+    `;
+    el.onclick = () => {
+      if (G.souls < cost) { showMsg('Not enough Souls!'); return; }
+      if (!buySoulUpgrade(key)) return;
+      document.getElementById('reward-souls').textContent = G.souls;
+      setRewardSkipVisible(true);
+      proceedOrPath();   // one purchase per spend window
+    };
+    pool.appendChild(el);
+  });
+
+  // Decline — always available, so a player who can't afford any of the three is never stuck.
+  const footer = document.createElement('div');
+  footer.style.cssText = 'width:100%;display:flex;justify-content:center;margin-top:0.6rem;';
+  const leave = document.createElement('button');
+  leave.className = 'btn';
+  leave.style.cssText = 'font-size:0.75rem;padding:0.35rem 0.9rem;';
+  leave.textContent = 'Keep your Souls — move on';
+  leave.onclick = () => { setRewardSkipVisible(true); proceedOrPath(); };
+  footer.appendChild(leave);
+  pool.appendChild(footer);
 }
 
 // Void Compass — pick 1 of 3 unowned relics after an elite fight.
@@ -672,6 +762,7 @@ function showEliteRelicReward() {
   document.getElementById('reward-gold').textContent = G.gold;
   document.getElementById('reward-souls').textContent = G.souls;
   showScreen('reward-screen');
+  setRewardSkipVisible(true);
   const rewardSub = document.getElementById('reward-sub');
   if (rewardSub) rewardSub.textContent = '';
 
@@ -909,6 +1000,13 @@ function renderHand() {
     const canPlay = G.energy >= actualCost && !G._voidChannelSelecting;
     if (!canPlay) el.classList.add('unplayable');
 
+    // Hard play conditions (CARD_PLAY_CONDITIONS in js/data.js) — a warning, NOT a block. The
+    // card stays tappable and playCard()/effect() remain the source of truth; this only stops
+    // the player from discovering a doomed play by wasting it. Distinct from `.unplayable`
+    // (can't afford), which removes the click handler entirely.
+    const blockReason = G._voidChannelSelecting ? null : getCardBlockReason(G, key);
+    if (blockReason) el.classList.add('condition-unmet');
+
     // Build dynamic description
     const weakStatus2 = G.statuses && G.statuses.player && G.statuses.player.find(s => s.name === '😵Weak');
     const isWeak2 = c.type === 'Attack' && weakStatus2 && weakStatus2.stacks > 0;
@@ -918,7 +1016,11 @@ function renderHand() {
     const previewBonusText = c.dice
       ? `🎲 ${affinityActive ? 'Bonus Active!' : `${String(c.affinityBonus || '').toUpperCase()} roll bonus`}`
       : '';
-    const previewPlayHint = canPlay ? 'Tap selected card again to play' : `Need ${actualCost} Energy`;
+    // Blocked cards explain themselves in the mobile preview's hint slot — the compressed tile
+    // hides its description text, so this is where a phone player actually reads the reason.
+    const previewPlayHint = blockReason
+      ? `⚠ ${blockReason}`
+      : (canPlay ? 'Tap selected card again to play' : `Need ${actualCost} Energy`);
     if (c.type === 'Attack') {
       displayDesc = c.desc.replace(/deal (\d+)/gi, (match, num) => {
         const base = parseInt(num, 10);
@@ -950,9 +1052,13 @@ if (key === 'arcanebarrage' || key === 'arcanebarrage+') {
       <div class="card-compact-summary">${compactSummary}</div>
       <div class="card-type">${c.type}</div>
       <div class="card-desc">${displayDesc}</div>
+      ${blockReason ? `<div class="card-block-reason">⚠ ${blockReason}</div>` : ''}
       ${weakIndicator}
       ${c.dice ? `<div class="card-dice-req">🎲 ${affinityActive ? '✨ Bonus Active!' : c.affinityBonus + ' roll'}</div>` : ''}
     `;
+    // Desktop hover tooltip for the same reason (the tile's own label covers touch devices).
+    if (blockReason) el.title = blockReason;
+
     if (G._voidChannelSelecting) {
       // In void channel discard mode — every card is clickable to discard
       el.classList.remove('unplayable');
@@ -982,7 +1088,7 @@ if (key === 'arcanebarrage' || key === 'arcanebarrage+') {
     if (isSelected && preview && !G._voidChannelSelecting) {
       preview.classList.add('active');
       preview.innerHTML = `
-        <div class="mobile-card-preview-inner${affinityActive ? ' affinity-active' : ''}">
+        <div class="mobile-card-preview-inner${affinityActive ? ' affinity-active' : ''}${blockReason ? ' condition-unmet' : ''}">
           <div class="mobile-card-preview-cost" style="${costStyle}">${actualCost}</div>
           <div class="mobile-card-preview-emoji">${c.emoji}</div>
           <div class="mobile-card-preview-name">${c.name}</div>
@@ -1012,14 +1118,36 @@ function renderEnergy() {
   energyEl.style.color = overMax ? '#e8d080' : 'var(--gold)';
 
   const rerollBtn = document.getElementById('reroll-btn');
-  rerollBtn.disabled = G.rerollUsed;
-  const rerollsLeft = G.rerollUsed ? 0 : 1;
+  // Count shows this turn's base charge plus any of Steady Hand's combat-long bonus still unspent.
+  const rerollsLeft = G.aldricInfiniteReroll ? '∞' : totalRerollsLeft();
+  rerollBtn.disabled = !G.aldricInfiniteReroll && totalRerollsLeft() <= 0;
   rerollBtn.innerHTML = `🎲 REROLL <span style="font-size:0.7em;opacity:0.8">(${rerollsLeft})</span>`;
+  rerollBtn.title = (G._bonusRerolls > 0) ? 'Includes 1 Steady Hand bonus reroll for this combat' : '';
+  renderSoulDiceControls();
   renderDicePool();
   const drawEl = document.getElementById('draw-count');
   const discardEl = document.getElementById('discard-count');
   if (drawEl) drawEl.textContent = G.drawPile ? G.drawPile.length : 0;
   if (discardEl) discardEl.textContent = G.discardPile ? G.discardPile.length : 0;
+}
+
+// Soul dice upgrades sit above the dice panel and only appear while they are actually usable —
+// owned, and not yet spent this combat. Mirrors the reroll button's "optional post-roll action"
+// shape so both read the same way.
+function renderSoulDiceControls() {
+  const sdBtn = document.getElementById('second-die-btn');
+  const geBtn = document.getElementById('gamblers-edge-btn');
+  const picker = document.getElementById('gamblers-edge-picker');
+
+  const showSecond = hasSoulUpgrade('second_die') && !G._secondDieUsed;
+  const showEdge = hasSoulUpgrade('gamblers_edge') && !G._gamblersEdgeUsed;
+
+  if (sdBtn) sdBtn.style.display = showSecond ? '' : 'none';
+  if (geBtn) {
+    geBtn.style.display = showEdge ? '' : 'none';
+    geBtn.disabled = !!G._dieSetThisTurn;
+  }
+  if (picker && !showEdge) picker.classList.remove('visible');
 }
 
 function renderDicePool() {
