@@ -69,6 +69,7 @@
         <div class="hud-resource" title="Draw pile">📋 <span id="draw-count">0</span></div>
         <div class="hud-resource" title="Discard pile">🗑 <span id="discard-count">0</span></div>
         <div class="hud-resource hud-souls" title="Souls">💀 <span id="hud-souls">0</span></div>
+        <div class="hud-resource hud-turn" id="hud-turn-chip" title="Turn 1">Turn <span id="hud-turn">1</span></div>
       </div>
       <div class="combat-hud-right">
         <button class="btn hud-map-btn" onclick="toggleMap()">🗺 MAP</button>
@@ -437,5 +438,7 @@
 <script src="js/combat.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/main.js"></script>
+<!-- Dev/testing shortcut. Inert unless ?debug= is in the URL or dbg() is called from the console. -->
+<script src="js/debug.js"></script>
 </body>
 </html>

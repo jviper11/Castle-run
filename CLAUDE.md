@@ -21,7 +21,13 @@ The deployed game is the split build:
 - `js/ui.js` — card rendering, dynamic previews, rewards, rest, shop, relic UI, status rendering, tooltips, HUD, map, and screen helpers.
 - `js/main.js` — startup, viewport/orientation handling, and event wiring.
 
-Scripts are loaded by `index.html` in this order: `data.js`, `game.js`, `combat.js`, `ui.js`, then `main.js`. These files share browser globals, so load order and globally referenced names matter.
+- `js/debug.js` — dev/testing jump tool. Not a player feature and not reachable through any UI.
+
+Scripts are loaded by `index.html` in this order: `data.js`, `game.js`, `combat.js`, `ui.js`, `main.js`, then `debug.js`. These files share browser globals, so load order and globally referenced names matter.
+
+### Dev jump tool (`js/debug.js`)
+
+Skip straight to a fight instead of replaying floors. Console: `dbg('aldric')`, `dbg('boss', {floor: 2})`, `dbg('floor', {floor: 3})`, also `bossintro`, `combat`, `elite`. URL: `?debug=aldric`, `?debug=boss&floor=2`. Options: `hero`, `floor`, `gold`, `souls`, `hp`, `cores` (4 unlocks Aldric's Phase 3), `relics=a,b`, `upgrades=a,b`, and status stacks `weak`/`chill`/`rage`/`poison`/`burn` (enemy) and `vulnerable` (player). It calls the real `newGame()` and fight-start functions, so the resulting fight is an ordinary one — there is no separate "test mode". Inert unless `?debug=` is present or a console global is called; full option list is documented at the top of the file.
 
 ### Legacy snapshot
 

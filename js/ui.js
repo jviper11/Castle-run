@@ -1359,6 +1359,14 @@ function updateHUD() {
   document.getElementById('hud-room').textContent = `Room ${roomIdx + 1} · Path ${(floor && floor.currentPath ? floor.currentPath : 'A')}`;
   document.getElementById('hud-gold').textContent = G.gold;
   document.getElementById('hud-souls').textContent = G.souls;
+  // Turn counter — display only, read straight from G.turn (incremented in startTurn()). It lives
+  // inside #combat-screen, so it is hidden on every other screen without any show/hide logic.
+  const turnEl = document.getElementById('hud-turn');
+  if (turnEl) {
+    turnEl.textContent = G.turn || 0;
+    const chip = document.getElementById('hud-turn-chip');
+    if (chip) chip.title = `Turn ${G.turn || 0} of this combat`;
+  }
   renderRelics();
 }
 

@@ -281,6 +281,10 @@ body {
 .hud-resource { font-size: 0.78rem; color: var(--text2); }
 .hud-gold { color: var(--gold); }
 .hud-souls { color: var(--text2); }
+/* Turn counter — deliberately the quietest chip in the row. It is a utility readout, not a
+   resource, so it must not compete with HP/Block/Energy/dice/intent for attention (AGENTS.md
+   UI rules). Uses .hud-resource sizing, so it inherits every responsive rule automatically. */
+.hud-turn { color: var(--text3); }
 .hud-floor { font-family: 'Cinzel', serif; font-size: 0.85rem; color: var(--gold); letter-spacing: 0.1em; }
 .hud-room { font-size: 0.8rem; color: var(--text2); font-style: italic; }
 .hud-map-btn { font-size: 0.75rem; padding: 0.3rem 0.8rem; }

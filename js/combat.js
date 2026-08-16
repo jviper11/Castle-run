@@ -45,6 +45,7 @@ function startAldricFight() {
   const phase = ALDRIC.phases[0];
   G.aldricPhase = 1;
   G.aldricDamageDealt = 0;
+  G.turn = 0;                // reset once for the whole fight, NOT per phase transition
   G.aldricTurns = 0;
   G.aldricStoneHeart = phase.stoneHeartBase;
   G.aldricRelicsTriggered = [];
@@ -472,6 +473,7 @@ function startCombat(isElite) {
   G.startingDrawCount = 5;   // cards drawn at the start of each turn
   G.maxHandSize = 8;         // cap that in-turn draw effects can fill up to
   G.cardsPlayedThisCombat = 0;
+  G.turn = 0;                // per-combat turn counter; startTurn() takes it to 1 immediately
   G._ashenCrownFired = false;
   // Relic hooks — start of combat
   // (iron_vambrace and hollow_throne Block are staged by stageCombatStartBlock below, so they
@@ -510,6 +512,7 @@ function startBossFight() {
   G.startingDrawCount = 5;   // cards drawn at the start of each turn
   G.maxHandSize = 8;         // cap that in-turn draw effects can fill up to
   G.cardsPlayedThisCombat = 0;
+  G.turn = 0;                // per-combat turn counter; startTurn() takes it to 1 immediately
   G._ashenCrownFired = false;
   // Relic hooks — start of combat
   // (iron_vambrace and hollow_throne Block are staged by stageCombatStartBlock below, so they
