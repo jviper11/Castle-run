@@ -171,6 +171,29 @@ const RELICS = {
 
 function hasRelic(key) { return G.relics && G.relics.includes(key); }
 
+// Rarity bucket a card sits in. Checks the active hero's pool first — reward screens only ever
+// offer cards from it — then falls back to any hero's pool, because the shop can sell a card
+// outside the current hero's pool (Blizzard is a Mage card but any hero can buy it) and would
+// otherwise mislabel it Common. Shared by showReward() and the shop's card tiles so the two
+// screens can never disagree about the same card.
+function getCardRarity(key) {
+  const own = CHAR_REWARD_POOLS[G.charKey];
+  if (own) {
+    if ((own.rare || []).includes(key)) return 'rare';
+    if ((own.uncommon || []).includes(key)) return 'uncommon';
+    if ((own.common || []).includes(key)) return 'common';
+  }
+  for (const pool of Object.values(CHAR_REWARD_POOLS || {})) {
+    if ((pool.rare || []).includes(key)) return 'rare';
+    if ((pool.uncommon || []).includes(key)) return 'uncommon';
+    if ((pool.common || []).includes(key)) return 'common';
+  }
+  return 'common';
+}
+
+const CARD_RARITY_COLORS = { common: 'var(--text2)', uncommon: 'var(--energy)', rare: '#c9a84c' };
+const titleCase = (s) => String(s).charAt(0).toUpperCase() + String(s).slice(1);
+
 function shopCost(n) { return Math.ceil(n * (hasRelic('kings_debt') ? 1.25 : 1)); }
 
 function showShop() {
@@ -202,11 +225,31 @@ function showShop() {
     const itemCost = shopCost(item.cost);
     const canAfford = G.gold >= itemCost;
     if (!canAfford) el.style.opacity = '0.5';
-    el.innerHTML = `<span class="shop-item-emoji">${item.emoji}</span><div class="shop-item-name">${item.name}</div><div class="shop-item-desc">${item.desc}</div><div class="shop-item-cost" style="color:${canAfford ? 'var(--energy)' : 'var(--red2)'}">🪙 ${itemCost}</div>`;
+    // Card purchases (item.card) render their real card data — name, emoji, type, rarity, Energy
+    // cost and effect text straight from CARDS — matching the detail the Victory reward screen
+    // shows. They used to carry hardcoded name/desc strings, which is how a tile titled "Sharp
+    // Card" ended up advertising Blizzard. Non-card stock (potions, the die) is unchanged.
+    const shopCard = item.card ? CARDS[item.card] : null;
+    if (shopCard) {
+      const rarity = getCardRarity(item.card);
+      el.innerHTML = `<span class="shop-item-emoji">${shopCard.emoji}</span>`
+        + `<div class="shop-item-name">${shopCard.name}</div>`
+        + `<div class="shop-item-type" style="color:${CARD_RARITY_COLORS[rarity]}">${shopCard.type} · ${titleCase(rarity)} · ⚡${shopCard.cost}</div>`
+        + `<div class="shop-item-desc">${shopCard.desc}</div>`
+        + `<div class="shop-item-cost" style="color:${canAfford ? 'var(--energy)' : 'var(--red2)'}">🪙 ${itemCost}</div>`;
+    } else {
+      el.innerHTML = `<span class="shop-item-emoji">${item.emoji}</span><div class="shop-item-name">${item.name}</div><div class="shop-item-desc">${item.desc}</div><div class="shop-item-cost" style="color:${canAfford ? 'var(--energy)' : 'var(--red2)'}">🪙 ${itemCost}</div>`;
+    }
     el.onclick = () => {
       if (G.gold < itemCost) { showMsg('Not enough gold!'); return; }
       G.gold -= itemCost;
-      item.effect(G);
+      if (shopCard) {
+        // Same grant the reward screen performs, so the card sold is always the card described.
+        G.deck.push(item.card);
+        showMsg(`${shopCard.name} added to deck!`);
+      } else {
+        item.effect(G);
+      }
       document.getElementById(`shop-item-${i}`).classList.add('sold');
       // refresh gold and HP displays
       document.getElementById('shop-gold-display').textContent = G.gold;
@@ -546,13 +589,12 @@ function showReward() {
   }
   const allPicks = shuffle([...bucket]).slice(0, hasRelic('scholars_lens') ? 4 : 3);
 
-  const rarityColor = { common: 'var(--text2)', uncommon: 'var(--energy)', rare: '#c9a84c' };
+  const rarityColor = CARD_RARITY_COLORS;
 
   allPicks.forEach(key => {
     const c = CARDS[key];
     if (!c) return;
-    const cardRarity = (charPool.rare || []).includes(key) ? 'rare' :
-                       (charPool.uncommon || []).includes(key) ? 'uncommon' : 'common';
+    const cardRarity = getCardRarity(key);   // shared with the shop's card tiles
     const el = document.createElement('div');
     el.className = 'reward-card';
     if (cardRarity === 'rare') el.style.borderColor = '#c9a84c';
@@ -1167,7 +1209,10 @@ const STATUS_DESCRIPTIONS = {
   '😵Weak':          'Attacks deal 25% less damage. Ticks down each turn.',
   '🫗Vulnerable':    'Takes 50% more damage from attacks. Ticks down each turn.',
   '🔥Burn':          'Takes stacks damage at end of turn. Ticks down.',
-  '❄️Chill':         'Attack reduced by 25%. Ticks down each turn.',
+  // Chill is the one status that does NOT tick on a turn cadence — it is consumed only when the
+  // enemy actually attacks (GDD.md §Statuses; verified Aug 15, 2026). The old wording said
+  // "Ticks down each turn," which contradicted both the GDD and the verified behaviour.
+  '❄️Chill':         'Enemy attacks deal 25% less damage. Ticks down only when the enemy attacks.',
   '☠️Poison':        'Takes stacks damage at end of turn. Ticks down.',
   '💚Regen':         'Heals stacks HP at end of turn. Ticks down.',
   '🦇Fly':           'Damage taken is halved this turn.',

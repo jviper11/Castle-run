@@ -117,6 +117,34 @@ function updateAldricUI() {
   }
 }
 
+// Base damage and hit count of Aldric's attack for the current phase, BEFORE the shared enemy
+// modifiers (Rage / Weak / Chill) are applied by enemyAttackDamage().
+//
+// BUG FIX (Aug 15, 2026): every phase used to call resolveEnemyAttack() with a hardcoded number,
+// bypassing enemyAttackDamage() entirely — so Rage, Weak and Chill never touched Aldric's damage,
+// while endTurn()'s STEP 6b still drained a Weak stack per turn. The player watched Weak tick
+// down against the final boss while it did nothing. Sharing this profile between
+// processAldricTurn() and updateIntent() also keeps his displayed intent honest, the same way
+// enemyAttackDamage() does for regular enemies.
+function aldricAttackProfile(g) {
+  const phase = g.aldricPhase || 1;
+  let base = g.enemy.damage;   // set per phase by startAldricFight / checkAldricPhaseTransition
+  let hits = 1;
+  if (phase === 2) {
+    // Fractured Strike — lands three times, amplified while the player burns or is poisoned.
+    hits = 3;
+    const hasPoison = g.statuses.player.find(s => s.name === '☠️Poison');
+    const hasBurn = g.statuses.player.find(s => s.name === '🔥Burn');
+    if (hasPoison || hasBurn) base = Math.floor(base * 1.5);
+  } else if (phase === 3 && g.aldricHasRelics) {
+    // Relic-weakened phase 3. Preserved as an explicit value: the phase's own enemy.damage is 20,
+    // and the Sword trigger's halving of enemy.damage has never reached this branch. Both belong
+    // to the superseded True Ending relic system — see DESIGN_DISCREPANCIES.md.
+    base = 15;
+  }
+  return { base, hits };
+}
+
 function processAldricTurn() {
   if (!G.enemy || !G.enemy.isAldric) return;
   G.aldricTurns = (G.aldricTurns || 0) + 1;
@@ -134,8 +162,9 @@ function processAldricTurn() {
       showMsg('🧱 Stone Heart weakens — block reduced to ' + G.aldricStoneHeart + '!');
     }
 
-    // Grieving Ground — attack + add Curse (routes through the shared enemy-attack pipeline)
-    resolveEnemyAttack(G, 15);
+    // Grieving Ground — attack + add Curse (routes through the shared enemy-attack pipeline,
+    // and through enemyAttackDamage() so Rage/Weak/Chill apply as they do to any other enemy)
+    resolveEnemyAttack(G, enemyAttackDamage(G, true, aldricAttackProfile(G).base));
     G.discardPile.push('curse_weakness');
     showMsg('👑 Grieving Ground — Curse of Weakness added to your deck!');
     updateAldricUI();
@@ -155,14 +184,14 @@ function processAldricTurn() {
       setTimeout(() => { G.aldricAffinityDisabled = false; }, 100);
     }
 
-    // Fractured Strike — 8 damage 3 times
-    let strikeDmg = 8;
-    const hasPoison = G.statuses.player.find(s => s.name === '☠️Poison');
-    const hasBurn = G.statuses.player.find(s => s.name === '🔥Burn');
-    if (hasPoison || hasBurn) {
-      strikeDmg = Math.floor(strikeDmg * 1.5);
+    // Fractured Strike — 3 hits, amplified by the player's Poison/Burn (see aldricAttackProfile)
+    const profile = aldricAttackProfile(G);
+    if (profile.base > G.enemy.damage) {
       showMsg('👑 Fractured Strike — amplified by your status effects!');
     }
+    // Resolve the shared modifiers ONCE for the whole volley: three hits are one attack, so a
+    // single Chill stack is consumed, not three (mirrors the multi-hit rule for Weak).
+    const strikeDmg = enemyAttackDamage(G, true, profile.base);
     resolveEnemyAttack(G, strikeDmg);
     setTimeout(() => resolveEnemyAttack(G, strikeDmg), 200);
     setTimeout(() => resolveEnemyAttack(G, strikeDmg), 400);
@@ -184,9 +213,11 @@ function processAldricTurn() {
     }
 
     if (!G.aldricHasRelics) {
-      // No relics — Unbreakable wall
+      // No relics — Unbreakable wall. Statuses are cleared FIRST, so the shared modifiers below
+      // find nothing to apply: the immunity is preserved, it is just now expressed by the
+      // clearing rather than by bypassing the damage helper.
       G.statuses.enemy = []; // immune to all status
-      resolveEnemyAttack(G, 20);
+      resolveEnemyAttack(G, enemyAttackDamage(G, true, aldricAttackProfile(G).base));
       showMsg('👑 The cycle continues... you are not ready.');
       return;
     }
@@ -201,7 +232,7 @@ function processAldricTurn() {
       }
     }
 
-    resolveEnemyAttack(G, 15); // reduced damage with relics
+    resolveEnemyAttack(G, enemyAttackDamage(G, true, aldricAttackProfile(G).base)); // relic-reduced
   }
 }
 
@@ -1043,7 +1074,10 @@ function endTurn() {
     if (vuln.stacks <= 0) G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '🫗Vulnerable');
   }
 
-  // ── STEP 2b: Weak ticks down (1 stack per turn, like Vulnerable) ──
+  // ── STEP 2b: PLAYER Weak ticks down (1 stack per turn, like Vulnerable) ──
+  // Player Weak reduces the player's own attacks, which already happened this turn, so it ticks
+  // here. ENEMY Weak reduces the enemy's attack in STEP 6 and therefore ticks in STEP 6b, after
+  // the attack it is meant to weaken — see the note there.
   const playerWeak = G.statuses.player.find(s => s.name === '😵Weak');
   if (playerWeak) {
     playerWeak.stacks--;
@@ -1097,22 +1131,35 @@ function endTurn() {
   if (G.enemy && G.enemy.isAldric) {
     processAldricTurn();
   } else if (e.intent === 'attack') {
-    // Steps 1-2: base damage + enemy modifiers (Rage adds Strength, Chill reduces).
-    let dmg = e.damage;
-    const eStrong = G.statuses.enemy.find(s => s.name === '💢Rage');
-    if (eStrong) dmg += eStrong.stacks;
-    const chillStatus = G.statuses.enemy.find(s => s.name === '❄️Chill');
-    if (chillStatus && chillStatus.stacks > 0) {
-      const coldMastery = G.statuses.player.find(s => s.name === '❄️ColdMastery');
-      const chillReduction = coldMastery ? (coldMastery.stacks === 2 ? 0.50 : 0.65) : 0.75;
-      dmg = Math.floor(dmg * chillReduction);
-      chillStatus.stacks--;
-      if (chillStatus.stacks <= 0) G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '❄️Chill');
-    }
+    // Steps 1-2: base damage + enemy modifiers (Rage adds Strength, Weak and Chill reduce).
+    // Shared with updateIntent() so the displayed intent matches what lands here.
+    const dmg = enemyAttackDamage(G, true);
     // Steps 3-6: Fly → Block → HP → on-HP-loss effects, via the shared pipeline.
     resolveEnemyAttack(G, dmg);
   } else if (e.intent === 'defend') {
     G.enemy.block += 8;
+  }
+
+  // ── STEP 6b: statuses that modify the ENEMY'S ATTACK tick down, AFTER the enemy has acted ──
+  // Deliberately not in STEP 2b. Both of these are read during STEP 6 of this same endTurn(), so
+  // ticking them earlier would strip a 1-stack application before the very attack it was meant
+  // to affect, making those statuses useless on the turn they land.
+  //   • enemy Weak      — reduces the enemy's outgoing attack (see enemyAttackDamage)
+  //   • player Vulnerable — increases the damage that attack deals (see applyPlayerVulnerable)
+  // Player Weak stays in STEP 2b because it modifies the PLAYER'S attacks, which already
+  // resolved during the player's own turn.
+  // Both tick every turn per their tooltips, including defend turns, unlike Chill.
+  const enemyWeak = G.statuses.enemy.find(s => s.name === '😵Weak');
+  if (enemyWeak) {
+    enemyWeak.stacks--;
+    if (enemyWeak.stacks <= 0) G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '😵Weak');
+  }
+  // Cursed Hound's rabid bite applies this in STEP 9, after this tick, so a freshly applied
+  // stack survives to amplify next turn's attack rather than being consumed on arrival.
+  const playerVuln = G.statuses.player.find(s => s.name === '🫗Vulnerable');
+  if (playerVuln) {
+    playerVuln.stacks--;
+    if (playerVuln.stacks <= 0) G.statuses.player = G.statuses.player.filter(s => s.name !== '🫗Vulnerable');
   }
 
   // ── STEP 7: Poison ticks AFTER enemy acts ──
@@ -1363,8 +1410,60 @@ function loseHP(g, amount, floorAt) {
 // `amount` is the attack damage AFTER enemy/boss modifiers (Rage, Chill, Fractured Strike
 // scaling, etc.) — those are the caller's responsibility (pipeline steps 1-2). Steps here:
 //   3. Fly (enemy-direct only) → 4. Block → 5. loseHP (Oath + survival fire on real HP lost).
+// Single source of truth for a basic enemy attack's damage, so the number updateIntent() shows
+// and the number endTurn() resolves can never drift apart (AGENTS.md verification area).
+//
+// BUG FIX (Aug 15, 2026): the enemy-side Weak branch was lost when the monolith was split (it
+// exists in commit 90c74a0's damage helper). Twelve card effects apply Weak to the enemy, but
+// nothing read it — Weak neither reduced enemy damage nor ticked down, so it stuck at its peak
+// forever and did nothing. Rage was also missing from the intent display, understating incoming
+// damage whenever the enemy had Strength.
+//
+// consumeChill: only the real attack consumes the Chill stack. The intent preview must not.
+// baseOverride: start from a value other than g.enemy.damage (Aldric's phase-specific attacks).
+function enemyAttackDamage(g, consumeChill, baseOverride) {
+  let dmg = (baseOverride === undefined) ? g.enemy.damage : baseOverride;
+  const rage = g.statuses.enemy.find(s => s.name === '💢Rage');
+  if (rage && rage.stacks > 0) dmg += rage.stacks;
+  const weak = g.statuses.enemy.find(s => s.name === '😵Weak');
+  if (weak && weak.stacks > 0) dmg = Math.floor(dmg * 0.75);   // "Attacks deal 25% less damage"
+  const chill = g.statuses.enemy.find(s => s.name === '❄️Chill');
+  if (chill && chill.stacks > 0) {
+    const coldMastery = g.statuses.player.find(s => s.name === '❄️ColdMastery');
+    const chillReduction = coldMastery ? (coldMastery.stacks === 2 ? 0.50 : 0.65) : 0.75;
+    dmg = Math.floor(dmg * chillReduction);
+    if (consumeChill) {
+      chill.stacks--;
+      if (chill.stacks <= 0) g.statuses.enemy = g.statuses.enemy.filter(s => s.name !== '❄️Chill');
+    }
+  }
+  return dmg;
+}
+
+// Defender-side modifier on incoming enemy damage: player Vulnerable.
+//
+// BUG FIX (Aug 15, 2026): the mirror of the enemy-Weak gap. Cursed Hound's rabid bite applies
+// Vulnerable to the player, but nothing read it — it neither increased damage taken nor decayed,
+// so it stuck forever and did nothing. `git log -S` traces the loss to the same split migration
+// (commit bb85760) that dropped the enemy-Weak branch: commit 90c74a0 had a
+// getModifiedIncomingDamage() helper reading exactly this status, and it did not survive.
+//
+// x1.5 matches the single rule the game states in both places it is defined — GDD.md §Statuses
+// ("Target takes 50% more damage") and the shared in-game tooltip ("Takes 50% more damage from
+// attacks") — and the live enemy-side convention in calculatePlayerAttackDamage(). The lost
+// helper used x1.25, which already disagreed with the GDD, so it was not restored.
+//
+// Applied to ALL enemy-direct damage (basic attacks, enemy specials, Aldric) because it lives in
+// this shared pipeline — the same breadth enemy Vulnerable gets from calculatePlayerAttackDamage.
+function applyPlayerVulnerable(g, dmg) {
+  const vuln = g.statuses.player.find(s => s.name === '🫗Vulnerable');
+  return (vuln && vuln.stacks > 0) ? Math.floor(dmg * 1.5) : dmg;
+}
+
 function resolveEnemyAttack(g, amount, bypassBlock) {
-  let dmg = amount;
+  // Vulnerable amplifies the incoming hit first, then Fly mitigates it — the order the lost
+  // getModifiedIncomingDamage() used.
+  let dmg = applyPlayerVulnerable(g, amount);
   // Fly — halve incoming enemy-direct damage, then clear (one-shot, this turn only)
   const flyStatus = g.statuses.player.find(s => s.name === '🦇Fly');
   if (flyStatus) {
@@ -1548,15 +1647,20 @@ function updateIntent() {
     ? `<div style="font-size:0.65rem;color:var(--purple2);margin-top:0.2rem;">⚡ ${e.special.name} · <span style="color:var(--text3)">tap for info</span></div>`
     : '';
   if (e.intent === 'attack') {
-    const rawDmg = e.damage;
-    const chill = G.statuses.enemy.find(s => s.name === '❄️Chill');
-    const coldMastery = G.statuses.player.find(s => s.name === '❄️ColdMastery');
-    const chillReduction = coldMastery ? (coldMastery.stacks === 2 ? 0.50 : 0.65) : 0.75;
-    const actualDmg = (chill && chill.stacks > 0) ? Math.floor(rawDmg * chillReduction) : rawDmg;
-    const dmgDisplay = (chill && chill.stacks > 0)
-      ? `<span style="color:#7fb3d3;font-weight:bold">${actualDmg}</span> <span style="text-decoration:line-through;opacity:0.5;font-size:0.85em">${rawDmg}</span>`
+    // Same helpers the attack itself uses (consumeChill false — previewing must not spend Chill),
+    // so the number shown is exactly the number that will land. Covers the attacker's Rage, Weak
+    // and Chill, plus the defender's Vulnerable. Previously this read e.damage and applied only
+    // Chill, so it understated Rage and ignored Weak and Vulnerable entirely.
+    // Aldric's phase-specific profile (3-hit Fractured Strike, Poison/Burn amplification) comes
+    // from the same helper his turn uses, so the preview cannot drift from the volley he throws.
+    const profile = e.isAldric ? aldricAttackProfile(G) : { base: e.damage, hits: 1 };
+    const rawDmg = profile.base;
+    const actualDmg = applyPlayerVulnerable(G, enemyAttackDamage(G, false, profile.base));
+    const dmgDisplay = (actualDmg !== rawDmg)
+      ? `<span style="color:${actualDmg < rawDmg ? '#7fb3d3' : '#e74c3c'};font-weight:bold">${actualDmg}</span> <span style="text-decoration:line-through;opacity:0.5;font-size:0.85em">${rawDmg}</span>`
       : `${rawDmg}`;
-    el.innerHTML = `Preparing: <strong>Attack ${dmgDisplay}</strong>${specialHint}`;
+    const hitsSuffix = profile.hits > 1 ? ` ×${profile.hits}` : '';
+    el.innerHTML = `Preparing: <strong>Attack ${dmgDisplay}${hitsSuffix}</strong>${specialHint}`;
   } else {
     el.innerHTML = `Preparing: <strong>🛡 Defend</strong>${specialHint}`;
   }

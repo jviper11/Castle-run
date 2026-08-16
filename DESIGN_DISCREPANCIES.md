@@ -69,6 +69,18 @@ This file records unresolved conflicts between design documents, progress notes,
 
 **Resolution (fixed + verified in-game):** Weak was ticking down **per hit** — the decrement lived inside `calculatePlayerAttackDamage()`, which multi-hit Attack cards call once per hit, so a 2-/3-hit card drained the whole Weak stack in one play. The decrement was moved out of `calculatePlayerAttackDamage()` into `endTurn()` (STEP 2b), alongside Vulnerable's, so Weak now ticks down **exactly once per turn**. `calculatePlayerAttackDamage()` still applies the 25% damage reduction but no longer decays the stack. Confirmed by in-game test: a 3-hit card left Weak surviving with only 1 stack consumed at end of turn, not 3.
 
+**Amendment (Aug 15, 2026) — this resolution only ever covered PLAYER Weak.** A later report of enemy Weak sticking at its peak looked like a regression of the above, but was not: STEP 2b was intact and still correct, and the multi-hit no-drain rule still held (re-verified). The gap was that **enemy** Weak was read nowhere in the combat loop — it neither decayed nor applied its 25% reduction, despite 12 card effects applying it. Confirmed to predate the split-build session work by re-running the repro against `git show HEAD:js/combat.js`. Now fixed: `enemyAttackDamage()` in `js/combat.js` is the single source of truth for a basic enemy attack (Rage → Weak → Chill), shared by `endTurn()` STEP 6 and `updateIntent()`, and **STEP 6b** ticks enemy Weak *after* the enemy acts.
+
+**Timing note — the two sides tick at different points, deliberately.** Weak reduces the attacks of whoever carries it, so each side's stack must survive until the attack it was meant to weaken has resolved:
+- **Player Weak** → STEP 2b (the player's attacks already resolved during their turn).
+- **Enemy Weak** → STEP 6b, after the enemy's STEP 6 attack. Ticking it in STEP 2b would strip a Weak 1 before the very attack it was played to weaken.
+
+**Player Vulnerable — same defect, now also fixed (Aug 15, 2026).** Applied by Cursed Hound's rabid bite and read nowhere, so it neither increased damage taken nor decayed. `git log -S` traced it to the **same migration** that lost enemy Weak: commit `90c74a0` had a `getModifiedIncomingDamage()` helper reading player Vulnerable and Fly, and it did not survive the re-split in `bb85760`. Both halves of the Weak/Vulnerable pair were lost in one move; this closes that gap. Now applied by `applyPlayerVulnerable()` in `js/combat.js` inside the shared `resolveEnemyAttack()` pipeline (so it covers basic attacks, enemy specials and Aldric, matching the breadth enemy Vulnerable gets from `calculatePlayerAttackDamage()`), and ticked in STEP 6b.
+
+**Multiplier — ×1.5, not the ×1.25 the lost helper used.** GDD.md's status table ("Target takes 50% more damage") and the shared in-game tooltip ("Takes 50% more damage from attacks") both state one symmetric rule, and the live enemy-side path already uses ×1.5. The historical ×1.25 disagreed with the GDD before it was lost, so it was not restored — noted here in case that asymmetry was once intentional and someone wants it back as a deliberate design choice.
+
+**Timing:** player Vulnerable ticks in **STEP 6b**, not STEP 2b with player Weak. It modifies the damage of the enemy's STEP 6 attack, so like enemy Weak it must survive until that attack resolves. Cursed Hound applies it from an `attack`-trigger special in STEP 9 — after the tick — so a freshly applied stack correctly survives to amplify the following turn rather than being consumed on arrival.
+
 ---
 
 ## ✅ RESOLVED — Mirror behavior
@@ -120,6 +132,88 @@ This file records unresolved conflicts between design documents, progress notes,
 **Original question:** Are normal battle rewards card-only, or should they still offer a card-or-die choice?
 
 **Resolution (fixed):** Combat-victory rewards are **card-only**. The stale "card or die" subtitle was a shared element with the Magic Door die-reward screen. The reward subtitle is now set **dynamically** in `js/ui.js` — `showReward()` sets it to "Choose your reward — a card", and `showDieReward()` uses its own die header — so the wording always matches the active reward. Dice come from the shop, Magic Doors, and events only.
+
+---
+
+## ✅ CONFIRMED — Chill tick cadence (verified, no behaviour change)
+
+**Original question:** Does Chill tick once per turn like Weak/Vulnerable, or only when the enemy actually attacks?
+
+**Verified Aug 15, 2026 — the code already matched the GDD; nothing was changed.** Chill has exactly one decrement site, inside `enemyAttackDamage(g, consumeChill)` in `js/combat.js`, and `consumeChill` is true only on the attack branch of `endTurn()` STEP 6. Observed: 3 stacks survived 4 consecutive defend turns unchanged (`3 → 3 → 3 → 3 → 3`), survived 20 defend turns intact, and an interleaved run of 7 turns containing 3 attacks consumed exactly 3 stacks. Rendering the intent preview does not consume a stack.
+
+**Weak and Vulnerable are deliberately different, and also correct.** Both tick on a plain per-turn cadence regardless of the enemy's action, matching the GDD's "-1 stack at end of turn" (which carries no attack qualifier, unlike Chill's entry). Observed across defend turns: enemy Weak `4 → 3 → 2 → 1`, player Vulnerable `4 → 3 → 2 → 1`, player Weak `3 → 2 → 1`. So Chill is the only status in the game with an action-conditional cadence.
+
+**One inconsistency found and fixed:** the in-game Chill tooltip read "Ticks down each turn," contradicting both the GDD and the verified behaviour. Corrected to "Ticks down only when the enemy attacks." Behaviour untouched; the tooltip was the only thing wrong.
+
+---
+
+## ⚠️ OPEN — Does a damaging enemy *special* count as an "attack" for Chill?
+
+**Question:** GDD.md says Chill is "-1 stack per enemy attack" and reduces "the enemy's attack damage." Observed behaviour (Aug 15, 2026): only the **basic attack action** counts. A turn-trigger special that deals damage through `resolveEnemyAttack()` (Ritual-style) on a defend-intent turn neither consumed a Chill stack nor had its own damage reduced — it dealt its full 12 rather than 9.
+
+This is self-consistent and arguably correct if "attack" means the basic attack action, but it means Chill is dead weight against enemies whose damage comes mostly from specials. Not changed — needs a design decision on whether special damage should be Chill-reducible (and therefore Chill-consuming). Same question applies to enemy Weak, which likewise only modifies the basic attack.
+
+---
+
+## ✅ RESOLVED — Enemy debuffs do nothing to Aldric, but Weak still drains
+
+**Original question:** Aldric resolved all his damage by calling `resolveEnemyAttack()` directly with hardcoded values, bypassing `enemyAttackDamage()`. Rage, Weak and Chill did not modify his damage at all, yet enemy Weak still decremented every Aldric turn (`3 → 2`) while having no effect — a player spending cards on Weak against the final boss watched it drain away for nothing.
+
+**Resolution (Aug 15, 2026): fixed — Aldric now routes through `enemyAttackDamage()` like every other enemy.** The deciding argument was not whether debuff-immunity is good design, but that the game was *lying*: stacks visibly ticked down while doing nothing. Nothing in `GDD.md`'s Aldric section assumes independent damage calculation; the only intentional immunity is Phase 3's "Unbreakable," which is expressed by clearing `G.statuses.enemy` and is preserved unchanged.
+
+A shared `aldricAttackProfile(g)` supplies the phase-specific base and hit count, used by both `processAldricTurn()` and `updateIntent()` so his displayed intent cannot drift from the volley he throws. Measured: Phase 1 `15 → 11` under Weak, `21` under Rage 6, `15` under Rage 6 + Weak; Phase 2 per-hit `8 → 6` under Weak with the Poison/Burn amplification (`8 → 12`) intact; Phase 3 relic branch `15 → 11`. Phase 3 without relics still deals a flat 20 through any debuff. A 3-hit Fractured Strike volley consumes **one** Chill stack, not three, matching the multi-hit rule established for Weak.
+
+**Noted while in this code, not changed:** the Sword relic trigger halves `G.enemy.damage`, but the Phase 3 relic branch has always used an explicit 15 and never read it, so that halving has never had any effect. It belongs to the superseded True Ending relic system (see the entries above) and should be revisited when that system is redesigned. Separately, `GDD.md` line 333 says Fractured Strike "doubles" with Poison/Burn while the code uses ×1.5 — a pre-existing text/code disagreement, left alone.
+
+---
+
+## ✅ RESOLVED — Enemy roster: `GDD.md` and `js/data.js` had diverged wholesale
+
+**Raised Aug 16, 2026** by a player report of a Floor 2 "Cursed Knight" (75 HP, 13 damage, Undying) that matched no single GDD entry. Investigated: **this is a doc-sync issue, not a code bug.** `js/data.js` is internally consistent and the player fought exactly what it defines — name, HP, damage and ability all come from one definition in `FLOOR_ENEMIES[2]`:
+
+```
+{ name:'Cursed Knight', emoji:'🗡️', hp:75, block:8, damage:13, reward:25, souls:4,
+  special:{ name:'Undying', desc:'Revives once with 15 HP', trigger:'hp', ... } }
+```
+
+Nothing is mis-wired: no wrong display name pulling from another definition, no ability attached to the wrong key. The drift is between the doc and the code, and it is **not limited to one enemy** — the Floor 2 and Floor 3 rosters barely overlap at all:
+
+| | `GDD.md` | `js/data.js` (live) |
+|---|---|---|
+| Floor 2 pool | Skeleton Warrior, Crypt Wraith, Bone Archer, Grave Crawler | Shadow Wraith, Bone Archer, **Cursed Knight**, Crypt Crawler, Blood Bat |
+| Floor 3 pool | Dark Scholar, Arcane Construct, **Cursed Knight**, Tome Guardian | Dark Sorcerer, Corrupted Priest, Shadow Wraith+, Stone Gargoyle, Void Stalker |
+| Cursed Knight | Floor 3 standard, 58 HP, 13 dmg, *Hexed Blade* | Floor 2 standard, 75 HP + 8 Block, 13 dmg, *Undying* |
+| Skeleton Warrior | Floor 2, 45 HP, Undying "revives at 1 HP" | **does not exist** |
+| Hexed Blade | Cursed Knight's ability | **does not exist anywhere** |
+| Undying revive HP | "revives once at 1 HP" | revives once at **15 HP** |
+| Cursed Knight+ | not in the doc | Floor 4, 100 HP, *Undying+* — revives **twice** at 20 HP |
+
+Even the one shared name disagrees: Bone Archer is 35 HP / 9 dmg / Volley in the doc and 65 HP / 12 dmg / Poison Arrow in code. Several code enemies look like renamed doc entries (Crypt Wraith → Shadow Wraith, Grave Crawler → Crypt Crawler), which suggests a deliberate rebalance the doc never caught up with rather than accidental corruption.
+
+**Resolved Aug 16, 2026 — `GDD.md` rewritten to match `js/data.js`; no code changed.** The three open questions were decided as follows:
+1. Cursed Knight **stays on Floor 2 with Undying**, paired with the Floor 4 Cursed Knight+.
+2. **Skeleton Warrior and Hexed Blade are dropped for good** and removed from the doc, along with the other 18 phantom enemies and 5 phantom abilities that never existed in the shipped build.
+3. Undying revives at **15 HP** (code); the doc's "at 1 HP" was wrong and is corrected. Undying+ is documented as twice at 20 HP.
+
+All four floors were rewritten wholesale rather than patched — **Floor 1 and Floor 4 proved just as stale as Floors 2-3**, so limiting the sync to 2-3 would have left the doc self-contradictory (Cursed Knight+ lives on Floor 4). A Block column was added, since several enemies carry Block the doc never recorded, and the elite-to-floor pairing from `startCombat()`'s `floorEliteMap` is now stated. Tables were generated from `js/data.js` and then verified by parsing the rewritten doc back out and diffing every field against the live data — 0 mismatches. **This was a stale-doc correction, not a rebalance.**
+
+---
+
+## ✅ CONFIRMED — Undying revive cadence (verified, no code change)
+
+**Original question:** Does Undying fire only once per combat, as "revives once" implies, or can it repeat?
+
+**Verified Aug 16, 2026 — once per combat, exactly as intended.** Implementation is gated on a per-instance flag: `if (!g.enemy._revived && g.enemy.hp <= 0) { g.enemy.hp = 15; g.enemy._revived = true; }`, fired from the `trigger:'hp'` hook in `dealDamage()` and `endTurn()` STEP 9. Observed against the real enemy definition: 1st killing blow → revives at 15 HP with the fight continuing; 2nd → dies for real and the win resolves; 3rd and 4th → stays dead. The flag survives turn boundaries (three turns later it still cannot revive again) and does not leak between combats, since `startCombat()` spawns a fresh instance copy. Cursed Knight+ correctly allows exactly two revives at 20 HP each before the third blow is final. The cadence is keyed to the enemy instance, not the name, so it behaves identically regardless of which enemy carries the ability.
+
+**✅ Sub-finding resolved (Aug 16, 2026) — DoT kills bypassing HP-threshold abilities is now a stated design rule, kept as-is.** Burn and Poison subtract HP directly in `endTurn()` STEPS 1 and 7, and STEPS 4 and 8 call `checkCombatEnd()` *before* STEP 9 runs the `hp` trigger, so a lethal tick kills outright and the threshold ability never fires. Decision: **keep the ordering, document the consequence.** Written into `GDD.md` §5 Status Effects (with a short cross-reference in the AI Development Guidelines' Status Timing Rules) rather than left as an implicit side effect of step ordering, because it silently governs every `trigger:'hp'` ability, not just Undying.
+
+Scope established by inspection and test rather than assumed:
+- **Exactly four abilities are affected**, all self-preservation: Reassemble (Skeleton), Undying (Cursed Knight), Dark Blessing (Corrupted Priest), Undying+ (Cursed Knight+). **None of them damage the player**, so the rule is uniformly a player advantage — DoT can skip an enemy's survival tool but can never let the player dodge a punish.
+- **The bypass is lethal-only.** Non-lethal DoT still fires the trigger in the same turn (verified: a Skeleton dropped 12 → 7 by Burn still Reassembles to 15; a Corrupted Priest pushed below its 50% line by Poison still heals). Only the killing tick skips it.
+- **Card killing blows always trigger normally**, so DoT is the sole route around these abilities.
+- **Collapse is unaffected and was never at risk.** It belongs to **Void Colossus** (Floor 4 elite) with `trigger:'attack'`, not to Bone Golem — whose live ability is Bone Wall (`trigger:'skill'`). The "Bone Golem: Collapse — deals 20 damage when broken below 50% HP" pairing existed only in the pre-sync `GDD.md` roster and never in code. Denying Collapse by killing the enemy before it attacks is ordinary racing, available to any damage type, not a DoT-specific loophole.
+
+**Revisit if** an HP-threshold ability that *harms* the player is ever added — under this ordering, players could avoid its damage by finishing with poison or burn. That is the one case where this rule would stop being harmless, and it is flagged in the GDD text.
 
 ---
 

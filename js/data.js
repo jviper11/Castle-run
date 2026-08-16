@@ -713,10 +713,16 @@ const EVENTS = [
 
 const SHOP_ITEMS = [
   { emoji:'❤️',  name:'Healing Potion',  desc:'Restore 20 HP',     cost:50, effect:(g)=>{ healPlayer(g,20); showMsg('Restored 20 HP.'); } },
-  { emoji:'🗡️',  name:'Sharp Card',      desc:'Add Blizzard to deck', cost:60, effect:(g)=>{ g.deck.push('blizzard'); showMsg('Blizzard added to deck!'); } },
+  // ── Card stock ──
+  // Card purchases declare only the card KEY and the gold price. Their name, emoji, type, rarity,
+  // Energy cost and effect text are read live from CARDS when the tile renders (see showShop in
+  // js/ui.js), so a shop tile can never disagree with the card it actually sells. These entries
+  // previously hardcoded their own name/emoji/desc, which is how the tile titled "Sharp Card"
+  // ended up advertising "Add Blizzard to deck" while granting the Blizzard card.
+  { card:'blizzard',  cost:60 },
   { emoji:'🎲',  name:'Hunter Die (d8)', desc:'Equip the d8 — odd rolls deal +2 dmg', cost:55, effect:(g)=>{ g.activeDie='d8'; g.diceMax=8; showMsg('Hunter Die (d8) equipped!'); } },
-  { emoji:'💜',  name:'Life Leech',     desc:'Add Life Leech to deck',  cost:70, effect:(g)=>{ g.deck.push('lifeleech'); showMsg('Life Leech added!'); } },
-  { emoji:'🧱',  name:'Iron Wall',      desc:'Add Iron Wall to deck',   cost:65, effect:(g)=>{ g.deck.push('ironwall'); showMsg('Iron Wall added!'); } },
+  { card:'lifeleech', cost:70 },
+  { card:'ironwall',  cost:65 },
 ];
 
 loadStatus('Ready...');

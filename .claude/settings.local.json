@@ -5,7 +5,9 @@
       "Bash(powershell -Command \"Get-Content 'c:\\\\Users\\\\JTejada\\\\Documents\\\\castle\\\\Castle-run\\\\castle-run.html' | Select-Object -Skip 2909 -First 10\")",
       "Bash(powershell -Command \"Get-Content 'c:\\\\Users\\\\JTejada\\\\Documents\\\\castle\\\\Castle-run\\\\castle-run.html' | Select-Object -Skip 2948 -First 15\")",
       "Bash(powershell -Command \"Get-Content 'c:\\\\Users\\\\JTejada\\\\Documents\\\\castle\\\\Castle-run\\\\castle-run.html' | Select-Object -Skip 3520 -First 15\")",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(node \"c:/Users/Jteja/AppData/Local/Temp/claude/c--Users-Jteja-castle-Castle-run/30da1bcd-a5f7-4d1f-ba48-856029ffcd00/scratchpad/chill-test.js\")",
+      "Bash(node \"c:/Users/Jteja/AppData/Local/Temp/claude/c--Users-Jteja-castle-Castle-run/30da1bcd-a5f7-4d1f-ba48-856029ffcd00/scratchpad/aldric-test.js\")"
     ]
   }
 }

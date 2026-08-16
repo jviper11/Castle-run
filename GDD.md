@@ -210,6 +210,17 @@ Each character has one active die (d6 by default). At the start of their turn th
 - Vulnerable ticks down at end of turn (not per hit)
 - Chill only ticks when the enemy attacks (not on defend turns)
 
+**DoT kills bypass HP-threshold special abilities** *(stated rule, confirmed August 16, 2026)*
+
+A **lethal** Burn or Poison tick kills an enemy outright, skipping any HP-threshold-triggered special ability it would otherwise have fired. Finishing an enemy with damage-over-time denies it its threshold ability entirely.
+
+- This applies to **every** ability that triggers on HP (internally `trigger:'hp'`), not just Undying. At present that is: **Reassemble** (Skeleton), **Undying** (Cursed Knight), **Dark Blessing** (Corrupted Priest) and **Undying+** (Cursed Knight+). Any new HP-threshold ability inherits this rule automatically.
+- It applies to the **killing tick only**. Non-lethal DoT does not bypass anything — an enemy that survives a Burn/Poison tick still fires its threshold ability the same turn. Verified: a Skeleton dropped from 12 to 7 HP by Burn still Reassembles up to 15 that turn; a Corrupted Priest dropped below its 50% line by Poison still heals.
+- Killing blows from **cards** behave normally and always trigger the ability, so DoT is the only route around it.
+- Why it works this way: Burn and Poison resolve inside the turn sequence and the death check runs immediately after each, before end-of-turn special abilities are processed. This ordering is intentional and is not to be changed.
+
+**Design note:** every HP-threshold ability in the game is a self-preservation effect (a heal or a revive) — none of them damage the player. So this rule is uniformly a player advantage: DoT can skip an enemy's survival tool, but it can never let the player dodge a punish. Damage-dealing enemy abilities such as **Collapse** trigger on the enemy's *attack*, not on HP, and are unaffected. If an HP-threshold ability that harms the player is ever added, revisit this rule — under the current ordering, players could avoid its damage by finishing with poison or burn.
+
 **Cold Mastery modifier:**
 - No Cold Mastery: Chill reduces damage by 25%
 - Cold Mastery (base): reduces damage by 35%
@@ -343,31 +354,36 @@ Which companion appears on which floor is random each run. Affinity hints appear
 
 ## 8. Enemy Roster
 
+*Synced to `js/data.js` on August 16, 2026. This was a **stale-doc correction, not a rebalance** — no enemy stats or abilities were changed in code. The tables below previously described an earlier roster that the implementation had long since replaced: names, HP, damage and abilities had diverged on every floor, and several documented enemies (Skeleton Warrior, Crypt Wraith, Grave Crawler, Dark Scholar, Arcane Construct, Tome Guardian, Void Summoner, Ancient Lich, Royal Guard, Corrupted Paladin, Shadow Demon, Castle Shade, The Forsaken Champion, The Castle's Will, Stone Imp, Armored Guard, Dungeon Hound, Cursed Statue, Skeleton Archer) and abilities (Hexed Blade, Volley, Burrow, Counterspell, Petrify, Scurry) never existed in the shipped build at all. Those entries are dropped. `js/data.js` is the source of truth; keep these tables in step with `EASY_ENEMIES`, `FLOOR_ENEMIES` and `ELITES` when either side changes. See `DESIGN_DISCREPANCIES.md` for the investigation that surfaced this.*
+
+Elite pairing per floor follows `startCombat()`'s `floorEliteMap`: Floor 1 uses `ELITES[0..1]`, Floor 2 `ELITES[2..3]`, Floor 3 `ELITES[4..5]`, Floor 4 `ELITES[6..7]`.
+
 ### Floor 1 — Castle Dungeon
 
-**Easy Pool (First 2 battles only)**
+**Easy Pool (first 2 battles of Floor 1 only)**
 
-| Enemy | HP | Damage | Special Ability |
-|---|---|---|---|
-| Castle Guard | 28 | 6 | None |
-| Dungeon Rat | 18 | 4 | Scurry: 50% chance to dodge attacks |
-| Stone Imp | 22 | 5 | None |
+| Enemy | HP | Block | Damage | Special Ability |
+|---|---|---|---|---|
+| Castle Guard | 45 | 0 | 8 | None |
+| Dungeon Rat | 35 | 0 | 6 | None |
+| Skeleton | 40 | 0 | 7 | None |
 
 **Standard Pool**
 
-| Enemy | HP | Damage | Special Ability |
-|---|---|---|---|
-| Armored Guard | 40 | 9 | Shield Up: gains 8 Block every other turn |
-| Dungeon Hound | 32 | 11 | Frenzy: attacks twice if below 50% HP |
-| Cursed Statue | 45 | 7 | Petrify: applies Weak to player on hit |
-| Skeleton Archer | 28 | 8 | Range: always attacks from safe distance, ignores Block once |
+| Enemy | HP | Block | Damage | Special Ability |
+|---|---|---|---|---|
+| Castle Guard | 55 | 0 | 10 | Shield Up: gains 6 Block every other turn |
+| Dungeon Rat | 45 | 0 | 7 | Swarm: heals 5 HP if alive for 3+ turns |
+| Iron Archer | 50 | 0 | 10 | Aim: skips a turn then deals double damage |
+| Skeleton | 48 | 0 | 7 | Reassemble: heals 8 HP once when first below 10 HP |
+| Cursed Hound | 50 | 0 | 10 | Rabid: applies 1 Vulnerable on each attack |
 
 **Floor 1 Elites**
 
-| Enemy | HP | Damage | Special Ability |
-|---|---|---|---|
-| Dungeon Warden | 70 | 13 | Lockdown: prevents card draw for 1 turn if hit with same card twice |
-| Armored Knight | 80 | 10 | Unbreakable: gains 15 persistent Block on turns 1 and 3 |
+| Enemy | HP | Block | Damage | Special Ability |
+|---|---|---|---|---|
+| Dungeon Warden | 95 | 0 | 14 | Lockdown: applies 1 Weak to player every 3 turns |
+| Armored Knight | 110 | 12 | 12 | Iron Stance: regenerates 6 Block each turn |
 
 ---
 
@@ -375,19 +391,20 @@ Which companion appears on which floor is random each run. Affinity hints appear
 
 **Standard Pool**
 
-| Enemy | HP | Damage | Special Ability |
-|---|---|---|---|
-| Skeleton Warrior | 45 | 10 | Undying: revives once at 1 HP when killed |
-| Crypt Wraith | 38 | 12 | Phase: immune to damage every other turn |
-| Bone Archer | 35 | 9 | Volley: attacks 2 times if player has no Block |
-| Grave Crawler | 50 | 8 | Burrow: gains 6 Block after each attack it makes |
+| Enemy | HP | Block | Damage | Special Ability |
+|---|---|---|---|---|
+| Shadow Wraith | 60 | 0 | 10 | Phase: immune to damage every other turn |
+| Bone Archer | 65 | 0 | 12 | Poison Arrow: applies 2 Poison on each hit |
+| Cursed Knight | 75 | 8 | 13 | Undying: revives once with 15 HP |
+| Crypt Crawler | 58 | 0 | 8 | Acid Touch: removes 4 Block from player on hit |
+| Blood Bat | 45 | 0 | 8 | Drain: steals 3 Block from player on hit |
 
 **Floor 2 Elites**
 
-| Enemy | HP | Damage | Special Ability |
-|---|---|---|---|
-| Death Knight | 95 | 14 | Soul Drain: steals 1 Energy from player on every attack |
-| Bone Golem | 110 | 11 | Collapse: when broken below 50% HP, deals 20 damage to player |
+| Enemy | HP | Block | Damage | Special Ability |
+|---|---|---|---|---|
+| Death Knight | 120 | 5 | 16 | Soul Drain: steals 1 Energy from player on first turn |
+| Bone Golem | 130 | 0 | 13 | Bone Wall: gains 8 Block when player plays a Skill card |
 
 ---
 
@@ -395,19 +412,20 @@ Which companion appears on which floor is random each run. Affinity hints appear
 
 **Standard Pool**
 
-| Enemy | HP | Damage | Special Ability |
-|---|---|---|---|
-| Dark Scholar | 50 | 11 | Counterspell: if player plays 2+ cards in one turn, reflects 5 damage |
-| Arcane Construct | 65 | 9 | Overload: builds up energy and unleashes 25 damage on turn 4 |
-| Cursed Knight | 58 | 13 | Hexed Blade: applies random debuff (Weak or Vulnerable) on hit |
-| Tome Guardian | 70 | 10 | Knowledge: gains +2 Strength per Power card the player has active |
+| Enemy | HP | Block | Damage | Special Ability |
+|---|---|---|---|---|
+| Dark Sorcerer | 75 | 0 | 11 | Arcane Burn: applies 2 Burn each turn |
+| Corrupted Priest | 78 | 0 | 10 | Dark Blessing: heals 8 HP once below 50% |
+| Shadow Wraith+ | 72 | 0 | 14 | Phase+: immune every other turn, attacks twice when not phased |
+| Stone Gargoyle | 85 | 0 | 11 | Stone Skin: negates first 5 damage each turn |
+| Void Stalker | 70 | 0 | 12 | Curse: makes a random card cost +2 energy this turn |
 
 **Floor 3 Elites**
 
-| Enemy | HP | Damage | Special Ability |
-|---|---|---|---|
-| Void Summoner | 90 | 12 | Summon: adds a Bone Archer to the fight at 50% HP |
-| Ancient Lich | 120 | 15 | Phylactery: gains 20 Block when dropping below 40 HP; destroys 1 card in your deck |
+| Enemy | HP | Block | Damage | Special Ability |
+|---|---|---|---|---|
+| Sanctum Guardian | 140 | 0 | 17 | Holy Wrath: deals double damage if player has 15+ Block |
+| Dark Arcanist | 130 | 0 | 15 | Spell Steal: copies the last card played against them |
 
 ---
 
@@ -415,19 +433,22 @@ Which companion appears on which floor is random each run. Affinity hints appear
 
 **Standard Pool**
 
-| Enemy | HP | Damage | Special Ability |
-|---|---|---|---|
-| Royal Guard | 70 | 14 | Loyalty: gains 10 Block when king's HP drops below 50% |
-| Corrupted Paladin | 80 | 12 | Holy Wrath: deals double damage if player has any curses in deck |
-| Shadow Demon | 60 | 16 | Umbral Step: untargetable for 1 turn before attacking |
-| Castle Shade | 55 | 13 | Drain Essence: heals 8 HP per successful hit |
+| Enemy | HP | Block | Damage | Special Ability |
+|---|---|---|---|---|
+| Throne Guard | 95 | 0 | 16 | Loyal: gains 2 Strength every turn |
+| Blood Cultist | 85 | 0 | 14 | Ritual: deals 20 damage instantly if alive for 4 turns |
+| Royal Sorcerer | 90 | 0 | 13 | Arcane Overload: every 3rd turn deals 25 damage |
+| Void Wraith | 88 | 0 | 15 | Drain: removes 2 Block and heals self for the same |
+| Cursed Knight+ | 100 | 8 | 18 | Undying+: revives twice with 20 HP each time |
 
 **Floor 4 Elites**
 
-| Enemy | HP | Damage | Special Ability |
-|---|---|---|---|
-| The Forsaken Champion | 130 | 16 | Unrelenting: cannot be Weakened or Vulnerable; attacks ignore Block once per turn |
-| The Castle's Will | 150 | 13 | Manifestation: spawns a Cursed Statue each time player deals 30+ damage in one turn |
+| Enemy | HP | Block | Damage | Special Ability |
+|---|---|---|---|---|
+| King's Champion | 160 | 0 | 20 | Unbreakable: immune to all status effects |
+| Void Colossus | 170 | 0 | 18 | Collapse: deals damage equal to player current Block when attacking |
+
+*Implementation note: Collapse is the one enemy attack that opts into `bypassBlock` in `resolveEnemyAttack()`. Its damage equals the player's Block, so routing it through the normal Block step would net roughly zero every time; it hits HP directly instead (Fly still halves it first).*
 
 ---
 
@@ -801,6 +822,7 @@ At each spend window, 3 upgrades are offered at random from the full 8-option po
 - Chill only consumes a stack on enemy attack turns (not defend turns)
 - Vulnerable ticks down at end of turn (not per hit)
 - Regen ticks BEFORE enemy acts
+- A **lethal** Burn/Poison tick bypasses HP-threshold special abilities entirely (Reassemble, Undying, Dark Blessing, Undying+) — the death check runs before end-of-turn specials. Non-lethal DoT does not bypass them, and card killing blows always trigger them. Intentional; do not change the ordering. Full rule in §5 Status Effects.
 
 ## UI PRIORITIES (VERY IMPORTANT)
 - Combat area is the main focus of the screen

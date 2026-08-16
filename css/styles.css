@@ -1974,6 +1974,8 @@ body {
 .shop-item:hover { transform: translateY(-4px); border-color: var(--gold); }
 .shop-item-emoji { font-size: 1.8rem; display: block; margin-bottom: 0.4rem; }
 .shop-item-name { font-family: 'Cinzel', serif; font-size: 0.75rem; color: var(--gold); }
+/* Type · Rarity · Energy line on card-purchase tiles, mirroring .reward-card-type */
+.shop-item-type { font-size: 0.58rem; color: var(--text3); margin-top: 0.2rem; text-transform: uppercase; letter-spacing: 0.05em; }
 .shop-item-desc { font-size: 0.65rem; color: var(--text2); margin-top: 0.3rem; line-height: 1.4; }
 .shop-item-cost { font-size: 0.75rem; color: var(--energy); margin-top: 0.4rem; font-weight: 600; }
 .shop-item.sold { opacity: 0.3; cursor: not-allowed; }
