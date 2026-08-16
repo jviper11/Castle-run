@@ -166,10 +166,79 @@ const RELICS = {
   hollow_throne:      { name:'Hollow Throne',        emoji:'🪑', rarity:'rare',     desc:'Start every combat with 20 Block. Lose 8 max HP.',          effect:'hollow_throne' },
   pale_contract:      { name:'The Pale Contract',    emoji:'📜', rarity:'rare',     desc:'All cards deal +4 damage. Healing is 50% less effective.',  effect:'pale_contract' },
   fractured_die:      { name:'Fractured Die',        emoji:'💔', rarity:'rare',     desc:'Roll twice on initial roll, take higher result. Lose reroll for the run.', effect:'fractured_die' },
-  kings_debt:         { name:"King's Debt",           emoji:'💰', rarity:'rare',     desc:'Gain 60 gold immediately. All shop prices cost 25% more.', effect:'kings_debt',          value:60 }
+  kings_debt:         { name:"King's Debt",           emoji:'💰', rarity:'rare',     desc:'Gain 60 gold immediately. All shop prices cost 25% more.', effect:'kings_debt',          value:60 },
+
+  // ── CHARACTER (Floor 3+, boss reward only, hero-locked) ──
+  // GDD §9: each hero has 3, offered only in the boss reward screen's Character slot and only to
+  // that hero. The `hero` field is what locks them — offerableCharacterRelics() filters on it, and
+  // hasCharacterRelic() re-checks it at every effect site so a relic granted off-pool (debug, a
+  // hand-edited save) stays inert on the wrong hero rather than silently working.
+  warlords_bandage:  { name:"Warlord's Bandage", emoji:'🩸', rarity:'character', hero:'barbarian', desc:'Heal 4 HP every time you play an Attack on an odd roll.', effect:'odd_attack_heal', value:4 },
+  battle_drum:       { name:'Battle Drum',        emoji:'🥁', rarity:'character', hero:'barbarian', desc:'Draw 1 extra card at turn start if last roll was odd.',   effect:'odd_last_roll_draw', value:1 },
+  berserkers_scar:   { name:"Berserker's Scar",   emoji:'🩹', rarity:'character', hero:'barbarian', desc:'Taking damage from an enemy grants 1 Rage.',              effect:'damage_grants_rage', value:1 }
 };
 
 function hasRelic(key) { return G.relics && G.relics.includes(key); }
+
+// Relics that exist in RELICS but have no implementation anywhere — no hasRelic() hook and no
+// acquireRelic() pickup branch — so buying or picking one grants a no-op. Verified by auditing
+// every key against the whole codebase. **Delete a key from this list the moment its behaviour
+// lands**, otherwise a finished relic stays unobtainable.
+//   bone_key         — "Every 4th room has a chance to contain a hidden chest" (no room hook)
+//   shattered_mirror — "When an enemy copies your card, they take 10 damage" (no copy mechanic)
+const UNIMPLEMENTED_RELICS = ['bone_key', 'shattered_mirror'];
+
+// Earliest floor each rarity may be offered (GDD §9: Common any floor, Uncommon Floor 2+,
+// Rare Floor 3+, Character Floor 3+). Values are G.currentFloor indices, which are zero-based —
+// index 1 is Floor 2. Character is gated exactly like Rare: it limits when that SLOT can fill,
+// not whether the boss reward screen appears.
+const RELIC_RARITY_MIN_FLOOR = { common: 0, uncommon: 1, rare: 2, character: 2 };
+
+// The single source of truth for "which relics may be offered right now".
+//
+// Both offer pools — the shop and the Void Compass elite reward — previously inlined their own
+// `Object.entries(RELICS).filter(([k]) => !G.relics.includes(k))`, which applied no rarity or
+// floor gating at all, so a Floor 1 shop could sell King's Debt or Hollow Throne. The shop even
+// carried a comment claiming it used a common-only pool that was never implemented. Sharing one
+// helper is the point: two copies of this rule had already drifted from the design and from the
+// comment sitting directly above one of them.
+function offerableRelics(g = G) {
+  const floor = g.currentFloor || 0;
+  return Object.entries(RELICS).filter(([key, relic]) => {
+    if ((g.relics || []).includes(key)) return false;      // already owned
+    if (UNIMPLEMENTED_RELICS.includes(key)) return false;  // would grant nothing
+    // Character relics are boss-reward-only and hero-locked (GDD §9), so they are excluded from
+    // this general pool entirely — the shop and the Void Compass screen must never offer them.
+    // The boss screen adds them separately via offerableCharacterRelics().
+    if (relic.rarity === 'character') return false;
+    const minFloor = RELIC_RARITY_MIN_FLOOR[relic.rarity];
+    if (minFloor === undefined) return false;              // unknown rarity — never offer blind
+    return floor >= minFloor;
+  });
+}
+
+// The current hero's Character relics that may be offered right now. Same ownership /
+// unimplemented / floor rules as offerableRelics(), plus the hero lock. Kept separate rather than
+// folded in because these have exactly one legal source: the boss reward screen's Character slot.
+function offerableCharacterRelics(g = G) {
+  const floor = g.currentFloor || 0;
+  const minFloor = RELIC_RARITY_MIN_FLOOR.character;
+  return Object.entries(RELICS).filter(([key, relic]) => {
+    if (relic.rarity !== 'character') return false;
+    if (relic.hero !== g.charKey) return false;            // never another hero's relic
+    if ((g.relics || []).includes(key)) return false;
+    if (UNIMPLEMENTED_RELICS.includes(key)) return false;
+    return floor >= minFloor;
+  });
+}
+
+// Ownership check for a hero-locked relic. Deliberately stricter than hasRelic(): the relic must
+// also belong to the hero being played, so one granted off-pool cannot fire on the wrong hero.
+function hasCharacterRelic(key, g = G) {
+  if (!hasRelic(key)) return false;
+  const relic = RELICS[key];
+  return !!relic && relic.hero === g.charKey;
+}
 
 // Rarity bucket a card sits in. Checks the active hero's pool first — reward screens only ever
 // offer cards from it — then falls back to any hero's pool, because the shop can sell a card
@@ -302,9 +371,8 @@ function renderShopRelics() {
   if (!grid) return;
   grid.innerHTML = '';
 
-  // Floor 1-2: common pool. Floor 3+: 50% chance uncommon (not yet added — always common for now).
-  const available = Object.entries(RELICS).filter(([k]) => !G.relics.includes(k));
-  const shopRelics = shuffle([...available]).slice(0, 2);
+  // Rarity/floor gating and the unimplemented-relic exclusion both live in offerableRelics().
+  const shopRelics = shuffle([...offerableRelics(G)]).slice(0, 2);
 
   shopRelics.forEach(([key, relic]) => {
     const cost = shopCost(80);
@@ -728,17 +796,29 @@ function proceedAfterCardReward() {
     showEliteRelicReward();
     return;
   }
+  // Boss relic choice (GDD Boss Reward Flow) — sits between the card reward and the Soul screen,
+  // leaving the Soul screen last as the design specifies. Fires once per boss; the flag is reset
+  // in startBossFight(), mirroring how _voidCompassOffered is reset in startCombat().
+  if (isBossRewardWindow() && !G._bossRelicOffered) {
+    G._bossRelicOffered = true;
+    showBossRelicReward();
+    return;
+  }
   // Soul-spend window — after a floor boss's reward pick, Floors 1-3 only (GDD §15).
-  // checkCombatEnd() has already incremented G.currentFloor by this point, so the guard reads
-  // the floor being entered: 1, 2 or 3. The Floor 4 boss goes straight to Aldric and never
-  // reaches this screen, and Aldric himself is excluded by !G.isFinalBoss.
-  // NOTE: the boss relic-choice screen (1 of 3) is still unbuilt — when it lands it belongs
-  // between the card reward and this call, leaving the Soul screen last as the design specifies.
-  if (G.inBoss && !G.isFinalBoss && G.currentFloor >= 1 && G.currentFloor <= 3) {
+  if (isBossRewardWindow()) {
     showSoulSpend();
     return;
   }
   proceedOrPath();
+}
+
+// The post-boss reward window: Floors 1-3 only, never Aldric. checkCombatEnd() has already
+// incremented G.currentFloor by this point, so this reads the floor being ENTERED — 1, 2 or 3.
+// The Floor 4 boss goes straight to Aldric and never reaches these screens, and Aldric himself is
+// excluded by !isFinalBoss. Shared by the boss relic screen and the Soul screen so the two cannot
+// drift onto different floors.
+function isBossRewardWindow(g = G) {
+  return !!(g.inBoss && !g.isFinalBoss && g.currentFloor >= 1 && g.currentFloor <= 3);
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -817,8 +897,10 @@ function showSoulSpend() {
 
 // Void Compass — pick 1 of 3 unowned relics after an elite fight.
 function showEliteRelicReward() {
-  const available = Object.entries(RELICS).filter(([k]) => !G.relics.includes(k));
-  if (available.length === 0) { proceedOrPath(); return; } // own everything → nothing to offer
+  // Same gating as the shop — see offerableRelics(). The empty check now also covers the case
+  // where a floor simply has nothing of an eligible rarity left to give.
+  const available = offerableRelics(G);
+  if (available.length === 0) { proceedOrPath(); return; } // nothing eligible → nothing to offer
   const picks = shuffle([...available]).slice(0, 3);
 
   document.getElementById('reward-hp').textContent = G.hp + '/' + G.maxHp;
@@ -849,6 +931,101 @@ function showEliteRelicReward() {
     el.onclick = () => {
       acquireRelic(key);
       proceedOrPath();
+    };
+    pool.appendChild(el);
+  });
+}
+
+// GDD Boss Reward Flow: "choose 1 of 3 relics — 1 Common, 1 Rare, 1 Character-specific."
+// Slots are filled in this order from whatever is eligible right now.
+const BOSS_REWARD_SLOTS = ['common', 'rare', 'character'];
+
+// Builds the three offers for the boss relic screen.
+//
+// A slot whose tier has nothing eligible is BACKFILLED from the tier with the most unowned
+// options left, so the player always sees three real choices instead of a short screen. Two tiers
+// come up empty today: Rare, until the floor gate opens it, and Character, which has no entries in
+// RELICS at all yet. Because the composition is expressed as a list of rarities rather than
+// hardcoded slots, the third slot starts filling itself the moment Character relics are added with
+// `rarity:'character'` and a RELIC_RARITY_MIN_FLOOR entry — no change needed here.
+//
+// Candidates arrive from offerableRelics(), so ownership filtering, the unimplemented-relic
+// exclusion and floor gating are all inherited rather than duplicated.
+function pickBossRelicOffers(available, count = 3) {
+  const byRarity = {};
+  available.forEach(entry => {
+    const rarity = entry[1].rarity;
+    (byRarity[rarity] = byRarity[rarity] || []).push(entry);
+  });
+  Object.keys(byRarity).forEach(r => shuffle(byRarity[r]));
+
+  const picks = [];
+  const taken = {};
+  const take = entry => { picks.push(entry); taken[entry[0]] = true; };
+
+  // Pass 1 — honour the documented composition wherever content exists.
+  BOSS_REWARD_SLOTS.forEach(rarity => {
+    if (picks.length >= count) return;
+    const next = (byRarity[rarity] || []).find(e => !taken[e[0]]);
+    if (next) take(next);
+  });
+
+  // Pass 2 — backfill from everything still eligible, regardless of tier.
+  //
+  // This deliberately draws from the whole remaining pool rather than "whichever tier has the
+  // most left". That tier-based rule starved Uncommon completely from Floor 3 onward: pass 1
+  // removes one Common and one Rare, so Common and Uncommon tie on remaining count and Common
+  // wins the tie-break every single time, making Uncommon unreachable from boss rewards. The
+  // requirement is three real choices, not a fixed tier mix — so backfill is tier-blind.
+  const rest = shuffle(available.filter(e => !taken[e[0]]));
+  while (picks.length < count && rest.length > 0) take(rest.shift());
+  return picks; // fewer than `count` only if the pool itself is smaller — never a duplicate
+}
+
+// Boss relic choice — pick 1 of 3 after a Floors 1-3 boss. Modeled on showEliteRelicReward():
+// same reward screen, same tiles, same bail-out when nothing is eligible.
+function showBossRelicReward() {
+  // The Character slot draws from a per-hero pool (GDD §9: boss reward only, hero-locked), the
+  // other slots from the general pool. Concatenating here is what lets pickBossRelicOffers()
+  // treat 'character' as just another rarity bucket.
+  const available = offerableRelics(G).concat(offerableCharacterRelics(G));
+  // Nothing eligible (the player owns everything this floor allows) — continue rather than stall.
+  // Routing back through proceedAfterCardReward keeps the Soul screen from being skipped as well.
+  if (available.length === 0) { proceedAfterCardReward(); return; }
+  const picks = pickBossRelicOffers(available, 3);
+
+  document.getElementById('reward-hp').textContent = G.hp + '/' + G.maxHp;
+  document.getElementById('reward-gold').textContent = G.gold;
+  document.getElementById('reward-souls').textContent = G.souls;
+  showScreen('reward-screen');
+  // No skip button. GDD documents a skip payout for CARD rewards only, and this is a guaranteed
+  // boss reward; the shared button is hardwired to skipReward(), which pays +10 Gold and re-enters
+  // proceedAfterCardReward() — wrong payout and wrong routing here. showSoulSpend(), the very next
+  // screen in this flow, hides it for the same reason. showReward() turns it back on for cards.
+  setRewardSkipVisible(false);
+  const rewardSub = document.getElementById('reward-sub');
+  if (rewardSub) rewardSub.textContent = '';
+
+  const pool = document.getElementById('reward-choices');
+  pool.innerHTML = '';
+  const hdr = document.createElement('div');
+  hdr.style.cssText = 'width:100%;text-align:center;font-family:Cinzel,serif;color:var(--gold);font-size:0.9rem;letter-spacing:0.05em;margin-bottom:0.4rem;';
+  hdr.textContent = '👑 Floor Cleared — Choose a Relic';
+  pool.appendChild(hdr);
+
+  picks.forEach(([key, relic]) => {
+    const el = document.createElement('div');
+    el.className = 'reward-card';
+    el.style.borderColor = '#c9a84c';
+    el.innerHTML = `
+      <span class="reward-card-emoji">${relic.emoji}</span>
+      <div class="reward-card-name">${relic.name}</div>
+      <div class="reward-card-type" style="color:#c9a84c">Relic · ${relic.rarity.charAt(0).toUpperCase() + relic.rarity.slice(1)}</div>
+      <div class="reward-card-desc">${relic.desc}</div>
+    `;
+    el.onclick = () => {
+      acquireRelic(key);
+      proceedAfterCardReward(); // → Soul-spend screen; the offered flag is already set
     };
     pool.appendChild(el);
   });

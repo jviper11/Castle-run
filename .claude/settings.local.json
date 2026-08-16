@@ -8,7 +8,10 @@
       "Bash(node -e ' *)",
       "Bash(node \"c:/Users/Jteja/AppData/Local/Temp/claude/c--Users-Jteja-castle-Castle-run/30da1bcd-a5f7-4d1f-ba48-856029ffcd00/scratchpad/chill-test.js\")",
       "Bash(node \"c:/Users/Jteja/AppData/Local/Temp/claude/c--Users-Jteja-castle-Castle-run/30da1bcd-a5f7-4d1f-ba48-856029ffcd00/scratchpad/aldric-test.js\")",
-      "Bash(node gambler2.js)"
+      "Bash(node gambler2.js)",
+      "Bash(awk 'NR>=1000 && NR<=1140 && \\(/const roll/ || /Shadow Mark/ || /Warlord/ || /card.effect\\\\\\(G, roll\\\\\\)/ || /^function playCard/\\)' js/combat.js)",
+      "Bash(node charrelics.js)",
+      "Bash(node bossrelic.js)"
     ]
   }
 }

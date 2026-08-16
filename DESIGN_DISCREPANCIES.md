@@ -267,6 +267,69 @@ Door reached) is documented alongside it so the two entries agree with each othe
 
 ---
 
+## ✅ RESOLVED — Relic offer pools ignored rarity/floor gating and sold unimplemented relics (Aug 16, 2026)
+
+`renderShopRelics()` and `showEliteRelicReward()` each inlined
+`Object.entries(RELICS).filter(([k]) => !G.relics.includes(k))`. The only rule was "not already
+owned", so:
+
+- **No rarity or floor gating existed**, contradicting GDD §9 (Common any floor, Uncommon
+  Floor 2+, Rare Floor 3+). A Floor 1 shop could sell King's Debt. The shop carried a comment
+  claiming a common-only Floor 1-2 pool that the code never implemented.
+- **Relics with no implementation were offered.** A hook audit of all 30 keys found exactly two
+  dead: `bone_key` (no room hook) and `shattered_mirror` (no enemy card-copy mechanic). Both
+  granted a no-op on purchase.
+
+Both now route through one shared `offerableRelics()` helper, so the two pools cannot drift
+apart again. Unimplemented relics sit in a named `UNIMPLEMENTED_RELICS` list with the reason per
+key; **delete an entry there when its behaviour lands or the relic stays unobtainable.**
+
+**Stale doc claims corrected by the same audit:**
+
+- `void_compass` was recorded as deferred in PROGRESS.md. It **is** implemented and drives the
+  1-of-3 elite relic screen. Only two relics are genuinely deferred.
+- `ivory_die` and `loaded_gauntlet` have no `hasRelic()` call and would score as dead on a naive
+  grep — they are live, implemented as pickup side-effects inside `acquireRelic()`.
+- All **15 Character relics** are absent from every `.js`/`.html`/`.css` file. The docs carry
+  display names only ("Warlord's Bandage"), so no key naming convention exists for them yet.
+
+---
+
+## ⚠️ PARTIAL — Boss Reward Flow's documented composition cannot be built as written (Aug 16, 2026)
+
+GDD's Boss Reward Flow says: *"After each floor boss: choose 1 of 3 relics — 1 Common, 1 Rare,
+1 Character-specific."* The screen is now built (`showBossRelicReward()`), but that composition is
+only partially satisfiable:
+
+- **The Character slot has no content.** Zero of the 15 Character relics exist in `RELICS`, and
+  GDD §9 lists their only source as "Floor 3+, Boss reward only" — so the slot cannot be filled
+  from anywhere else.
+- **A guaranteed Rare after *every* floor boss contradicts GDD §9's own Rare = Floor 3+ rule.**
+  Honouring the sentence literally would re-open the shop/boss inconsistency that
+  `offerableRelics()` closed.
+
+**Implemented behaviour:** the composition is an ordered rarity list (`BOSS_REWARD_SLOTS`) filled
+from whatever `offerableRelics()` says is eligible; any slot with no content is backfilled from
+the remaining pool so the player always sees three real choices. Rare therefore appears from
+Floor 3 onward rather than always, and the Character slot is backfilled today. Adding Character
+relics with `rarity:'character'` plus a `RELIC_RARITY_MIN_FLOOR` entry makes that slot start
+working with no change to the screen.
+
+**Open for the owner:** whether to reword the GDD sentence to describe the gated/backfilled
+behaviour, or to treat "1 Common, 1 Rare, 1 Character" as a target state to reach once Character
+relics ship. The doc and code currently differ on the Rare slot, deliberately and knowingly.
+
+**Update (Aug 16, 2026) — Barbarian now hits the documented composition, with a side effect.**
+With the first Character batch built, a Barbarian at Floor 3+ fills all three slots from pass 1,
+so the backfill never runs and **Uncommon relics no longer appear in Barbarian boss rewards**
+(reachable set: 10 Common + 9 Rare + 3 Character = 22). This is the literal documented
+composition working as written, and Uncommons remain available from shops and the Void Compass
+screen — but it is a real change to what that hero sees, and it will repeat for each hero as
+their batch lands. Heroes without Character relics still backfill and reach all 28. Flagged in
+case "Uncommon absent from boss rewards" is not the intended end state.
+
+---
+
 ## Session Notes
 
 *Session [date to fill in]:* Reviewed `js/ui.js` and `js/combat.js` in full. Resolved 3 discrepancies via direct code inspection (Burn damage, Mobile orientation, True Ending requirements — the latter via new design decision rather than existing-code confirmation). Advanced Weak timing to "needs playtest" status. Found one unrelated bug in passing: core-collection message in `checkCombatEnd()` displays `G.char.name` (player's own character) instead of the boss's name. `js/game.js` and `js/data.js` not yet reviewed — Mirror behavior, Blood Lord frequency, missing cards, and `curseddice` all require those files to resolve.

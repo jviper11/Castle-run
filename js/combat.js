@@ -567,7 +567,7 @@ function tickChallengeEscalation(g) {
   }
   if (challengeActive(g, 'vampire') && g.turn > 0 && g.turn % 3 === 0) {
     const drain = 8;
-    loseHP(g, drain);
+    loseHP(g, drain, null, 'enemy'); // the boss draining you is damage taken, not a self-cost
     floatDamage('player-combatant', drain, 'dmg');
     g.enemy.hp = Math.min(g.enemy.maxHp, g.enemy.hp + drain);
     floatDamage('enemy-combatant', drain, 'heal');
@@ -583,6 +583,7 @@ function startBossFight() {
   G.statuses = { player: [], enemy: [] };
   G.exhaustedPile = [];
   G.inBoss = true;
+  G._bossRelicOffered = false; // boss relic choice fires once per boss (proceedAfterCardReward)
   G.lastFightWasElite = false; // a boss fight is never an elite — clear the flag so
                                // "after elite" effects (iron_ration, grave_robber, Void
                                // Compass) don't misfire on a boss that follows an elite
@@ -654,6 +655,12 @@ function startTurn() {
   G._soulboundTomeFired = false;
   G._firstCardFree = false;
 
+  // Battle Drum (Barbarian) reads LAST turn's roll, so capture it before rollDice() overwrites
+  // G.currentDie below. On turn 1 there is no previous roll, so it correctly does nothing.
+  const previousRoll = G.currentDie;
+  const battleDrumFires = hasCharacterRelic('battle_drum')
+    && typeof previousRoll === 'number' && previousRoll % 2 === 1;
+
   // Use active die
   G.currentDieType = getDie(G.activeDie);
   G.diceMax = G.currentDieType.max;
@@ -667,14 +674,27 @@ function startTurn() {
     G.energy = Math.min(G.energy + 1, G.maxEnergy + 1);
     showMsg(activeDieData.emoji + ' Arcane Die — even roll restores 1 energy!');
   }
+  // Battle Drum — the extra card is keyed to LAST turn's roll (captured before rollDice above),
+  // never to the fresh roll that just landed. Flagged turnStart so the Mage Challenge's
+  // extra-draw denial treats it as part of the opening hand rather than a card effect.
+  // Applied in both branches below: the Titan's Die max-draw path returns early, and skipping
+  // the Drum there would silently drop it on exactly the turns the player rolled max.
+  const drawBattleDrum = () => {
+    if (!battleDrumFires) return;
+    drawCards(G, 1, { turnStart: true });
+    showMsg('🥁 Battle Drum — odd roll last turn, +1 card!');
+  };
+
   if (activeDieData.bonus === 'max_draw' && roll === activeDieData.max) {
     drawCards(G, 6 + (G.extraDraw || 0), { turnStart: true });
+    drawBattleDrum();
     renderAll();
     updateIntent();
     return;
   }
 
   drawCards(G, (G.startingDrawCount || 5) + (G.extraDraw || 0), { turnStart: true });
+  drawBattleDrum();
   renderAll();
   updateIntent();
 }
@@ -1111,6 +1131,14 @@ if (card.type === 'Attack' && G._spellEcho > 0) {
   card.effect(G, roll);
   showMsg('🔮 Spell Echo — attack triggered twice!');
 }
+// Warlord's Bandage (Barbarian) — Attack cards only, on an odd roll. Placed here, after the card
+// has resolved, and reading the same `roll` + checkAffinity() the card's own effect used, so the
+// heal can never disagree with the affinity the player was shown. Skills and Powers never
+// qualify whatever the roll. Fires once per play, not once per Spell Echo repeat.
+if (card.type === 'Attack' && checkAffinity(G, roll, 'odd') && hasCharacterRelic('warlords_bandage')) {
+  healPlayer(G, 4);
+  showMsg("🩸 Warlord's Bandage — odd-roll Attack, +4 HP!");
+}
 if (G.statuses.player.find(s => s.name === '👑BloodLord') && card.type === 'Attack') {
   const lordStacks = G.statuses.player.find(s => s.name === '👑BloodLord');
   const healAmt = lordStacks.stacks === 2 ? 3 : 2; // + version heals 3, base heals 2
@@ -1493,7 +1521,12 @@ function dealDamage(g, target, amount, source, bypassBlock) {
 // Optional `floorAt` prevents dropping below that value — used by self-damage cards that must
 // never self-kill (their old `Math.max(1, hp - x)` pattern). Fires on-HP-loss effects
 // (Berserker's Oath) exactly once per loss event. Does NOT float damage — callers own visuals.
-function loseHP(g, amount, floorAt) {
+// `source` marks who caused the loss. 'enemy' means an enemy attack or enemy special — anything
+// routed through resolveEnemyAttack(). Everything else (card costs, event costs, environmental)
+// leaves it undefined. Only Berserker's Scar reads it; Berserker's Oath and the survive-lethal
+// relics deliberately still fire on ANY loss, as they always have.
+// If player-side DoT is ever implemented, its tick should pass 'enemy' to count as damage taken.
+function loseHP(g, amount, floorAt, source) {
   if (amount == null || amount <= 0) return;
   if (floorAt != null) {
     amount = Math.min(amount, Math.max(0, g.hp - floorAt));
@@ -1520,6 +1553,15 @@ function loseHP(g, amount, floorAt) {
     const oathBlock = berserkOath.stacks === 2 ? 4 : 3;
     gainBlock(g, 'player', oathBlock);
     showMsg("🔥 Berserker's Oath — +" + oathBlock + " Block!");
+  }
+  // Berserker's Scar (Barbarian) — enemy-caused damage only, so paying HP as a card cost
+  // (Reckless Lunge, Battle Trance, Blood Price…) grants nothing. Deliberately narrower than
+  // Berserker's Oath directly above, which fires on any HP loss. One stack per instance of
+  // damage that actually reaches HP, so a fully blocked hit grants nothing — this function has
+  // already returned above when amount <= 0.
+  if (source === 'enemy' && hasCharacterRelic('berserkers_scar', g)) {
+    applyStatus(g, 'player', '💢Rage', 1);
+    showMsg("🩹 Berserker's Scar — +1 Rage!");
   }
 }
 
@@ -1599,7 +1641,9 @@ function resolveEnemyAttack(g, amount, bypassBlock) {
     pen = Math.max(0, dmg - g.block);
     g.block = Math.max(0, g.block - dmg);
   }
-  loseHP(g, pen); // HP loss → Berserker's Oath + survival relics fire on the actual loss
+  // 'enemy' marks this as damage taken FROM a foe. Every enemy attack and enemy special routes
+  // through here, so this one call site is what feeds Berserker's Scar.
+  loseHP(g, pen, null, 'enemy'); // HP loss → Berserker's Oath + survival relics fire on the actual loss
   playAttackAnimation({
     attackerEl: document.getElementById('enemy-combatant'),
     targetEl: document.getElementById('player-combatant'),
