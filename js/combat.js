@@ -667,6 +667,86 @@ function startBossFight() {
   renderAll();
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// SIR CRIMSON — MID-RUN FIGHT (GDD §5), batch 5b-ii
+// ═══════════════════════════════════════════════════════════════════
+// GDD's move list, wired through the 5b-i multi-move rotation engine (updateIntent()/
+// resolveMoveTurn()/findEarlyTelegraphedMove() in this file). Field names here match the engine's
+// own established schema exactly as built and verified last batch — `block` doubles as "Block
+// gained" for a 'block' move and "player Block stripped" for 'attack+strip', and `status` is the
+// same `{name, stacks}` shape applyStatus() already takes everywhere else — rather than the
+// shorthand (`strip:8`, `status:'Weak', stacks:2`) used to describe the design; the engine was
+// deliberately built generic last batch specifically so a new boss's kit is only ever data, and
+// this is that data expressed in the schema that already exists. "Telegraphed one turn early" in
+// GDD's own phrasing becomes telegraphTurnsEarly: 2 here — every move already gets the engine's
+// default one-turn-ahead preview for free, so "one turn EARLIER than that" is 2 turns out, which
+// is exactly what findEarlyTelegraphedMove() checks for. The Echo mimic move (GDD's "every 3rd
+// turn, pulls a random card from your deck") is NOT included — outside this batch's build list.
+const SIR_CRIMSON_MOVES = [
+  { name: 'Crimson Strike', type: 'attack', damage: 12 },
+  { name: 'Iron Guard', type: 'block', block: 14 },
+  { name: 'Shatter Step', type: 'attack+strip', damage: 8, block: 8 },
+  { name: 'Studied Blow', type: 'attack+debuff', damage: 15, status: { name: '😵Weak', stacks: 2 }, telegraphTurnsEarly: 2 },
+];
+
+function startSirCrimsonFight() {
+  const e = {
+    name: 'Sir Crimson', emoji: '🗡️',
+    hp: 160, maxHp: 160, block: 0,
+    reward: 0, souls: 0, // no reward, no gold — checkCombatEnd()'s isSirCrimson branch never reads these, kept 0 for honesty regardless
+    moves: SIR_CRIMSON_MOVES,
+    _moveIndex: 0,
+    _echoPick: null, // set at telegraph-time by STEP 10 the turn before each Echo turn (GDD §5)
+    intent: SIR_CRIMSON_MOVES[0].type,
+    isSirCrimson: true, // checkCombatEnd()'s short-circuit to the no-reward outro hand-off
+  };
+  G.enemy = e;
+  G.block = 0;
+  G.statuses = { player: [], enemy: [] };
+  G.exhaustedPile = [];
+  // "Full boss-level difficulty" per GDD — same treatment as a real floor boss, not Aldric's
+  // documented relic/draw exclusion. G.inBoss=true is safe here specifically because
+  // checkCombatEnd()'s isSirCrimson branch (above) returns before any of the G.inBoss-gated
+  // gold/soul/cores logic runs — every other G.inBoss read in the codebase belongs to reward-
+  // screen-adjacent flows (isBossRewardWindow, the Void Compass check) that are never reached
+  // while this fight is active, confirmed by a full-repo check of every G.inBoss read before
+  // writing this.
+  G.inBoss = true;
+  G.isFinalBoss = false;
+  G.lastFightWasElite = false;
+  G.phantomBladeFired = false;
+  G.extraDraw = 0;
+  G.startingDrawCount = 5;
+  G.maxHandSize = 8;
+  G.cardsPlayedThisCombat = 0;
+  G.turn = 0;
+  G._ashenCrownFired = false;
+  G._leyLineCrystalUsed = false;
+  restoreLoadedCoatDie();
+  G._loadedCoatUsed = false;
+  G._hitExtremeThisTurn = true;
+  G._maxRollStreak = 0;
+  G._houseAlwaysWinsFreeCard = false;
+  G._nextRollBonus = 0;
+  if (hasRelic('cracked_hourglass')) { G.rerollUsed = false; G.rerollsLeft = rerollAllowance(); }
+  if (hasRelic('rusted_chain')) G.statuses.enemy.push({ name:'🫗Vulnerable', stacks:1 });
+  if (hasRelic('torn_page')) G.extraDraw += 1;
+  if (hasRelic('cursed_hourglass')) { G.extraDraw += 2; G.maxHandSize = 4; }
+  stageCombatStartBlock(G);
+  applySoulCombatStart(G);
+
+  showScreen('combat-screen');
+  document.getElementById('player-sprite').textContent = G.char.emoji;
+  document.getElementById('player-name').textContent = G.char.name.toUpperCase();
+  document.getElementById('enemy-sprite').textContent = e.emoji;
+  document.getElementById('enemy-name').textContent = e.name.toUpperCase();
+  document.getElementById('enemy-sprite').classList.remove('dying');
+
+  shuffleDeck();
+  startTurn();
+  renderAll();
+}
+
 function startTurn() {
   // Midnight Hunger (Vampire) turn-transition check. Read BEFORE resetting the flag below, so
   // this reflects whether the turn that JUST ENDED ever hit extreme — the flag is set inside
@@ -1508,6 +1588,18 @@ function endTurn() {
 // ── STEP 6: Enemy acts ──
   if (G.enemy && G.enemy.isAldric) {
     processAldricTurn();
+  } else if (G.enemy && G.enemy.isSirCrimson && G.turn % 3 === 0) {
+    // Echo (GDD §5) — every 3rd turn from fight start, Sir Crimson mimics a card pulled from the
+    // player's own deck instead of his regular rotation move. Checked BEFORE the generic .moves
+    // branch below (Sir Crimson has .moves too) so this takes priority on Echo turns specifically;
+    // resolveMoveTurn() never runs this turn, and _moveIndex is deliberately left untouched here
+    // (see STEP 10's matching check) so the paused move resumes on the very next turn.
+    resolveSirCrimsonEcho(G);
+  } else if (G.enemy && G.enemy.moves && G.enemy.moves.length) {
+    // Generic multi-move rotation (any boss with a `moves` array) — see resolveMoveTurn(). Takes
+    // priority over the flat intent branches below, which stay untouched for every enemy/boss
+    // that has no `moves` array (i.e. everything currently in the game).
+    resolveMoveTurn(G, G.enemy.moves[G.enemy._moveIndex || 0]);
   } else if (e.intent === 'attack') {
     // Steps 1-2: base damage + enemy modifiers (Rage adds Strength, Weak and Chill reduce).
     // Shared with updateIntent() so the displayed intent matches what lands here.
@@ -1575,7 +1667,39 @@ function endTurn() {
   }
 
   // ── STEP 10: Alternate enemy intent for next turn ──
-  G.enemy.intent = Math.random() < 0.65 ? 'attack' : 'defend';
+  if (G.enemy && G.enemy.isSirCrimson && G.enemy.moves && G.enemy.moves.length) {
+    const len = G.enemy.moves.length;
+    if (G.turn % 3 === 0) {
+      // THIS turn (just ending) was itself an Echo turn — STEP 6 skipped moves[_moveIndex]
+      // rather than executing it, so it is still due. Don't advance past it; preview the same
+      // move again for next turn (this is the resume, one turn later than it would otherwise
+      // have played).
+      G.enemy.intent = G.enemy.moves[G.enemy._moveIndex || 0].type;
+    } else {
+      // Normal turn — advance to the move now due, exactly like the generic engine below.
+      G.enemy._moveIndex = ((G.enemy._moveIndex || 0) + 1) % len;
+      if ((G.turn + 1) % 3 === 0) {
+        // The UPCOMING turn will be an Echo turn — this is telegraph-time: pick the mimicked
+        // card now, once, and store it. Nothing re-picks it before STEP 6 resolves it. The index
+        // just advanced above stays pointed at the move that would otherwise play next turn —
+        // it simply waits one extra turn while Echo runs, then resumes via the branch above.
+        G.enemy._echoPick = pickSirCrimsonEchoCard(G); // null only if the deck has zero compatible cards
+        G.enemy.intent = 'echo';
+      } else {
+        G.enemy.intent = G.enemy.moves[G.enemy._moveIndex].type;
+      }
+    }
+  } else if (G.enemy && G.enemy.moves && G.enemy.moves.length) {
+    // Fixed-cycle rotation, not weighted-random — advance once, wrap at the end of the array.
+    // G.enemy.intent is set to the move's own type purely for any code that inspects it
+    // generically (debug tooling, etc.); updateIntent() and STEP 6 above both read
+    // G.enemy.moves[_moveIndex] directly and never depend on this string for a moves-bearing
+    // enemy, so a future move-type string can't drift out of sync with what this shows/does.
+    G.enemy._moveIndex = ((G.enemy._moveIndex || 0) + 1) % G.enemy.moves.length;
+    G.enemy.intent = G.enemy.moves[G.enemy._moveIndex].type;
+  } else {
+    G.enemy.intent = Math.random() < 0.65 ? 'attack' : 'defend';
+  }
 
   // ── STEP 11: Discard hand, check end, start next turn ──
   // Fly is a one-turn buff: clear any leftover (e.g. the enemy defended and never triggered it)
@@ -1954,6 +2078,107 @@ function resolveEnemyAttack(g, amount, bypassBlock) {
   return pen;
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// GENERIC MULTI-MOVE BOSS ROTATION ENGINE
+// ═══════════════════════════════════════════════════════════════════
+// Any boss can opt in with an `moves: [{ name, type, damage, block, status,
+// telegraphTurnsEarly }]` array on its enemy object. Absent `moves` (every current enemy/boss,
+// including Aldric) takes the pre-existing flat e.damage/e.intent path in endTurn() STEP 6/10 and
+// updateIntent() completely untouched — this file only ever branches into the code below when
+// `G.enemy.moves` is truthy and non-empty. Built generic (not hardcoded to any one boss) the same
+// way spendGold()/loseHP()/checkAffinity() are — reusable if a future boss ever needs the same
+// shape, per this batch's own design brief.
+//
+// `type` is one of 'attack' | 'block' | 'attack+debuff' | 'attack+strip', reused verbatim as
+// G.enemy.intent (STEP 10) so the field's existing meaning — "what the enemy will do next" —
+// still holds for any code that inspects it generically, even though updateIntent() and this
+// function both read moves[_moveIndex] directly and never depend on that string themselves.
+//
+// Dispatches every attack-flavored type through the SAME enemyAttackDamage()/resolveEnemyAttack()
+// pipeline every other attack in the game already uses (via enemyAttackDamage's existing
+// baseOverride parameter — the same extension point Aldric's per-phase attacks use), so Rage,
+// Weak, Chill, Vulnerable, Fly and Block absorption all apply identically. No parallel damage math
+// for moves-based bosses.
+function resolveMoveTurn(g, move) {
+  if (move.type === 'block') {
+    g.enemy.block += (move.block || 0);
+    return;
+  }
+  const dmg = enemyAttackDamage(g, true, move.damage);
+  resolveEnemyAttack(g, dmg);
+  if (move.type === 'attack+debuff' && move.status) {
+    applyStatus(g, 'player', move.status.name, move.status.stacks);
+  } else if (move.type === 'attack+strip') {
+    // Strips whatever Block the player has LEFT after this same attack's own damage has already
+    // absorbed through it — matching the existing Acid Touch/Blood Bat precedent (js/data.js),
+    // both of which fire from special.trigger:'attack' (i.e. after resolveEnemyAttack has already
+    // run), rather than removing Block before the attack that's supposed to punch through it.
+    const stripped = Math.min(g.block, move.block || 0);
+    g.block -= stripped;
+    if (stripped > 0) showMsg(`${move.name} — strips ${stripped} Block!`);
+  }
+}
+
+// Picks a random card from the player's own deck for Sir Crimson's Echo move (GDD §5), restricted
+// to SIR_CRIMSON_ECHO_POOL (js/data.js) — the audited set of cards with at least one combat-
+// facing component. Filtering the deck down to compatible entries first and picking uniformly
+// among them is equivalent to "reroll past utility-only cards" but does it in one step instead of
+// a rejection loop. Returns null only if the deck somehow has zero compatible cards (practically
+// unreachable — every starter deck includes Strike/Defend-equivalents — but every caller checks
+// for it rather than assuming a pick always exists).
+function pickSirCrimsonEchoCard(g) {
+  const compatible = (g.deck || []).filter(key => SIR_CRIMSON_ECHO_POOL[key]);
+  if (compatible.length === 0) return null;
+  const cardKey = compatible[Math.floor(Math.random() * compatible.length)];
+  const card = CARDS[cardKey];
+  const payload = SIR_CRIMSON_ECHO_POOL[cardKey];
+  return { cardKey, name: card ? card.name : cardKey, ...payload };
+}
+
+// Resolves the pre-selected Echo pick (g.enemy._echoPick, stored at telegraph-time by STEP 10 —
+// never re-rolled here) through the exact same pipeline every other Sir Crimson move and every
+// other enemy attack in the game already uses: enemyAttackDamage()/resolveEnemyAttack() for
+// damage, direct g.enemy.block/g.block mutation for Block gain/strip (matching resolveMoveTurn()
+// and Shatter Step's own convention), applyStatus() for status. A pick can carry any combination
+// of dmg/block/strip/status simultaneously (e.g. a damage+status compound card) — each present
+// field is applied, nothing is mutually exclusive.
+function resolveSirCrimsonEcho(g) {
+  const pick = g.enemy._echoPick;
+  if (!pick) { showMsg('👻 Echo — the memory fades without form.'); return; } // zero-compatible-cards edge case
+  showMsg(`👻 Echo — mimics ${pick.name}!`);
+  if (pick.dmg) {
+    resolveEnemyAttack(g, enemyAttackDamage(g, true, pick.dmg));
+  }
+  if (pick.block) {
+    g.enemy.block += pick.block;
+  }
+  if (pick.strip) {
+    const stripped = Math.min(g.block, pick.strip);
+    g.block -= stripped;
+    if (stripped > 0) showMsg(`${pick.name} — strips ${stripped} Block!`);
+  }
+  if (pick.status) {
+    pick.status.forEach(s => applyStatus(g, 'player', s.name, s.stacks));
+  }
+}
+
+// Peeks past the immediately-next move to find one whose telegraphTurnsEarly demands earlier
+// visibility than the standard one-turn-ahead default every move already gets for free (being
+// moves[_moveIndex] IS the standard next-turn preview). Scans the rest of the rotation exactly
+// once (bounded by its own length, so a cycle with nothing flagged terminates cleanly) and returns
+// the SOONEST qualifying move — if two moves both want early telegraphing, the one arriving first
+// is what the player needs to see.
+function findEarlyTelegraphedMove(moves, moveIndex) {
+  for (let turnsAway = 2; turnsAway <= moves.length; turnsAway++) {
+    const idx = (moveIndex + turnsAway - 1) % moves.length;
+    const move = moves[idx];
+    if (move.telegraphTurnsEarly && move.telegraphTurnsEarly >= turnsAway) {
+      return { move, turnsAway };
+    }
+  }
+  return null;
+}
+
 function gainBlock(g, target, amount) {
   // Thief Challenge — the player may never gain Block. Denied at this one choke point so
   // conditional grants ("Odd: gain 7 Block") are covered without a per-card list; the rest of
@@ -2061,6 +2286,28 @@ function checkCombatEnd() {
   }
   if (G.enemy && G.enemy.hp <= 0) {
     G.enemy.hp = 0;
+
+    // Sir Crimson (GDD §5) — "no reward, no gold, no heal" is explicit and stricter than Aldric's
+    // own win, which still picks up a few of the hooks below incidentally (an accepted pre-
+    // existing quirk this batch does not touch — see the !isFinalBoss guards further down). He is
+    // neither a G.map[...] floor boss nor Aldric, so none of the gold/soul/relic-hook/cores logic
+    // below (which all assume G.inBoss means "a real floor boss just died") applies to him at all.
+    // Short-circuits before any of it runs, then hands off exactly where the batch 5a/5b-i stub
+    // did: G._sirCrimsonFought = true; showSirCrimsonOutro() — via sirCrimsonSmokeTransition() at
+    // the confrontation/outro layer, not here.
+    if (G.enemy.isSirCrimson) {
+      const enemySprite = document.getElementById('enemy-sprite');
+      spawnDeathBurstVFX(enemySprite);
+      enemySprite.classList.add('dying');
+      updateHUD();
+      renderAll();
+      setTimeout(() => {
+        G._sirCrimsonFought = true;
+        showSirCrimsonOutro();
+      }, 700);
+      return;
+    }
+
     G.gold += G.enemy.reward;
     // Soul income is a flat rate per fight type (GDD §15): 1 regular / 2 elite / 3 boss.
     // The per-enemy `souls` values still in js/data.js belong to the superseded permanent-Soul
@@ -2152,10 +2399,77 @@ function updateIntent() {
   if (!G.enemy) return;
   const e = G.enemy;
   const el = document.getElementById('enemy-intent');
-  el.classList.toggle('intent-pulse', e.intent === 'attack');
   const specialHint = e.special
     ? `<div style="font-size:0.65rem;color:var(--purple2);margin-top:0.2rem;">⚡ ${e.special.name} · <span style="color:var(--text3)">tap for info</span></div>`
     : '';
+
+  // Echo (GDD §5, Sir Crimson only) — checked BEFORE the generic moves-rotation branch below,
+  // since Sir Crimson always has a `moves` array too; this takes priority whenever STEP 10 has
+  // set intent to 'echo'. Names the specific mimicked card and its stored full-effect numbers —
+  // never a generic "Echo" label — reusing the exact same dual-number Rage/Weak/Chill/Vulnerable-
+  // aware preview math and per-component formatting the regular move branch already uses, just
+  // fed the pre-selected pick's damage/status/strip instead of a move's own fields. The pick was
+  // already finalized at telegraph-time (STEP 10 the turn before) and is never recomputed here.
+  if (e.intent === 'echo') {
+    const pick = e._echoPick;
+    if (!pick) { el.innerHTML = `Preparing: <strong>👻 Echo</strong>`; return; } // zero-compatible-cards edge case
+    el.classList.toggle('intent-pulse', !!pick.dmg);
+    const parts = [];
+    if (pick.dmg) {
+      const rawDmg = pick.dmg;
+      const actualDmg = applyPlayerVulnerable(G, enemyAttackDamage(G, false, pick.dmg));
+      const dmgDisplay = (actualDmg !== rawDmg)
+        ? `<span style="color:${actualDmg < rawDmg ? '#7fb3d3' : '#e74c3c'};font-weight:bold">${actualDmg}</span> <span style="text-decoration:line-through;opacity:0.5;font-size:0.85em">${rawDmg}</span>`
+        : `${rawDmg}`;
+      parts.push(`Attack ${dmgDisplay}`);
+    }
+    if (pick.block) parts.push(`🛡 Block ${pick.block}`);
+    if (pick.strip) parts.push(`strips ${pick.strip} Block`);
+    if (pick.status) parts.push(pick.status.map(s => `+ ${s.name} ${s.stacks}`).join(' '));
+    const mainLine = parts.join(' ') || pick.name;
+    el.innerHTML = `Preparing: <strong>👻 Echo — ${pick.name}: ${mainLine}</strong>${specialHint}`;
+    return;
+  }
+
+  // Multi-move rotation engine (see resolveMoveTurn()/findEarlyTelegraphedMove() above). Any
+  // enemy without a `moves` array — i.e. every current enemy/boss/Aldric — falls straight through
+  // to the untouched legacy branch below via this early return never firing.
+  if (e.moves && e.moves.length) {
+    const move = e.moves[e._moveIndex || 0];
+    const isAttackFlavor = move.type === 'attack' || move.type === 'attack+debuff' || move.type === 'attack+strip';
+    el.classList.toggle('intent-pulse', isAttackFlavor);
+
+    let mainLine;
+    if (move.type === 'block') {
+      mainLine = `🛡 Block ${move.block}`;
+    } else {
+      // Same Rage/Weak/Chill/Vulnerable-aware preview math the flat-damage path below already
+      // uses, applied per-move via enemyAttackDamage()'s existing baseOverride parameter instead
+      // of the single flat e.damage stat.
+      const rawDmg = move.damage;
+      const actualDmg = applyPlayerVulnerable(G, enemyAttackDamage(G, false, move.damage));
+      const dmgDisplay = (actualDmg !== rawDmg)
+        ? `<span style="color:${actualDmg < rawDmg ? '#7fb3d3' : '#e74c3c'};font-weight:bold">${actualDmg}</span> <span style="text-decoration:line-through;opacity:0.5;font-size:0.85em">${rawDmg}</span>`
+        : `${rawDmg}`;
+      if (move.type === 'attack+debuff' && move.status) {
+        mainLine = `Attack ${dmgDisplay} + ${move.status.name} ${move.status.stacks}`;
+      } else if (move.type === 'attack+strip') {
+        mainLine = `Attack ${dmgDisplay} — strips ${move.block} Block`;
+      } else {
+        mainLine = `Attack ${dmgDisplay}`;
+      }
+    }
+
+    const early = findEarlyTelegraphedMove(e.moves, e._moveIndex || 0);
+    const telegraphHint = early
+      ? `<div style="font-size:0.65rem;color:var(--gold);margin-top:0.2rem;">⚠ ${early.move.name} incoming in ${early.turnsAway} turns</div>`
+      : '';
+
+    el.innerHTML = `Preparing: <strong>${mainLine}</strong>${telegraphHint}${specialHint}`;
+    return;
+  }
+
+  el.classList.toggle('intent-pulse', e.intent === 'attack');
   if (e.intent === 'attack') {
     // Same helpers the attack itself uses (consumeChill false — previewing must not spend Chill),
     // so the number shown is exactly the number that will land. Covers the attacker's Rage, Weak

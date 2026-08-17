@@ -367,17 +367,58 @@
 
   <!-- SIR CRIMSON — confrontation (Floor 2->3), GDD §5. Same visual shell as #boss-intro-screen
        above (shared .boss-intro-* classes) but a separate screen/id: Sir Crimson is not a
-       companion boss, has no Challenge offer, and its button hands off to the (stubbed)
-       startSirCrimsonFight() rather than the real startBossFight(), so nothing here can leak into
-       that screen's own Challenge-offer/FACE-THEM wiring. -->
+       companion boss, has no Challenge offer, and its button hands off to the shadow-themed rest
+       stop (showSirCrimsonRest()) rather than the real startBossFight(), so nothing here can leak
+       into that screen's own Challenge-offer/FACE-THEM wiring. -->
   <div id="crimson-confrontation-screen" class="screen">
     <div class="boss-intro-label">A SHADOW BLOCKS YOUR PATH</div>
     <div class="boss-intro-sprite">🗡️</div>
     <div class="boss-intro-name">SIR CRIMSON</div>
     <div class="boss-intro-subtitle">The King's knight, consumed by the castle</div>
     <div class="boss-intro-hint" id="crimson-confrontation-line"></div>
-    <button class="btn" onclick="startSirCrimsonFight()" style="margin-top:0.5rem;">FACE HIM</button>
+    <button class="btn" onclick="showSirCrimsonRest()" style="margin-top:0.5rem;">CONTINUE</button>
   </div>
+
+  <!-- SIR CRIMSON — shadow-themed Rest-stop variant, between the confrontation and the fight.
+       Deliberately a FULL DUPLICATE of #rest-screen's markup under new IDs (not a reskin of the
+       real screen in place) — same Rest/Upgrade/Remove mechanics and the same underlying
+       healPlayer()/upgradeCard()/removeCardFromDeck() calls, but its own isolated completion path
+       (sirCrimsonRestComplete(), not proceedDoors()) so nothing here can ever alter what the real
+       Rest room does. Reuses the real screen's .rest-hp-panel/.rest-options/.rest-deck-* CLASSES
+       verbatim for identical styling/behavior — only the screen container and title get the
+       shadow theme (see css/styles.css). -->
+  <div id="crimson-rest-screen" class="screen">
+    <div style="font-size:2.5rem;margin-bottom:0">🕯️</div>
+    <h2 class="crimson-rest-title">A MOMENT'S RESPITE</h2>
+    <p class="rest-sub">Even the castle's grip loosens, for now. Choose one.</p>
+    <div class="rest-hp-panel">
+      <div class="rest-hp-block">
+        <div class="rest-hp-label"><span>HP</span><span id="crimson-rest-hp-text">80 / 80</span></div>
+        <div class="rest-hp-bar-track"><div class="rest-hp-bar-fill" id="crimson-rest-hp-bar" style="width:100%"></div></div>
+      </div>
+      <div class="rest-hp-pct" id="crimson-rest-hp-pct">100%</div>
+    </div>
+    <div class="rest-options" id="crimson-rest-options"></div>
+    <div class="rest-picking-label" id="crimson-rest-picking-label" style="display:none">Click a card below to select it</div>
+    <button class="btn rest-cancel-btn" id="crimson-rest-cancel-btn" style="display:none" onclick="cancelSirCrimsonRestPick()">Cancel</button>
+    <div class="rest-deck-section">
+      <div class="rest-deck-title">
+        <span>YOUR DECK</span>
+        <span style="color:var(--text3);font-size:0.75rem" id="crimson-rest-deck-count"></span>
+      </div>
+      <div class="rest-deck-grid" id="crimson-rest-deck-grid"></div>
+    </div>
+  </div>
+
+  <!-- SIR CRIMSON — smoke transition. Fades to black/red over whatever screen is currently
+       active, blocking clicks on it (pointer-events follow the .visible toggle), then the screen
+       swap underneath happens while fully opaque, then it fades back out. See
+       sirCrimsonSmokeTransition() in js/ui.js. Deliberately NOT reused for every internal step of
+       this sequence (confrontation -> rest -> fight are plain screen swaps, same as everywhere
+       else in the game) — only for entering the interruption (reward screen darkens) and leaving
+       it on victory (revealing the original reward screen), matching the build spec's own two
+       explicit smoke beats. -->
+  <div id="sir-crimson-smoke-overlay"></div>
 
   <!-- SIR CRIMSON — post-fight story outro, same visual shell again. Shown once immediately after
        the (stubbed) fight resolves; dismissing hands back into the exact reward flow a normal

@@ -715,6 +715,27 @@ function showReward() {
     pool.appendChild(el);
   });
 
+  // Sir Crimson's Floor 2/3 confrontation (GDD §5) now interrupts THIS render — the real card
+  // reward for the Floor 2 boss — rather than gating the end of the whole reward chain the way
+  // the Floor 1/2 shadow beat still does (see proceedOrPath()). The card/gold/HP shown above are
+  // the real, final values; nothing below regenerates or replaces them, so what the player sees
+  // once the smoke clears is byte-identical to what rendered here.
+  if (G.inBoss && !G.isFinalBoss && G.currentFloor === 2 && !G._sirCrimsonFought && !G._sirCrimsonInterrupting) {
+    G._sirCrimsonInterrupting = true; // set synchronously, not inside the timeout — a second
+                                       // showReward() call before the timeout fires must not
+                                       // schedule a duplicate interruption.
+    // Blocked THE MOMENT the interruption is scheduled, not only once the smoke overlay's own
+    // pointer-events kick in — otherwise a fast click, or Skip Reward, inside the brief "let the
+    // player see their real reward" window below could reach a later screen (boss relic offer,
+    // Soul spend) before the smoke ever appears, letting the interruption fire on the wrong
+    // screen and letting the reward be claimed twice once it's revealed again on victory.
+    // Restored in dismissSirCrimsonOutro() once the smoke reveals this exact screen again.
+    pool.style.pointerEvents = 'none';
+    setRewardSkipVisible(false);
+    setTimeout(() => {
+      sirCrimsonSmokeTransition(() => showSirCrimsonConfrontation());
+    }, 1200); // long enough that the player registers their real reward before it's obscured
+  }
 }
 
 function showDieReward() {
@@ -816,20 +837,21 @@ function skipReward() {
 // Proceed out of a reward screen — to path select after a boss, otherwise back to the doors.
 function proceedOrPath() {
   if (G.needsPathSelect) {
-    // Sir Crimson's mid-run story beats (GDD §5) gate entry into the floor they announce, the
+    // Sir Crimson's Floor 1/2 shadow beat (GDD §5) gates entry into the floor it announces, the
     // same way launchFinalBoss() gates the door to Aldric — but unlike Aldric (which skips the
-    // entire reward flow via checkCombatEnd()'s early return), both beats sit AFTER the normal
-    // boss-clear reward chain: gold and the full heal already happened in checkCombatEnd(), and
-    // by the time proceedOrPath() runs here, the card reward, boss relic offer, and Soul-spend
-    // screen have all already had their chance to show. So these only ever delay the final step
-    // into path select — they never skip or reorder anything the reward flow already did.
+    // entire reward flow via checkCombatEnd()'s early return), it sits AFTER the normal boss-clear
+    // reward chain: gold and the full heal already happened in checkCombatEnd(), and by the time
+    // proceedOrPath() runs here, the card reward, boss relic offer, and Soul-spend screen have all
+    // already had their chance to show. So this only ever delays the final step into path select
+    // — it never skips or reorders anything the reward flow already did.
+    //
+    // The Floor 2/3 confrontation no longer gates here — it now interrupts showReward() directly,
+    // before the player ever reaches this point (see showReward()'s own trigger). By the time
+    // proceedOrPath() runs for a Floor-2 boss clear, G._sirCrimsonFought is already true (set the
+    // moment the stubbed fight resolves), so no check for it is needed here at all.
     if (G.currentFloor === 1 && !G._sirCrimsonShadowSeen) {
       G._sirCrimsonShadowSeen = true;
       showSirCrimsonShadow();
-      return;
-    }
-    if (G.currentFloor === 2 && !G._sirCrimsonFought) {
-      showSirCrimsonConfrontation();
       return;
     }
     G.needsPathSelect = false; showPathSelect();
@@ -841,20 +863,18 @@ function proceedOrPath() {
 // SIR CRIMSON — MID-RUN STORY BEATS (GDD §5)
 // ═══════════════════════════════════════════════════════════════════
 // Not a companion boss — no BOSSES entry, no floor-boss slot. A scripted, unskippable "surprise
-// encounter": a wordless shadow between Floor 1 and Floor 2, then a confrontation and fight
-// between Floor 2 and Floor 3. Both gates live in proceedOrPath() above, not here. The fight
-// itself (HP 160, move rotation, Echo mimic per GDD §5) is NOT built yet — startSirCrimsonFight()
-// is a stub for batch 5b/5c so this batch's trigger placement is independently testable without
-// a working fight behind it.
+// encounter": a wordless shadow between Floor 1 and Floor 2 (gated in proceedOrPath(), unchanged
+// from batch 5a), then between Floor 2 and Floor 3 — confrontation, a shadow-themed rest stop,
+// then the real fight (batch 5b-ii, js/combat.js — HP 160, his 4-move rotation via the 5b-i
+// engine; the GDD's Echo mimic is not built). The interruption itself interrupts showReward()
+// directly rather than gating proceedOrPath() at the end of the whole reward chain (batch
+// restructure), so all of that — trigger placement, smoke transition, the rest-stop variant — is
+// unaffected by the fight now being real instead of a stub.
 //
-// Dialogue is placeholder pending a content pass. GDD.md only ever specified one of these three
-// lines (the post-fight True Ending hint) and PROGRESS.md already flags that exact line as stale
-// — written for the superseded 4-relic True Ending design, before the July 25, 2026 Challenge-relic
-// redesign. The shadow-appearance and confrontation lines have no GDD source text at all (Sir
-// Crimson's backstory is an open TBD at GDD.md:790). All three are one-line swaps, not structural.
-const SIR_CRIMSON_SHADOW_LINE = "Something watches from the dark at the edge of the torchlight. It says nothing. It doesn't need to.";
-const SIR_CRIMSON_CONFRONTATION_LINE = '"Far enough." The shadow steps into the light — a knight in ruined armor, blade already drawn.';
-const SIR_CRIMSON_OUTRO_LINE = 'The blade lowers. For a moment, the thing wearing Sir Crimson\'s face is only a tired old knight. "...Go. Before it takes me back."';
+// Dialogue (final as of batch 5d):
+const SIR_CRIMSON_SHADOW_LINE = "You feel eyes on you long before you see him. When you turn, he is already gone.";
+const SIR_CRIMSON_CONFRONTATION_LINE = '"You\'ve come far for someone who doesn\'t understand what\'s asking you to stop." He draws his blade slowly, almost apologetic. "I was loyal, once. Loyalty is all the castle left me."';
+const SIR_CRIMSON_OUTRO_LINE = 'The king... he didn\'t choose this. None of us did. The castle took everything from him — his grief was the door it walked through. If you want to free him, you\'ll need more than steel. Four others wear his grief the way I wore mine. Free them, and you\'ll have what it takes to reach him.';
 
 function showSirCrimsonShadow() {
   const overlay = document.getElementById('sir-crimson-shadow-overlay');
@@ -869,19 +889,164 @@ function dismissSirCrimsonShadow() {
   proceedOrPath(); // G._sirCrimsonShadowSeen is already true — falls through to showPathSelect()
 }
 
+// Fades #sir-crimson-smoke-overlay to full opacity (blocking clicks on whatever is behind it via
+// the same .visible class that drives the CSS transition), performs the screen swap while fully
+// opaque and invisible to the player, then fades back out. Used for exactly the two moments the
+// build spec calls out explicitly — entering the interruption (reward screen darkens) and leaving
+// it on victory (revealing the original reward screen) — not for every internal step in between;
+// confrontation -> rest -> fight are plain showScreen() swaps, the same as everywhere else in the
+// game, matching how the original confrontation -> outro handoff already worked in batch 5a.
+function sirCrimsonSmokeTransition(duringOpaque) {
+  const smoke = document.getElementById('sir-crimson-smoke-overlay');
+  if (!smoke) { duringOpaque(); return; } // markup missing — never hard-block progress
+  const FADE_MS = 700; // matches the CSS transition duration
+  smoke.classList.add('visible');
+  setTimeout(() => {
+    duringOpaque();
+    // A short paint delay before fading out, so the new screen's first frame is never visible
+    // mid-transition through a still-fading-in smoke layer.
+    setTimeout(() => smoke.classList.remove('visible'), 50);
+  }, FADE_MS);
+}
+
 function showSirCrimsonConfrontation() {
   const line = document.getElementById('crimson-confrontation-line');
   if (line) line.textContent = SIR_CRIMSON_CONFRONTATION_LINE;
   showScreen('crimson-confrontation-screen');
 }
 
-// Stub for batch 5b/5c. Resolves immediately rather than calling startBossFight()-style combat
-// setup, so nothing here leaves combat-only state (G.enemy, G.inBoss, etc.) dangling — this batch
-// is about trigger placement, not the fight, and the real fight will replace this function body
-// wholesale rather than extend it.
-function startSirCrimsonFight() {
-  G._sirCrimsonFought = true;
-  showSirCrimsonOutro();
+// Shadow-themed Rest-stop variant between the confrontation and the fight — a full duplicate of
+// showRestStop()/startRestPick()/cancelRestPick()/renderRestDeck() under new IDs and function
+// names, calling the exact same healPlayer()/upgradeCard()/removeCardFromDeck() mechanics as the
+// real Rest room, but ending in sirCrimsonRestComplete() (-> the fight) instead of proceedDoors()
+// (-> the door screen). Kept fully separate from the real functions per the confirmed design
+// default, so nothing here can ever branch the real Rest room's behavior.
+function showSirCrimsonRest() {
+  showScreen('crimson-rest-screen');
+
+  const hpPct = Math.round(G.hp / G.maxHp * 100);
+  document.getElementById('crimson-rest-hp-text').textContent = `${Math.max(0,G.hp)} / ${G.maxHp}`;
+  document.getElementById('crimson-rest-hp-bar').style.width = hpPct + '%';
+  const pctEl = document.getElementById('crimson-rest-hp-pct');
+  pctEl.textContent = hpPct + '%';
+  pctEl.className = 'rest-hp-pct ' + (hpPct <= 30 ? 'hp-low' : hpPct <= 60 ? 'hp-mid' : 'hp-full');
+
+  const healAmt = Math.floor(G.maxHp * 0.3);
+  const atFull = G.hp >= G.maxHp;
+
+  const opts = document.getElementById('crimson-rest-options');
+  opts.innerHTML = '';
+  const options = [
+    {
+      emoji: '❤️', name: 'Rest',
+      desc: atFull ? 'Already at full HP' : `Recover ${healAmt} HP (${Math.min(G.hp + healAmt, G.maxHp)}/${G.maxHp})`,
+      disabled: atFull,
+      action: () => { healPlayer(G, healAmt); showMsg(`Recovered ${healAmt} HP.`); setTimeout(sirCrimsonRestComplete, 800); }
+    },
+    {
+      emoji: '⬆️', name: 'Upgrade Card',
+      desc: 'Pick a card from your deck to upgrade',
+      action: () => startSirCrimsonRestPick('upgrade')
+    },
+    {
+      emoji: '🗑️', name: 'Remove Card',
+      desc: 'Pick a card from your deck to remove',
+      action: () => startSirCrimsonRestPick('remove')
+    },
+  ];
+  options.forEach(o => {
+    const el = document.createElement('div');
+    el.className = 'rest-option' + (o.disabled ? ' rest-disabled' : '');
+    el.style.opacity = o.disabled ? '0.4' : '1';
+    el.style.cursor = o.disabled ? 'not-allowed' : 'pointer';
+    el.innerHTML = `<span class="rest-option-emoji">${o.emoji}</span><div class="rest-option-name">${o.name}</div><div class="rest-option-desc">${o.desc}</div>`;
+    if (!o.disabled) el.onclick = o.action;
+    opts.appendChild(el);
+  });
+
+  renderSirCrimsonRestDeck(null);
+}
+
+function startSirCrimsonRestPick(mode) {
+  document.getElementById('crimson-rest-picking-label').style.display = 'block';
+  document.getElementById('crimson-rest-picking-label').textContent =
+    mode === 'upgrade' ? '✨ Click a card to upgrade it' : '🗑️ Click a card to remove it from your deck';
+  document.getElementById('crimson-rest-cancel-btn').style.display = 'inline-block';
+  document.querySelectorAll('#crimson-rest-options .rest-option').forEach(el => {
+    el.style.opacity = '0.3';
+    el.style.pointerEvents = 'none';
+  });
+  renderSirCrimsonRestDeck(mode);
+}
+
+function cancelSirCrimsonRestPick() {
+  document.getElementById('crimson-rest-picking-label').style.display = 'none';
+  document.getElementById('crimson-rest-cancel-btn').style.display = 'none';
+  document.querySelectorAll('#crimson-rest-options .rest-option').forEach(el => {
+    el.style.opacity = '';
+    el.style.pointerEvents = '';
+  });
+  renderSirCrimsonRestDeck(null);
+}
+
+function renderSirCrimsonRestDeck(mode) {
+  const grid = document.getElementById('crimson-rest-deck-grid');
+  grid.innerHTML = '';
+  document.getElementById('crimson-rest-deck-count').textContent = `${G.deck.length} cards`;
+
+  G.deck.forEach((key, idx) => {
+    const c = CARDS[key];
+    if (!c) return;
+    const isSelectable = mode !== null;
+    const isDanger = mode === 'remove';
+    const isUpgraded = key.endsWith('+');
+    const canUpgrade = mode === 'upgrade' && !isUpgraded && CARD_UPGRADES[key];
+
+    const el = document.createElement('div');
+    el.className = `rest-deck-card${isSelectable ? ' selectable' : ''}${isDanger ? ' danger' : ''}`;
+    if (isSelectable && mode === 'upgrade' && !canUpgrade) {
+      el.style.opacity = '0.35';
+      el.style.cursor = 'not-allowed';
+    }
+    if (isUpgraded) el.style.borderColor = 'var(--gold)';
+
+    el.innerHTML = `
+      <span class="rest-deck-card-emoji">${c.emoji}</span>
+      <div>
+        <div class="rest-deck-card-name" style="color:${isUpgraded ? 'var(--gold2)' : ''}">${c.name}</div>
+        <div class="rest-deck-card-type">${c.type} · ⚡${c.cost}${isUpgraded ? ' · ✨' : ''}</div>
+      </div>
+    `;
+
+    if (isSelectable) {
+      const capturedIdx = idx;
+      const capturedKey = key;
+      el.onclick = () => {
+        if (mode === 'remove') {
+          G.deck.splice(capturedIdx, 1);
+          showMsg(`${c.name} removed from deck.`);
+          cancelSirCrimsonRestPick();
+          setTimeout(sirCrimsonRestComplete, 600);
+        } else if (mode === 'upgrade') {
+          if (!canUpgrade) { showMsg(`${c.name} cannot be upgraded further.`); return; }
+          const success = upgradeCard(capturedKey);
+          if (success) {
+            showMsg(`✨ ${c.name} → ${(CARD_UPGRADES[capturedKey] && CARD_UPGRADES[capturedKey].name ? CARD_UPGRADES[capturedKey].name : capturedKey + '+')}!`);
+            cancelSirCrimsonRestPick();
+            setTimeout(sirCrimsonRestComplete, 600);
+          } else {
+            showMsg(`${c.name} cannot be upgraded.`);
+          }
+        }
+      };
+    }
+    grid.appendChild(el);
+  });
+}
+
+// Shared completion for all 3 Rest-stop options — leads into the real fight (js/combat.js).
+function sirCrimsonRestComplete() {
+  startSirCrimsonFight();
 }
 
 function showSirCrimsonOutro() {
@@ -890,7 +1055,21 @@ function showSirCrimsonOutro() {
   showScreen('crimson-outro-screen');
 }
 function dismissSirCrimsonOutro() {
-  proceedOrPath(); // G._sirCrimsonFought is already true — falls through to showPathSelect()
+  // Victory: smoke wipe reveals the original Floor 2 reward screen — never regenerated, since
+  // showReward() ran exactly once, at the start of this whole interruption, and its DOM was never
+  // torn down in the meantime (showScreen() only toggles the .active class). Once visible again,
+  // the reward screen's own existing card-click/skip handlers proceed normally through
+  // proceedAfterCardReward() -> boss relic offer -> Soul spend -> proceedOrPath() -> path select,
+  // exactly as any other floor boss's reward flow already does — no special-casing needed there.
+  G._sirCrimsonInterrupting = false;
+  sirCrimsonSmokeTransition(() => {
+    showScreen('reward-screen');
+    // Undoes showReward()'s own interruption-time lock, restoring exactly the interactivity that
+    // screen would have had if the interruption had never happened.
+    const pool = document.getElementById('reward-choices');
+    if (pool) pool.style.pointerEvents = '';
+    setRewardSkipVisible(true);
+  });
 }
 
 // After the card reward is taken/skipped: Void Compass offers a choice of 3 relics following

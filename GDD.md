@@ -286,7 +286,7 @@ Exhausted cards are removed from play for the rest of the current combat. They r
 Echo mechanic: block cards give him block, damage cards hit you, status cards apply to you. Larger decks are riskier — rewards tight deck building.
 
 **Post-fight dialogue:**
-*"The king... he didn't choose this. None of us did. The castle took everything from him — his grief was the door it walked through. If you want to free him... find what he lost. Four pieces. You'll know them when you see them."*
+*"The king... he didn't choose this. None of us did. The castle took everything from him — his grief was the door it walked through. If you want to free him, you'll need more than steel. Four others wear his grief the way I wore mine. Free them, and you'll have what it takes to reach him."*
 
 ---
 

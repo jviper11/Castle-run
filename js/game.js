@@ -40,6 +40,13 @@ function newGame(charKey) {
     // every combat within a run rather than re-arming after each one.
     _sirCrimsonShadowSeen: false,
     _sirCrimsonFought: false,
+    // True from the moment the Floor 2/3 interruption is scheduled (inside showReward()) until
+    // the smoke wipe reveals the original reward screen again on victory. Guards against
+    // re-scheduling the interruption a second time if showReward() is somehow re-entered before
+    // its delayed trigger fires — _sirCrimsonFought alone isn't enough for that window, since it
+    // only flips true once the (stubbed) fight actually resolves, well after the interruption
+    // has already started.
+    _sirCrimsonInterrupting: false,
     statuses: { player: [], enemy: [] },
     enemy: null,
     inBoss: false,

@@ -1937,6 +1937,44 @@ body {
 .rest-title { font-family: 'Cinzel', serif; font-size: 1.6rem; color: var(--green2); letter-spacing: 0.1em; }
 .rest-sub { font-size: 0.9rem; color: var(--text2); font-style: italic; }
 
+/* ── SIR CRIMSON — shadow-themed Rest-stop variant ── */
+/* Same layout rules as #rest-screen above, only the background/title recolored to match the
+   confrontation/outro screens' established red palette. Every inner element (.rest-hp-panel,
+   .rest-options, .rest-option, .rest-deck-*) reuses the real Rest screen's classes verbatim, so
+   this is a skin on the container only — nothing about the option tiles or deck grid changes. */
+#crimson-rest-screen {
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.8rem;
+  background: radial-gradient(ellipse at 50% 50%, #2a0000 0%, var(--bg) 70%);
+  z-index: 50;
+  overflow-y: auto;
+  padding: 1.5rem 1rem 2rem;
+}
+.crimson-rest-title { font-family: 'Cinzel', serif; font-size: 1.6rem; color: var(--red3); letter-spacing: 0.1em; }
+
+/* ── SIR CRIMSON — smoke transition ── */
+/* Fixed overlay covering whatever screen is active underneath. Opacity-only fade (no display
+   toggle) so the CSS transition is what animates the "roll in" — pointer-events is tied to the
+   same .visible class so clicks are blocked for the exact duration the smoke is at all visible,
+   not just at full opacity. z-index matches the other full-viewport interrupt overlays
+   (#path-confirm-overlay/#loaded-coat-overlay/#sir-crimson-shadow-overlay), safely above every
+   .screen (z-index 50 or unset). */
+#sir-crimson-smoke-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: radial-gradient(ellipse at 50% 50%, #3a0000 0%, #050000 75%, #000 100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.7s ease;
+}
+#sir-crimson-smoke-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 /* HP panel at top of rest */
 .rest-hp-panel {
   display: flex;

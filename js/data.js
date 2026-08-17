@@ -445,6 +445,172 @@ Object.entries(CARD_UPGRADES).forEach(([key, card]) => {
   CARDS[key + '+'] = card;
 });
 
+// ═══════════════════════════════════════════════════════════════════
+// SIR CRIMSON — ECHO MIMIC POOL (GDD §5), batch 5b-iii
+// ═══════════════════════════════════════════════════════════════════
+// A hand-curated audit of every entry in CARDS (base cards AND their '+' upgrades, already
+// merged above by the time this runs) — one entry per card that has at least one combat-facing
+// component GDD's Echo actually mimics: damage the target takes, Block the caster gains, Block
+// stripped from the target, or a status applied to the target. A card with NONE of those (pure
+// draw, pure self-cost, pure gold/energy/die manipulation, self-buff Powers, self-heal, Curses)
+// is Echo-incompatible by simply being ABSENT from this table — there is no separate exclusion
+// list, the presence/absence of a key IS the classification.
+//
+// Role mapping when Sir Crimson casts a card instead of the player who owns it (GDD: "block
+// cards give him block, damage cards hit you, status cards apply to you"):
+//   dealDamage(g,'enemy', N)   in the original effect -> `dmg`    -> lands on the PLAYER
+//   gainBlock(g,'player', N)   in the original effect -> `block`  -> granted to SIR CRIMSON
+//   g.enemy.block -= N (a strip, e.g. Shatter Step's own kit)     -> `strip`  -> taken from the PLAYER
+//   applyStatus(g,'enemy', name, N) in the original effect -> `status` (array) -> applied to the PLAYER
+// Anything else in a card's effect (heal, self-buff status on 'player', gold, draw, discard, die
+// manipulation, energy) has no mapping under GDD's three categories and is dropped — a card that
+// has ONLY those is excluded entirely (not in this table); a card that mixes a mappable component
+// with a non-mappable one (e.g. Blood Price's HP-cost-for-draw, or Blood Drain's on-extreme heal)
+// keeps only the mappable part.
+//
+// "Full effect" (GDD: Echo "uses it against them at full effect") means the STRONGEST/bonus-
+// triggered value a card can produce — the affinity bonus branch (Even/Odd/High/Extreme/Max), not
+// the baseline roll. Hard play-gates (Backstab's first-card-only, Death Rattle's below-50%-HP) are
+// ignored for the same reason Studied Blow's own numbers are unconditional: Echo always resolves
+// at full effect, it does not re-check the original card's play conditions. Multi-hit cards
+// (Quick Strike, Blade Dance, Blizzard) record the COMBINED total across all hits as one `dmg`
+// value, not a separate hits count — this batch's resolution applies one combined number, not a
+// multi-hit profile.
+//
+// Cards EXCLUDED specifically for having no fixed ceiling independent of runtime state with no
+// stated cap of its own (Hedge Bet/Wild Card/All In: Block or damage scales directly and
+// unboundedly with the currently-equipped die's value; Death Mark/Blood Tide: multiply EXISTING
+// Poison/Regen stacks and do nothing without them) are flagged inline below rather than silently
+// omitted, so a future reviewer can see they were considered, not missed.
+const SIR_CRIMSON_ECHO_POOL = {
+  // ── shared/early cards ──
+  strike: { dmg: 6 }, 'strike+': { dmg: 9 },
+  defend: { block: 5 }, 'defend+': { block: 8 },
+  heavyblow: { dmg: 16 }, 'heavyblow+': { dmg: 21 },
+  warshout: { block: 10 }, 'warshout+': { block: 14 },
+  fireball: { dmg: 15, status: [{ name: '🔥Burn', stacks: 2 }] }, 'fireball+': { dmg: 20, status: [{ name: '🔥Burn', stacks: 3 }] },
+  frostbolt: { dmg: 9, status: [{ name: '❄️Chill', stacks: 1 }] }, 'frostbolt+': { dmg: 13, status: [{ name: '❄️Chill', stacks: 2 }] },
+  arcanebarrier: { block: 9 }, 'arcanebarrier+': { block: 13 },
+  quickstrike: { dmg: 10 }, 'quickstrike+': { dmg: 16 }, // 2 hits combined (5+5 / 8+8)
+  shadowstep: { block: 7 }, 'shadowstep+': { block: 10 }, // draw dropped
+  poisonblade: { dmg: 6, status: [{ name: '☠️Poison', stacks: 3 }] }, 'poisonblade+': { dmg: 9, status: [{ name: '☠️Poison', stacks: 5 }] },
+  highorlow: { dmg: 12 }, 'highorlow+': { dmg: 18 },
+  // doubldown / doubldown+ — pure die-flip, no combat component. Excluded.
+  luckystrike: { dmg: 20 }, 'luckystrike+': { dmg: 28 },
+  blooddrain: { dmg: 6 }, 'blooddrain+': { dmg: 9 }, // extreme-heal dropped, no mapping
+  nightshroud: { block: 10 }, 'nightshroud+': { block: 15 },
+  lifeleech: { dmg: 9, block: 12 }, 'lifeleech+': { dmg: 13, block: 18 }, // "drain Block" IS gainBlock(g,'player',N) -> Sir Crimson gains it
+
+  // ── Barbarian ──
+  ironbash: { dmg: 7, status: [{ name: '🫗Vulnerable', stacks: 1 }] }, 'ironbash+': { dmg: 10, status: [{ name: '🫗Vulnerable', stacks: 2 }] },
+  brutalswing: { dmg: 14 }, 'brutalswing+': { dmg: 16 }, // 2 hits combined
+  shieldbreaker: { dmg: 6, strip: 5 }, 'shieldbreaker+': { dmg: 9, strip: 8 },
+  warcry: { block: 3 }, 'warcry+': { block: 5 }, // draw dropped
+  toughhide: { block: 11 }, 'toughhide+': { block: 13 },
+  // bloodprice / bloodprice+ — pure self-cost-for-draw. Excluded (explicit utility example from the ask).
+  haymaker: { dmg: 20 }, 'haymaker+': { dmg: 24 },
+  skullcrack: { dmg: 8, status: [{ name: '😵Weak', stacks: 2 }] }, 'skullcrack+': { dmg: 11, status: [{ name: '😵Weak', stacks: 3 }] },
+  recklesslunge: { dmg: 16 }, 'recklesslunge+': { dmg: 19 }, // self-cost dropped
+  battlecry: { block: 6 }, 'battlecry+': { block: 8 }, // draw dropped
+  ironroar: { status: [{ name: '😵Weak', stacks: 2 }] }, 'ironroar+': { status: [{ name: '😵Weak', stacks: 3 }] },
+  // bloodlust / bloodlust+ — pure self-heal. Excluded.
+  entrench: { block: 13 }, 'entrench+': { block: 17 }, // Block-carries-over flag not applicable to a one-shot mimic, dropped
+  overpowerattack: { dmg: 8, status: [{ name: '🫗Vulnerable', stacks: 2 }] }, 'overpowerattack+': { dmg: 11, status: [{ name: '🫗Vulnerable', stacks: 3 }] },
+  crushingblow: { dmg: 18, strip: 8 }, 'crushingblow+': { dmg: 21, strip: 12 },
+  warcallecho: { status: [{ name: '😵Weak', stacks: 1 }] }, // draw dropped; base has no bonus branch difference for the status
+  'warcallecho+': { status: [{ name: '😵Weak', stacks: 1 }] },
+  // berserkersoath / warlordspresence / their + upgrades — Powers, self-buff Rage on the caster. Excluded.
+  deathrattle: { dmg: 24 }, 'deathrattle+': { dmg: 26 }, // HP-gate ignored, per the header note
+  laststand: { block: 28 }, 'laststand+': { block: 32 }, // strongest of the 4-way branch (low HP + Even)
+  // battletrance / battletrance+ — self-cost for self-Energy. Excluded.
+
+  // ── Mage ──
+  // manasurge / arcaneboost / voidchannel / arcanemomentum / arcanesight (+ upgrades) — self-utility
+  // (cost reduction, die manipulation, draw, momentum buff). Excluded.
+  spark: { dmg: 7, status: [{ name: '🔥Burn', stacks: 1 }] }, 'spark+': { dmg: 10, status: [{ name: '🔥Burn', stacks: 2 }] },
+  flametouch: { dmg: 5, status: [{ name: '🔥Burn', stacks: 3 }] }, 'flametouch+': { dmg: 7, status: [{ name: '🔥Burn', stacks: 5 }] },
+  // meditate / channelfocus (+ upgrades) — draw/self-Energy only. Excluded.
+  icelance: { dmg: 13 }, 'icelance+': { dmg: 16 }, // assumes the "target has Chill" condition can be met
+  combustion: { dmg: 5 }, 'combustion+': { dmg: 6 }, // guaranteed High-branch base only; per-stack scaling needs the target's CURRENT Burn count, not modeled as a fixed number
+  chainbolt: { dmg: 10 }, 'chainbolt+': { dmg: 14 },
+  ignite: { status: [{ name: '🔥Burn', stacks: 5 }] }, 'ignite+': { status: [{ name: '🔥Burn', stacks: 7 }] },
+  // arcanerecall / manaweave (+ upgrades) — discard-pile retrieval / cost reduction. Excluded.
+  frostfire: { dmg: 14 }, 'frostfire+': { dmg: 18 }, // conditional Chill<->Burn swap dropped (state-dependent)
+  arcanebarrage: { dmg: 5 }, 'arcanebarrage+': { dmg: 6 }, // guaranteed base only; per-spell scaling needs the CASTER's own turn history
+  frozeninferno: { dmg: 26 }, 'frozeninferno+': { dmg: 34 },
+  inferno: { status: [{ name: '🔥Burn', stacks: 10 }] }, 'inferno+': { status: [{ name: '🔥Burn', stacks: 13 }] },
+  // timewarp / 'timewarp+' / spellecho / coldmastery / burningsoul (+ upgrades) — draw/Energy/self-buff. Excluded.
+
+  // ── Thief ──
+  // pickpocket / coinflick / nimblepace / shadowmark / deathmark / shadowartist / poisonmaster /
+  // lethalrhythm (+ upgrades) — gold/draw self-utility, self-buff Powers, or a stack-multiplier
+  // with nothing to multiply (Death Mark does nothing without existing Poison). Excluded.
+  smokescreen: { block: 6 }, 'smokescreen+': { block: 9 }, // discard/draw dropped
+  swiftjab: { dmg: 5 }, 'swiftjab+': { dmg: 7 },
+  slipaway: { block: 2 }, 'slipaway+': { block: 3 }, // draw dropped
+  cheapshot: { dmg: 5, status: [{ name: '😵Weak', stacks: 2 }] }, 'cheapshot+': { dmg: 7, status: [{ name: '😵Weak', stacks: 3 }] },
+  envenomdagger: { dmg: 4, status: [{ name: '☠️Poison', stacks: 4 }] }, 'envenomdagger+': { dmg: 6, status: [{ name: '☠️Poison', stacks: 6 }] },
+  backstab: { dmg: 14 }, 'backstab+': { dmg: 18 }, // first-card gate ignored
+  cripple: { status: [{ name: '😵Weak', stacks: 2 }, { name: '🫗Vulnerable', stacks: 2 }] }, 'cripple+': { status: [{ name: '😵Weak', stacks: 3 }, { name: '🫗Vulnerable', stacks: 3 }] },
+  poisoncloud: { status: [{ name: '☠️Poison', stacks: 6 }] }, 'poisoncloud+': { status: [{ name: '☠️Poison', stacks: 9 }] },
+  bladedance: { dmg: 12 }, 'bladedance+': { dmg: 18 }, // 3 hits combined
+  disappear: { block: 6 }, 'disappear+': { block: 8 }, // next-card-free flag dropped
+  concoction: { status: [{ name: '☠️Poison', stacks: 3 }] }, 'concoction+': { status: [{ name: '☠️Poison', stacks: 5 }] }, // draw dropped
+  thiefsgambit: { dmg: 5 }, 'thiefsgambit+': { dmg: 8 }, // draw+gold dropped
+  gutpunch: { dmg: 4, status: [{ name: '☠️Poison', stacks: 2 }] }, 'gutpunch+': { dmg: 6, status: [{ name: '☠️Poison', stacks: 3 }] },
+  assassinate: { dmg: 28 }, 'assassinate+': { dmg: 34 }, // strongest branch (Odd + 5+ Poison on target)
+  goldenstrike: { dmg: 20 }, 'goldenstrike+': { dmg: 24 }, // uses the card's own STATED cap, not live Gold
+
+  // ── Gambler ──
+  // hedgebet / wildcard / allin (+ upgrades) — Block/damage scale directly and unboundedly with
+  // whichever die is currently equipped, with no ceiling stated anywhere in the card's own text.
+  // Excluded rather than guessing a die-dependent number.
+  // risktaker / oddscheck / chipsin / loadeddie / pocketaces / counttheodds / highstakes / jackpot /
+  // houseedge / luckystreak / gamblersfallacy / loadedhouse / devilsdeal (+ upgrades) — reroll/
+  // draw/gold/die-set self-utility or self-buff Powers. Excluded.
+  longshot: { dmg: 16 }, 'longshot+': { dmg: 20 }, // uses the card's own stated max-roll value
+  safepull: { block: 6 }, 'safepull+': { block: 8 }, // die-set dropped
+  doubleornothing: { dmg: 20 }, 'doubleornothing+': { dmg: 24 }, // strongest case: max roll AND the 50/50 lands in Sir Crimson's favor
+  bluff: { status: [{ name: '😵Weak', stacks: 2 }, { name: '🫗Vulnerable', stacks: 1 }] }, 'bluff+': { status: [{ name: '😵Weak', stacks: 3 }, { name: '🫗Vulnerable', stacks: 2 }] },
+  wildcardcombo: { dmg: 5 }, 'wildcardcombo+': { dmg: 7 }, // draw+reroll dropped
+  pressyourluck: { dmg: 24 }, 'pressyourluck+': { dmg: 29 }, // strongest case: max roll AND the reroll-higher bonus lands
+  bettingitall: { dmg: 40 }, 'bettingitall+': { dmg: 60 }, // uses the card's own stated cap, not live Gold
+
+  // ── Vampire ──
+  crimsonbite: { dmg: 5, status: [{ name: '☠️Poison', stacks: 2 }] }, 'crimsonbite+': { dmg: 7, status: [{ name: '☠️Poison', stacks: 3 }] },
+  darkembrace: { block: 8 }, 'darkembrace+': { block: 12 }, // self-cost dropped
+  // bloodpulse (+ upgrade) — Regen is a self-buff status on 'player' (the caster), not "to enemy"
+  // under GDD's 3 categories. Excluded.
+  draintouch: { dmg: 5 }, 'draintouch+': { dmg: 7 }, // extreme-heal dropped
+  nightveil: { block: 6 }, 'nightveil+': { block: 9 }, // extreme-Regen dropped
+  // darkblood (+ upgrade) — self-cost-for-draw only. Excluded.
+  swoopdown: { block: 4 }, 'swoopdown+': { block: 6 }, // Fly is a self-buff status, dropped; only the Block bonus maps
+  sanguinestrike: { dmg: 10 }, 'sanguinestrike+': { dmg: 13 }, // Regen dropped
+  // crimsonpact (+ upgrade) — self-cost + self-Regen + draw, nothing mappable. Excluded.
+  bloodbank: { block: 14 }, 'bloodbank+': { block: 18 }, // self-cost dropped
+  drainlife: { dmg: 12 }, 'drainlife+': { dmg: 20 }, // heal dropped
+  // batform (+ upgrade) — self-buff Fly/Regen + draw only. Excluded.
+  shadowfeast: { dmg: 15 }, 'shadowfeast+': { dmg: 18 }, // strongest branch (Extreme + Regen active)
+  darkrite: { block: 16 }, 'darkrite+': { block: 20 }, // self-cost + Regen dropped
+  // bloodrush (+ upgrade) — self-cost for a self-buff (next-attack bonus). Excluded.
+  nightstalk: { dmg: 14 }, 'nightstalk+': { dmg: 18 }, // 2 hits combined, extreme branch
+  // cursedveins / bloodlord / eternalhunger / vampiricform (+ upgrades) — self-buff Regen/cost-
+  // reduction or self-buff Powers. Excluded.
+  darkascension: { block: 28 }, 'darkascension+': { block: 34 }, // self-cost + Regen dropped
+  soulrend: { dmg: 22 }, 'soulrend+': { dmg: 28 }, // heal dropped
+  // bloodtide (+ upgrade) — multiplies EXISTING Regen stacks, does nothing without them (like
+  // Death Mark above). Excluded.
+
+  // ── Reward-pool cards ──
+  // ragefuel (+ upgrade) — Power, self-buff Rage on the caster. Excluded.
+  blizzard: { dmg: 15 }, 'blizzard+': { dmg: 24 }, // 3 hits combined
+  stealheal: { dmg: 10 }, 'stealheal+': { dmg: 14 }, // heal dropped
+  // curseddice / curseddice+ — self-cost (damages the CASTER, not the target) for a reroll. Excluded.
+  ironwall: { block: 14 }, 'ironwall+': { block: 20 },
+  soulsteal: { dmg: 7 }, 'soulsteal+': { dmg: 10 }, // Soul gain dropped
+  // curse_weakness / curse_debt / curse_confusion / curse_binding — do nothing or self-only. Excluded.
+};
+
 // Upgrade a card in the deck — replaces first instance with upgraded version
 function upgradeCard(cardKey) {
   const upgradeKey = cardKey + '+';

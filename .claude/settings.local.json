@@ -41,7 +41,28 @@
       "Bash(node measure_cores.js)",
       "Bash(node coresfix.js)",
       "Bash(node coresfix_shot.js)",
-      "Bash(taskkill //PID 31992 //F)"
+      "Bash(taskkill //PID 31992 //F)",
+      "Bash(node sircrimson_dialogue.js)",
+      "Bash(taskkill //PID 46184 //F)",
+      "Bash(node moveengine.js)",
+      "Bash(node moveengine_shot.js)",
+      "Bash(taskkill //PID 25232 //F)",
+      "Bash(node sircrimson_restructure.js)",
+      "Bash(node sircrimson_restructure2.js)",
+      "Bash(node sircrimson_restructure_shot.js)",
+      "Bash(taskkill //PID 53488 //F)",
+      "Bash(node sircrimson_fight.js)",
+      "Bash(node sircrimson_fight2.js)",
+      "Bash(node sircrimson_fight_shot.js)",
+      "Bash(taskkill //PID 46152 //F)",
+      "Bash(node echo_sanity.js)",
+      "Bash(node echo_mechanic.js)",
+      "Bash(node echo_mechanic2.js)",
+      "Bash(node echo_diag.js)",
+      "Bash(node echo_diag3.js)",
+      "Bash(node echo_diag4.js)",
+      "Bash(node echo_shot.js)",
+      "Bash(taskkill //PID 48472 //F)"
     ]
   }
 }
