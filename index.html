@@ -149,6 +149,13 @@
         <div id="gamblers-edge-picker"></div>
         <!-- Ley Line Crystal (Mage character relic) — shown only when owned and unused this combat. -->
         <button class="btn soul-die-btn" id="ley-line-crystal-btn" onclick="useLeyLineCrystal()" style="display:none;">🔮 SET 6</button>
+        <!-- The House Always Wins (Gambler character relic) — shown only when owned. GDD calls
+             for a visible streak tracker; two pips light up as consecutive max rolls land, then
+             reset together the instant the free card is queued or a non-max roll breaks the streak. -->
+        <div id="house-streak-tracker" style="display:none;" title="Roll max 2 turns in a row for a free card">
+          <span class="house-streak-pip" id="house-streak-pip-0">🎲</span>
+          <span class="house-streak-pip" id="house-streak-pip-1">🎲</span>
+        </div>
       </div>
       <div id="aldric-curse-indicator"></div>
     </div>

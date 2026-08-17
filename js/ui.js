@@ -185,7 +185,13 @@ const RELICS = {
   shadow_wrap:       { name:'Shadow Wrap',     emoji:'🥷', rarity:'character', hero:'thief', desc:'Start every combat with 5 Block.',                       effect:'start_block', value:5 },
   venomfang:         { name:'Venomfang',       emoji:'🐍', rarity:'character', hero:'thief', desc:'Poison deals +1 damage per tick.',                       effect:'poison_tick_bonus', value:1 },
 
-  midnight_hunger:   { name:'Midnight Hunger', emoji:'🌘', rarity:'character', hero:'vampire', desc:"If you didn't hit affinity this turn, your next roll gets +2.", effect:'no_extreme_next_roll_bonus', value:2 }
+  midnight_hunger:   { name:'Midnight Hunger', emoji:'🌘', rarity:'character', hero:'vampire', desc:"If you didn't hit affinity this turn, your next roll gets +2.", effect:'no_extreme_next_roll_bonus', value:2 },
+  crimson_lens:      { name:'Crimson Lens', emoji:'🔴', rarity:'character', hero:'vampire', desc:'On a non-extreme roll, Vampire Attacks heal 50% of the damage dealt.', effect:'nonextreme_attack_lifesteal', value:0.5 },
+  blood_pact:        { name:'Blood Pact',   emoji:'🩸', rarity:'character', hero:'vampire', desc:'Heal back 50% of any HP you spend as a card cost.',                  effect:'card_cost_hp_refund',       value:0.5 },
+
+  devils_ledger:     { name:"Devil's Ledger", emoji:'📓', rarity:'character', hero:'gambler', desc:'Every 20 Gold spent this run adds +1 damage, up to +8.', effect:'gold_spent_dmg_bonus', value:1 },
+
+  house_always_wins: { name:'The House Always Wins', emoji:'🎰', rarity:'character', hero:'gambler', desc:'Roll max 2 turns in a row → next card costs 0.', effect:'max_streak_free_card' }
 };
 
 function hasRelic(key) { return G.relics && G.relics.includes(key); }
@@ -275,6 +281,21 @@ const titleCase = (s) => String(s).charAt(0).toUpperCase() + String(s).slice(1);
 
 function shopCost(n) { return Math.ceil(n * (hasRelic('kings_debt') ? 1.25 : 1)); }
 
+// Centralized player Gold spend — mirrors loseHP()'s role for HP loss, and for the identical
+// reason: every gold-spending path (shop card/relic/die buys, card removal, card upgrade, the
+// Mirror path-switch cost) was independently doing `G.gold -= X` in place, with no shared
+// chokepoint. That was fine until a relic needed to track total Gold spent (Devil's Ledger) —
+// adding the tracking at each site individually risks a future 7th spend site quietly skipping
+// it. `amount` is whatever the caller has already computed as the final cost (King's Debt's
+// markup via shopCost() is baked in upstream, so a relic reading the counter correctly sees the
+// Gold actually spent, inflated price included). Callers already gate on affordability before
+// calling this, so the guard here is defensive parity with loseHP()'s own, not load-bearing.
+function spendGold(g, amount) {
+  if (amount == null || amount <= 0) return;
+  g.gold -= amount;
+  g.goldSpentThisRun = (g.goldSpentThisRun || 0) + amount;
+}
+
 function showShop() {
   showScreen('shop-screen');
 
@@ -321,7 +342,7 @@ function showShop() {
     }
     el.onclick = () => {
       if (G.gold < itemCost) { showMsg('Not enough gold!'); return; }
-      G.gold -= itemCost;
+      spendGold(G, itemCost);
       if (shopCard) {
         // Same grant the reward screen performs, so the card sold is always the card described.
         G.deck.push(item.card);
@@ -394,7 +415,7 @@ function renderShopRelics() {
     el.onclick = () => {
       if (G.gold < cost) { showMsg('Not enough gold!'); return; }
       if (G.relics.includes(key)) { showMsg('Already have this relic!'); return; }
-      G.gold -= cost;
+      spendGold(G, cost);
       acquireRelic(key); // shared grant + pickup side effects
       el.classList.add('sold');
       document.getElementById('shop-gold-display').textContent = G.gold;
@@ -432,7 +453,7 @@ function renderShopDie() {
   el.innerHTML = `<span class="shop-item-emoji">${dieOpt.emoji}</span><div class="shop-item-name">${dieOpt.name}</div><div class="shop-item-desc">${dieOpt.desc} Replaces your ${currentDieData.type}.</div><div class="shop-item-cost" style="color:${canAfford ? 'var(--energy)' : 'var(--red2)'}">🪙 ${cost}</div>`;
   el.onclick = () => {
     if (G.gold < shopCost(80)) { showMsg('Not enough gold!'); return; }
-    G.gold -= shopCost(80);
+    spendGold(G, shopCost(80));
     G.activeDie = dieOpt.type;
     G.diceMax = dieOpt.max;
     el.classList.add('sold');
@@ -466,7 +487,7 @@ function showShopRemove() {
       </div>
     `;
     el.onclick = () => {
-      G.gold -= shopCost(75);
+      spendGold(G, shopCost(75));
       const idx = G.deck.indexOf(key);
       G.deck.splice(idx, 1);
       document.getElementById('shop-gold-display').textContent = G.gold;
@@ -502,7 +523,7 @@ function showShopUpgrade() {
       </div>
     `;
     el.onclick = () => {
-      G.gold -= 80;
+      spendGold(G, 80);
       const idx = G.deck.indexOf(key);
       G.deck.splice(idx, 1, key + '+');
       document.getElementById('shop-gold-display').textContent = G.gold;
@@ -1453,6 +1474,25 @@ function renderSoulDiceControls() {
     const showLeyLine = hasCharacterRelic('ley_line_crystal') && !G._leyLineCrystalUsed;
     llBtn.style.display = showLeyLine ? '' : 'none';
     llBtn.disabled = !!G._dieSetThisTurn;
+  }
+
+  // The House Always Wins (Gambler character relic) — visible whenever owned, unlike the buttons
+  // above which hide once spent; a streak tracker has nothing to hide, it just shows the current
+  // count (0, 1, or freshly reset to 0 the instant the free card queues). Each pip lights up for
+  // one consecutive max roll, matching G._maxRollStreak 1:1 — the tracker reads that field
+  // directly rather than keeping its own copy, so it can never show a number the game state
+  // disagrees with.
+  const streakTracker = document.getElementById('house-streak-tracker');
+  if (streakTracker) {
+    const showStreak = hasCharacterRelic('house_always_wins');
+    streakTracker.style.display = showStreak ? '' : 'none';
+    if (showStreak) {
+      const streak = G._maxRollStreak || 0;
+      for (let i = 0; i < 2; i++) {
+        const pip = document.getElementById('house-streak-pip-' + i);
+        if (pip) pip.classList.toggle('lit', i < streak);
+      }
+    }
   }
 }
 

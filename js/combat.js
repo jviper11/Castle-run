@@ -74,6 +74,14 @@ function startAldricFight() {
   // never happened, exactly as at the other two fight starts.
   G._hitExtremeThisTurn = true;
   G._nextRollBonus = 0;
+  // The House Always Wins (Gambler) — reset here purely for hygiene: the startTurn() check is
+  // already gated on G.turn > 0 (reset to 0 by this function), so a stale streak/flag from the
+  // previous fight could not actually re-trigger anything. Reset anyway so no per-combat state
+  // silently survives across a fight boundary, matching how every other new field this session
+  // has been explicitly cleared at all three fight-start sites rather than relying on an
+  // incidental guard elsewhere.
+  G._maxRollStreak = 0;
+  G._houseAlwaysWinsFreeCard = false;
   G.aldricTurns = 0;
   G.aldricStoneHeart = phase.stoneHeartBase;
   G.aldricRelicsTriggered = [];
@@ -522,6 +530,8 @@ function startCombat(isElite) {
   G._ashenCrownFired = false;
   G._leyLineCrystalUsed = false; // once per combat — see startAldricFight for the full lifecycle note
   G._hitExtremeThisTurn = true; // Midnight Hunger — see startAldricFight for the sentinel note
+  G._maxRollStreak = 0; // The House Always Wins — see startAldricFight for the reset note
+  G._houseAlwaysWinsFreeCard = false;
   G._nextRollBonus = 0;
   // Relic hooks — start of combat
   // (iron_vambrace and hollow_throne Block are staged by stageCombatStartBlock below, so they
@@ -618,6 +628,8 @@ function startBossFight() {
   G._ashenCrownFired = false;
   G._leyLineCrystalUsed = false; // once per combat — see startAldricFight for the full lifecycle note
   G._hitExtremeThisTurn = true; // Midnight Hunger — see startAldricFight for the sentinel note
+  G._maxRollStreak = 0; // The House Always Wins — see startAldricFight for the reset note
+  G._houseAlwaysWinsFreeCard = false;
   G._nextRollBonus = 0;
   // Relic hooks — start of combat
   // (iron_vambrace and hollow_throne Block are staged by stageCombatStartBlock below, so they
@@ -655,6 +667,32 @@ function startTurn() {
     G._nextRollBonus = 2;
   }
   G._hitExtremeThisTurn = false; // now tracks the turn about to start
+
+  // The House Always Wins (Gambler) — same turn-transition timing as Midnight Hunger above:
+  // evaluated here, before this turn's own roll happens, so G._naturalDieValue still holds
+  // whatever the turn that JUST ENDED naturally rolled. Checking G._naturalDieValue directly
+  // (rather than G.currentDie) is what keeps a forced max from ever advancing the streak —
+  // Ley Line Crystal, Gambler's Edge and Second Die all mutate G.currentDie afterward but never
+  // touch this stamp, so a turn a player "won" by forcing the die does not count as a genuine
+  // max roll here.
+  //
+  // G.turn > 0 skips this on the very first turn of a fight: G.turn is reset to 0 by every
+  // fight-start function and only becomes 1 below, so at this point it still reads 0 on turn 1,
+  // meaning there is no "turn that just ended" yet — without this guard, a stale
+  // G._naturalDieValue left over from the PREVIOUS fight's last roll could spuriously count.
+  if (G.turn > 0 && hasCharacterRelic('house_always_wins')) {
+    if (G._naturalDieValue === G.diceMax) {
+      G._maxRollStreak = (G._maxRollStreak || 0) + 1;
+      if (G._maxRollStreak >= 2) {
+        G._houseAlwaysWinsFreeCard = true;
+        G._maxRollStreak = 0; // resets so the NEXT trigger needs 2 fresh consecutive max rolls,
+                               // not just 1 more — mirrors Gambler's Fallacy's own reset-on-fire
+        showMsg('🎰 The House Always Wins — next card is free!');
+      }
+    } else {
+      G._maxRollStreak = 0;
+    }
+  }
 
   G.selectedHandIndex = null;
   G.selectedHandKey = null;
@@ -1108,6 +1146,13 @@ function getCardEnergyCost(g, cardKey, options = {}) {
     cost = 0;
     if (consume) g._firstCardFree = true;
   }
+  // The House Always Wins (Gambler) — queued by two consecutive max rolls (see startTurn()),
+  // consumed by exactly one card the same way Mana Surge is consumed above: a hard override to
+  // 0, not a stacking discount, matching Soulbound Gauntlet's own "next card free" pattern.
+  if (g._houseAlwaysWinsFreeCard) {
+    cost = 0;
+    if (consume) g._houseAlwaysWinsFreeCard = false;
+  }
   // Shadow Artist (base, stacks 1) — the 2nd and 4th card played each turn cost 0.
   // (The + version uses the _shadowArtistDiscount counter instead — see playCard below.)
   const shadowArtistBase = g.statuses.player.find(s => s.name === '🎭ShadowArtist' && s.stacks === 1);
@@ -1121,6 +1166,16 @@ function getCardEnergyCost(g, cardKey, options = {}) {
 function playCard(cardKey) {
   const card = CARDS[cardKey];
   if (!card) return;
+
+  // The only place a card's key is recorded anywhere G is reachable from. dealDamage() has no
+  // cardKey parameter — threading one through every card effect's dealDamage(g,'enemy',...) call
+  // (30+ sites in data.js) to support one relic's card-exclusion list would be exactly the
+  // per-card churn that relic hooks in this codebase are built to avoid. This single assignment
+  // is what Crimson Lens reads to skip Drain Life/Soul Rend (see dealDamage()). Safe for
+  // multi-hit cards and Spell Echo repeats — both re-invoke the SAME card's effect(), so the key
+  // never changes mid-resolution; JS's single-threaded execution means it cannot go stale between
+  // this line and any dealDamage() call the effect makes before returning.
+  G._currentCardKey = cardKey;
 
   // Consumes the one-shot discounts before the affordability check below, which is the
   // pre-existing order — deliberately unchanged here so this stays a refactor.
@@ -1528,6 +1583,15 @@ function calculatePlayerAttackDamage(g, amount, options = {}) {
   if (playerRage && playerRage.stacks > 0) {
     amount += playerRage.stacks;
   }
+  // Devil's Ledger (Gambler) — recalculated live from the running total every time, rather than
+  // its own separately-tracked stack count, so it can never drift out of sync with actual Gold
+  // spent (no increment to forget, no state that could desync from G.goldSpentThisRun). Placed
+  // beside Rage, not after Weak/Vulnerable below, so it composes the same way Rage already does —
+  // a flat term that Weak's 25% reduction and Vulnerable's 50% increase both apply to afterward,
+  // rather than bypassing them.
+  if (hasCharacterRelic('devils_ledger', g)) {
+    amount += Math.min(8, Math.floor((g.goldSpentThisRun || 0) / 20));
+  }
   // d8 Hunter's Die: odd rolls deal +2 bonus damage
   const activeDieBonus = getDie(g.activeDie);
   if (activeDieBonus.bonus === 'odd_dmg' && g.currentDie && g.currentDie % 2 !== 0) {
@@ -1584,6 +1648,35 @@ function dealDamage(g, target, amount, source, bypassBlock) {
     const pen = Math.max(0, amount - g.enemy.block);
     g.enemy.block = Math.max(0, g.enemy.block - amount);
     g.enemy.hp -= pen;
+    // Crimson Lens (Vampire) — non-extreme roll heals 50% of the damage that actually reached
+    // HP (`pen`, i.e. post-Block — a fully blocked hit heals nothing), Math.floor, matching
+    // Drain Life's own rounding. No card-type check needed: for a Vampire, every
+    // dealDamage(g,'enemy',...) call already originates from an Attack (no Vampire Skill/Power
+    // ever calls it), so the fact this branch executed at all is the signal.
+    //
+    // Reads g.currentDie directly — dealDamage() isn't passed the roll, and every Vampire card
+    // that resolves through here reads that same value for its own affinity check, so this
+    // cannot disagree with what the card itself just used.
+    //
+    // Excludes Drain Life / Soul Rend (and their + upgrades, hence the trailing-'+' strip
+    // matching CARD_PLAY_CONDITIONS' own normalization in js/data.js) by design decision: both
+    // already implement this identical "heal a % of damage on non-extreme" mechanic in their own
+    // printed text — Drain Life "Heal half damage dealt", Soul Rend "Heal equal to damage
+    // dealt" — so the blanket hook would silently double what their own card text promises
+    // (confirmed: Drain Life's non-extreme heal would become 50%+50%=100%, quietly matching what
+    // it already advertises as the EXTREME case; Soul Rend's would become 100%+50%=150%,
+    // exceeding anything either card describes).
+    const CRIMSON_LENS_EXCLUDED_CARDS = ['drainlife', 'soulrend'];
+    const resolvingCardKey = String(g._currentCardKey || '').replace(/\+$/, '');
+    if (pen > 0 && hasCharacterRelic('crimson_lens', g)
+        && !checkAffinity(g, g.currentDie, 'extreme')
+        && !CRIMSON_LENS_EXCLUDED_CARDS.includes(resolvingCardKey)) {
+      const lifesteal = Math.floor(pen / 2);
+      if (lifesteal > 0) {
+        healPlayer(g, lifesteal);
+        showMsg('🔴 Crimson Lens — lifesteal!');
+      }
+    }
     playAttackAnimation({
       attackerEl: playerEl,
       targetEl: enemyEl,
@@ -1680,6 +1773,20 @@ function loseHP(g, amount, floorAt, source) {
   if (source === 'enemy' && hasCharacterRelic('berserkers_scar', g)) {
     applyStatus(g, 'player', '💢Rage', 1);
     showMsg("🩹 Berserker's Scar — +1 Rage!");
+  }
+  // Blood Pact (Vampire) — the opposite branch of Berserker's Scar directly above: any
+  // NON-'enemy'-sourced loss (a card cost — Dark Blood, Dark Embrace, Blood Bank, Cursed
+  // Reroll's self-inflicted damage via dealDamage(g,'player',3,'self')…) heals back 50%.
+  // `amount` here is already the post-floor-clamp value — reassigned in place above when
+  // `floorAt` was supplied, so a card that would have dropped the player below its floor and
+  // had its cost silently reduced refunds 50% of what was ACTUALLY paid, not the card's printed
+  // number. Math.floor, matching Crimson Lens's own rounding.
+  if (source !== 'enemy' && hasCharacterRelic('blood_pact', g)) {
+    const refund = Math.floor(amount / 2);
+    if (refund > 0) {
+      healPlayer(g, refund);
+      showMsg('🩸 Blood Pact — refunded ' + refund + ' HP!');
+    }
   }
 }
 

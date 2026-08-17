@@ -651,6 +651,12 @@ body {
   white-space: nowrap;
 }
 .soul-die-btn:disabled { opacity: 0.3; cursor: not-allowed; border-color: var(--border); color: var(--text3); }
+
+/* The House Always Wins (Gambler character relic) streak tracker — same dim/lit visual
+   language as .core-icon, sized to sit in the same compact row as the soul-die buttons. */
+#house-streak-tracker { display: flex; gap: 0.15rem; align-items: center; justify-content: center; height: 15px; }
+.house-streak-pip { font-size: 0.62rem; opacity: 0.25; filter: grayscale(1); transition: all 0.25s; line-height: 1; }
+.house-streak-pip.lit { opacity: 1; filter: grayscale(0) drop-shadow(0 0 4px rgba(201,168,76,0.7)); }
 .soul-die-btn:disabled:hover { color: var(--text3); }
 .soul-die-btn:disabled::before { display: none; }
 

@@ -19,6 +19,7 @@ function newGame(charKey) {
     hp: ch.hp, maxHp: ch.hp,
     block: 0, energy: 3, maxEnergy: 3,
     gold: 30, souls: 0,
+    goldSpentThisRun: 0, // Devil's Ledger (Gambler) — per-run, not persisted via meta.js (GDD: "this run")
     soulUpgrades: [], _vitalityBuys: 0,   // in-run Soul spending — both reset with the run
     relics: [], rareOffset: 0, lastFightWasElite: false, phantomBladeFired: false,
     extraDraw: 0, startingDrawCount: 5, maxHandSize: 8, _noReroll: false, cardsPlayedThisCombat: 0,
@@ -397,7 +398,7 @@ function chooseDoor(id) {
 
 function useMirror(targetPath, cost, usedKey, targetHalfwayIdx) {
   if (G.gold < cost) { showMsg('Not enough Gold!'); return; }
-  G.gold -= cost;
+  spendGold(G, cost);
   G[usedKey] = true; // mark mirror as used for this path this floor
   updateHUD();
 

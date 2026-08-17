@@ -12,7 +12,12 @@
       "Bash(awk 'NR>=1000 && NR<=1140 && \\(/const roll/ || /Shadow Mark/ || /Warlord/ || /card.effect\\\\\\(G, roll\\\\\\)/ || /^function playCard/\\)' js/combat.js)",
       "Bash(node charrelics.js)",
       "Bash(node bossrelic.js)",
-      "Bash(node vamprelics.js)"
+      "Bash(node vamprelics.js)",
+      "Bash(node vamp4b.js)",
+      "Bash(node ledger.js)",
+      "Bash(node thiefrelics.js)",
+      "Bash(node house.js)",
+      "Bash(node ledgerpool.js)"
     ]
   }
 }
