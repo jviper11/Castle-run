@@ -220,6 +220,20 @@
     </div>
   </div>
 
+  <!-- SIR CRIMSON — shadow appearance (Floor 1->2), GDD §5. Same overlay shell as the path-confirm
+       popup above: a lightweight modal, not a toast, since it's a deliberate story beat rather
+       than a fire-and-forget status update — but not a full showScreen() navigation either, since
+       it interrupts nothing mechanically and hands straight back into the reward flow on dismiss. -->
+  <div id="sir-crimson-shadow-overlay">
+    <div class="path-confirm-box">
+      <div class="path-confirm-title">A Shadow, Watching</div>
+      <div class="path-confirm-desc" id="sir-crimson-shadow-line"></div>
+      <div class="path-confirm-btns">
+        <button class="path-confirm-btn confirm" onclick="dismissSirCrimsonShadow()">...</button>
+      </div>
+    </div>
+  </div>
+
   <!-- DOORS -->
   <div id="door-screen" class="screen">
     <h2 class="door-title">CHOOSE YOUR PATH</h2>
@@ -349,6 +363,32 @@
       <div class="boss-challenge-reward">Clear the fight under this condition to earn their Challenge relic — permanently.</div>
     </div>
     <button class="btn" onclick="startBossFight()" style="margin-top:0.5rem;">FACE THEM</button>
+  </div>
+
+  <!-- SIR CRIMSON — confrontation (Floor 2->3), GDD §5. Same visual shell as #boss-intro-screen
+       above (shared .boss-intro-* classes) but a separate screen/id: Sir Crimson is not a
+       companion boss, has no Challenge offer, and its button hands off to the (stubbed)
+       startSirCrimsonFight() rather than the real startBossFight(), so nothing here can leak into
+       that screen's own Challenge-offer/FACE-THEM wiring. -->
+  <div id="crimson-confrontation-screen" class="screen">
+    <div class="boss-intro-label">A SHADOW BLOCKS YOUR PATH</div>
+    <div class="boss-intro-sprite">🗡️</div>
+    <div class="boss-intro-name">SIR CRIMSON</div>
+    <div class="boss-intro-subtitle">The King's knight, consumed by the castle</div>
+    <div class="boss-intro-hint" id="crimson-confrontation-line"></div>
+    <button class="btn" onclick="startSirCrimsonFight()" style="margin-top:0.5rem;">FACE HIM</button>
+  </div>
+
+  <!-- SIR CRIMSON — post-fight story outro, same visual shell again. Shown once immediately after
+       the (stubbed) fight resolves; dismissing hands back into the exact reward flow a normal
+       Floor 2 boss-clear would already be in the middle of (see proceedOrPath()). -->
+  <div id="crimson-outro-screen" class="screen">
+    <div class="boss-intro-label">THE CASTLE'S GRIP BREAKS</div>
+    <div class="boss-intro-sprite">🗡️</div>
+    <div class="boss-intro-name">SIR CRIMSON</div>
+    <div class="boss-intro-subtitle">Lucid, if only for a moment</div>
+    <div class="boss-intro-hint" id="crimson-outro-line"></div>
+    <button class="btn" onclick="dismissSirCrimsonOutro()" style="margin-top:0.5rem;">CONTINUE</button>
   </div>
 
   <!-- GAME OVER -->

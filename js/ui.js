@@ -815,8 +815,82 @@ function skipReward() {
 
 // Proceed out of a reward screen — to path select after a boss, otherwise back to the doors.
 function proceedOrPath() {
-  if (G.needsPathSelect) { G.needsPathSelect = false; showPathSelect(); }
+  if (G.needsPathSelect) {
+    // Sir Crimson's mid-run story beats (GDD §5) gate entry into the floor they announce, the
+    // same way launchFinalBoss() gates the door to Aldric — but unlike Aldric (which skips the
+    // entire reward flow via checkCombatEnd()'s early return), both beats sit AFTER the normal
+    // boss-clear reward chain: gold and the full heal already happened in checkCombatEnd(), and
+    // by the time proceedOrPath() runs here, the card reward, boss relic offer, and Soul-spend
+    // screen have all already had their chance to show. So these only ever delay the final step
+    // into path select — they never skip or reorder anything the reward flow already did.
+    if (G.currentFloor === 1 && !G._sirCrimsonShadowSeen) {
+      G._sirCrimsonShadowSeen = true;
+      showSirCrimsonShadow();
+      return;
+    }
+    if (G.currentFloor === 2 && !G._sirCrimsonFought) {
+      showSirCrimsonConfrontation();
+      return;
+    }
+    G.needsPathSelect = false; showPathSelect();
+  }
   else proceedDoors();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SIR CRIMSON — MID-RUN STORY BEATS (GDD §5)
+// ═══════════════════════════════════════════════════════════════════
+// Not a companion boss — no BOSSES entry, no floor-boss slot. A scripted, unskippable "surprise
+// encounter": a wordless shadow between Floor 1 and Floor 2, then a confrontation and fight
+// between Floor 2 and Floor 3. Both gates live in proceedOrPath() above, not here. The fight
+// itself (HP 160, move rotation, Echo mimic per GDD §5) is NOT built yet — startSirCrimsonFight()
+// is a stub for batch 5b/5c so this batch's trigger placement is independently testable without
+// a working fight behind it.
+//
+// Dialogue is placeholder pending a content pass. GDD.md only ever specified one of these three
+// lines (the post-fight True Ending hint) and PROGRESS.md already flags that exact line as stale
+// — written for the superseded 4-relic True Ending design, before the July 25, 2026 Challenge-relic
+// redesign. The shadow-appearance and confrontation lines have no GDD source text at all (Sir
+// Crimson's backstory is an open TBD at GDD.md:790). All three are one-line swaps, not structural.
+const SIR_CRIMSON_SHADOW_LINE = "Something watches from the dark at the edge of the torchlight. It says nothing. It doesn't need to.";
+const SIR_CRIMSON_CONFRONTATION_LINE = '"Far enough." The shadow steps into the light — a knight in ruined armor, blade already drawn.';
+const SIR_CRIMSON_OUTRO_LINE = 'The blade lowers. For a moment, the thing wearing Sir Crimson\'s face is only a tired old knight. "...Go. Before it takes me back."';
+
+function showSirCrimsonShadow() {
+  const overlay = document.getElementById('sir-crimson-shadow-overlay');
+  const line = document.getElementById('sir-crimson-shadow-line');
+  if (!overlay || !line) { proceedOrPath(); return; } // markup missing — never hard-block progress
+  line.textContent = SIR_CRIMSON_SHADOW_LINE;
+  overlay.classList.add('visible');
+}
+function dismissSirCrimsonShadow() {
+  const overlay = document.getElementById('sir-crimson-shadow-overlay');
+  if (overlay) overlay.classList.remove('visible');
+  proceedOrPath(); // G._sirCrimsonShadowSeen is already true — falls through to showPathSelect()
+}
+
+function showSirCrimsonConfrontation() {
+  const line = document.getElementById('crimson-confrontation-line');
+  if (line) line.textContent = SIR_CRIMSON_CONFRONTATION_LINE;
+  showScreen('crimson-confrontation-screen');
+}
+
+// Stub for batch 5b/5c. Resolves immediately rather than calling startBossFight()-style combat
+// setup, so nothing here leaves combat-only state (G.enemy, G.inBoss, etc.) dangling — this batch
+// is about trigger placement, not the fight, and the real fight will replace this function body
+// wholesale rather than extend it.
+function startSirCrimsonFight() {
+  G._sirCrimsonFought = true;
+  showSirCrimsonOutro();
+}
+
+function showSirCrimsonOutro() {
+  const line = document.getElementById('crimson-outro-line');
+  if (line) line.textContent = SIR_CRIMSON_OUTRO_LINE;
+  showScreen('crimson-outro-screen');
+}
+function dismissSirCrimsonOutro() {
+  proceedOrPath(); // G._sirCrimsonFought is already true — falls through to showPathSelect()
 }
 
 // After the card reward is taken/skipped: Void Compass offers a choice of 3 relics following

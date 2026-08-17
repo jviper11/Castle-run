@@ -29,7 +29,19 @@
       "Bash(node huloverflow.js)",
       "Bash(node hudfade_shot.js)",
       "Bash(node hudfade_shot2.js)",
-      "Bash(taskkill //PID 15456 //F)"
+      "Bash(taskkill //PID 15456 //F)",
+      "Bash(sort -t: -k3 -u)",
+      "Bash(awk -F: '{print $3}')",
+      "Bash(awk '/^const GAME_IMAGES/{flag=1} flag{print substr\\($0,1,60\\)} /^};/{if\\(flag\\){exit}}' js/data.js)",
+      "Bash(node sircrimson.js)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(node sircrimson_shot.js)",
+      "Bash(node crimson_scroll.js)",
+      "Bash(taskkill //PID 10552 //F)",
+      "Bash(node measure_cores.js)",
+      "Bash(node coresfix.js)",
+      "Bash(node coresfix_shot.js)",
+      "Bash(taskkill //PID 31992 //F)"
     ]
   }
 }

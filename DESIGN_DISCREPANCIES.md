@@ -346,6 +346,32 @@ owner) is unaffected and still stands.
 
 ---
 
+## ⚠️ OPEN — Sir Crimson's story-beat dialogue is placeholder pending a content pass (Aug 17, 2026)
+
+Batch 5a built the trigger placement for Sir Crimson's two mid-run story beats (shadow between
+Floor 1-2, confrontation between Floor 2-3) and the post-fight outro screen — see the Session Log
+in `PROGRESS.md` for the full build. All three lines of dialogue shown on those screens
+(`SIR_CRIMSON_SHADOW_LINE`, `SIR_CRIMSON_CONFRONTATION_LINE`, `SIR_CRIMSON_OUTRO_LINE` in
+`js/ui.js`) are new placeholder copy, not GDD-sourced final text:
+
+- **Shadow and confrontation lines have no GDD source at all.** `GDD.md:33-38`/`GDD.md:255-291`
+  describe *what happens* ("appears as a shadowy presence... watching", "confronts you") but give
+  no actual line of dialogue for either beat. Sir Crimson's backstory is an explicit open TBD
+  (`GDD.md:790`: *"Sir Crimson's full backstory — who was he before the castle took him?"*), so
+  there was no existing voice to match beyond GDD's general tone.
+- **The post-fight line GDD *does* specify is already known-stale.** `GDD.md:255-291`'s True
+  Ending hint (*"The king... he didn't choose this... find what he lost. Four pieces."*) was
+  written for the pre-July-25-redesign floor-reward relic system and was flagged as needing a
+  rewrite the moment that system was replaced with per-hero Challenge relics (see the "Update"
+  note at the top of this file's True Ending section, and `PROGRESS.md`'s own build-items list).
+  It was not reused here for that reason — reusing known-stale copy verbatim would have shipped a
+  line that still references relics the game no longer has.
+
+**Open for the owner:** final dialogue for all three beats, and Sir Crimson's backstory TBD if it
+should inform that dialogue. Each line is a one-line swap in `js/ui.js`, not a structural change.
+
+---
+
 ## Session Notes
 
 *Session [date to fill in]:* Reviewed `js/ui.js` and `js/combat.js` in full. Resolved 3 discrepancies via direct code inspection (Burn damage, Mobile orientation, True Ending requirements — the latter via new design decision rather than existing-code confirmation). Advanced Weak timing to "needs playtest" status. Found one unrelated bug in passing: core-collection message in `checkCombatEnd()` displays `G.char.name` (player's own character) instead of the boss's name. `js/game.js` and `js/data.js` not yet reviewed — Mirror behavior, Blood Lord frequency, missing cards, and `curseddice` all require those files to resolve.

@@ -1683,6 +1683,22 @@ body {
 .loaded-coat-tile-range { font-size: 0.56rem; color: var(--text3); margin-top: 0.15rem; }
 .loaded-coat-tile-desc { font-size: 0.54rem; color: var(--text2); margin-top: 0.25rem; line-height: 1.3; }
 
+/* ── SIR CRIMSON — shadow appearance (GDD §5) ── */
+/* Same fixed/backdrop shell as #path-confirm-overlay/#loaded-coat-overlay — a lightweight modal,
+   not a toast, for a one-line mid-run story beat that fires exactly once. Kept as its own
+   selector for the same reason those two are separate from each other: no shared JS assumes a
+   fixed content shape across all three. */
+#sir-crimson-shadow-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  z-index: 500;
+  align-items: center;
+  justify-content: center;
+}
+#sir-crimson-shadow-overlay.visible { display: flex; }
+
 /* ── MIRROR ── */
 .mirror-panel {
   width: min(300px, 88vw);
@@ -2082,7 +2098,12 @@ body {
 .event-choice-risk { font-size: 0.72rem; color: var(--red2); margin-top: 0.2rem; font-style: italic; }
 
 /* ── BOSS INTRO ── */
-#boss-intro-screen {
+/* Sir Crimson's two story screens (GDD §5) share this exact container styling — "same visual
+   shell as the intro screen" is literal here, not just a similar look, since neither has content
+   different enough from a companion boss intro to warrant its own layout. */
+#boss-intro-screen,
+#crimson-confrontation-screen,
+#crimson-outro-screen {
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -2322,7 +2343,12 @@ body {
   .combat-hud-left { gap: 0.4rem; overflow: hidden; }
   .combat-hud-center { gap: 0.38rem; }
   .combat-hud-right { gap: 0.25rem; }
-  .hud-relics { max-width: 64px; }
+  /* Cores is a fixed 4-icon progress tracker (BOSSES minus the current hero, always exactly 4),
+     not an open-ended list like owned relics — hiding any of the 4 behind a scroll defeats its
+     purpose, so it gets its own width budget sized to fit all 4 at once rather than sharing
+     .hud-owned-relics'. Measured: 4 icons at this breakpoint's 0.9rem/0.25rem gap need ~91px;
+     100px leaves headroom for font-rendering variance across browsers/devices. */
+  .hud-relics { max-width: 100px; }
   .hud-owned-relics { max-width: 72px; }
   .cores-display { gap: 0.25rem; }
   .core-icon { font-size: 0.9rem; }

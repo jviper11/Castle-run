@@ -34,6 +34,12 @@ function newGame(charKey) {
     floorBosses: shuffledBosses,
     cores: [],
     mapBlind: 0,
+    // Sir Crimson mid-run story beats (GDD §5) — each fires exactly once per run, so unlike the
+    // per-combat "_xOffered" flags (reset in startCombat()/startBossFight()), these belong in the
+    // newGame() literal itself, alongside _vitalityBuys above, the other field that must survive
+    // every combat within a run rather than re-arming after each one.
+    _sirCrimsonShadowSeen: false,
+    _sirCrimsonFought: false,
     statuses: { player: [], enemy: [] },
     enemy: null,
     inBoss: false,
