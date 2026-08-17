@@ -17,7 +17,19 @@
       "Bash(node ledger.js)",
       "Bash(node thiefrelics.js)",
       "Bash(node house.js)",
-      "Bash(node ledgerpool.js)"
+      "Bash(node ledgerpool.js)",
+      "Bash(node loadedcoat.js)",
+      "Bash(echo \"RUN2 EXIT: $?\")",
+      "Bash(echo \"RUN3 EXIT: $?\")",
+      "Bash(node loadedcoat_shot.js)",
+      "Bash(node loadedcoat_scroll.js)",
+      "Bash(node gamblerpool_final.js)",
+      "Bash(node housepool.js)",
+      "Bash(taskkill //PID 18408 //F)",
+      "Bash(node huloverflow.js)",
+      "Bash(node hudfade_shot.js)",
+      "Bash(node hudfade_shot2.js)",
+      "Bash(taskkill //PID 15456 //F)"
     ]
   }
 }

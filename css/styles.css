@@ -278,6 +278,14 @@ body {
   scrollbar-width: none;
 }
 .hud-owned-relics::-webkit-scrollbar { display: none; }
+/* Right-edge fade — the only visual signal that swiping reveals more icons, since the scrollbar
+   itself is hidden above. Toggled by .has-overflow (js/ui.js) rather than painted unconditionally,
+   so a 1-2 icon row that already fits isn't given a misleading fade over its last visible icon. */
+.hud-relics.has-overflow,
+.hud-owned-relics.has-overflow {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 16px), transparent 100%);
+          mask-image: linear-gradient(to right, #000 calc(100% - 16px), transparent 100%);
+}
 .hud-resource { font-size: 0.78rem; color: var(--text2); }
 .hud-gold { color: var(--gold); }
 .hud-souls { color: var(--text2); }
@@ -1632,6 +1640,48 @@ body {
 }
 .path-confirm-btn.confirm:hover { background: rgba(201,168,76,0.12); }
 .path-confirm-btn:hover { background: rgba(255,255,255,0.05); }
+
+/* ── LOADED COAT (Gambler character relic) ── */
+/* Same fixed/backdrop shell as #path-confirm-overlay, so this mid-combat picker can appear
+   without leaving the combat screen. Kept as a SEPARATE selector rather than reusing
+   #path-confirm-overlay directly — that overlay's own JS (confirmPath/cancelPathConfirm)
+   assumes its own fixed content, and this needs a dynamic 6-tile grid instead. */
+#loaded-coat-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  z-index: 500;
+  align-items: center;
+  justify-content: center;
+}
+#loaded-coat-overlay.visible { display: flex; }
+.loaded-coat-box { width: min(420px, 92vw); max-height: 88vh; overflow-y: auto; }
+.loaded-coat-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+/* Compact tile — modeled on .shop-item's visual language (emoji/name/desc/border-on-hover) but
+   sized for 6-at-once in a wrapping grid rather than one 130px tile, so this fits a mobile
+   landscape width without horizontal scrolling. */
+.loaded-coat-tile {
+  width: 108px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.4rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+.loaded-coat-tile:hover { border-color: var(--gold); transform: translateY(-2px); }
+.loaded-coat-tile.current { opacity: 0.4; cursor: not-allowed; }
+.loaded-coat-tile.current:hover { border-color: var(--border); transform: none; }
+.loaded-coat-tile-emoji { font-size: 1.3rem; display: block; margin-bottom: 0.2rem; }
+.loaded-coat-tile-name { font-family: 'Cinzel', serif; font-size: 0.62rem; color: var(--gold); }
+.loaded-coat-tile-range { font-size: 0.56rem; color: var(--text3); margin-top: 0.15rem; }
+.loaded-coat-tile-desc { font-size: 0.54rem; color: var(--text2); margin-top: 0.25rem; line-height: 1.3; }
 
 /* ── MIRROR ── */
 .mirror-panel {

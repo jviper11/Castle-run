@@ -290,8 +290,15 @@ key; **delete an entry there when its behaviour lands or the relic stays unobtai
   1-of-3 elite relic screen. Only two relics are genuinely deferred.
 - `ivory_die` and `loaded_gauntlet` have no `hasRelic()` call and would score as dead on a naive
   grep — they are live, implemented as pickup side-effects inside `acquireRelic()`.
-- All **15 Character relics** are absent from every `.js`/`.html`/`.css` file. The docs carry
-  display names only ("Warlord's Bandage"), so no key naming convention exists for them yet.
+- All **15 Character relics** were absent from every `.js`/`.html`/`.css` file at the time of this
+  audit (Aug 16, 2026). The docs carried display names only ("Warlord's Bandage"), with no key
+  naming convention yet. **Superseded (Aug 17, 2026):** all 15 are now implemented, one batch per
+  hero, keyed as `warlords_bandage`/`battle_drum`/`berserkers_scar` (Barbarian),
+  `stone_grimoire`/`frost_seal`/`ley_line_crystal` (Mage),
+  `assassins_edge`/`shadow_wrap`/`venomfang` (Thief),
+  `midnight_hunger`/`crimson_lens`/`blood_pact` (Vampire), and
+  `devils_ledger`/`house_always_wins`/`loaded_coat` (Gambler). See the Session Log in
+  `PROGRESS.md` for each batch.
 
 ---
 
@@ -327,6 +334,15 @@ composition working as written, and Uncommons remain available from shops and th
 screen — but it is a real change to what that hero sees, and it will repeat for each hero as
 their batch lands. Heroes without Character relics still backfill and reach all 28. Flagged in
 case "Uncommon absent from boss rewards" is not the intended end state.
+
+**Update (Aug 17, 2026) — all 5 heroes now hit the documented composition; the Character-slot gap
+is closed.** Gambler's Loaded Coat was the 15th and final Character relic (all 5 heroes now have
+3/3). The side effect noted above for Barbarian therefore now applies to every hero: a Floor 3+
+boss reward for any of the 5 heroes fills all three slots from pass 1 (10 Common + 9 Rare +
+3 Character = 22 reachable), and Uncommon relics no longer appear there for anyone. Uncommons
+remain available from shops and the Void Compass screen. The "Character slot has no content"
+half of this discrepancy is now fully resolved; the Rare-slot wording gap above (Open for the
+owner) is unaffected and still stands.
 
 ---
 

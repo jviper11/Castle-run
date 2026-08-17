@@ -67,6 +67,16 @@ function startAldricFight() {
   // that precedent rather than the passive-relic one: a charge saved from the last Floor-4 fight
   // is still available for the final boss.
   G._leyLineCrystalUsed = false;
+  // Loaded Coat (Gambler) — same reasoning as Ley Line Crystal directly above: a manual
+  // once-per-combat button charge, not a passive stat hook, so it resets for Aldric too rather
+  // than being subject to the passive-relic Aldric gap. G._loadedCoatSnapshot should already be
+  // null by now (restoreLoadedCoatDie() clears it when the PREVIOUS combat ended) — calling it
+  // again here is a genuine safety net, not just flag hygiene: if some future code path ever
+  // skips checkCombatEnd()'s own restore, this resolves G.activeDie back to the real equipped
+  // die before the new fight can read it, rather than leaving the corruption for a stale
+  // used-flag reset to silently paper over.
+  restoreLoadedCoatDie();
+  G._loadedCoatUsed = false;
   // Midnight Hunger (Vampire) — this hooks into startTurn()/rollDice(), both universal functions
   // Aldric calls unconditionally, so unlike the passive relic-start hooks it needs no special
   // exclusion here. `true` is the sentinel meaning "no turn has failed to hit extreme yet" —
@@ -529,6 +539,8 @@ function startCombat(isElite) {
                              // sets it just before, and clearing would discard the opt-in)
   G._ashenCrownFired = false;
   G._leyLineCrystalUsed = false; // once per combat — see startAldricFight for the full lifecycle note
+  restoreLoadedCoatDie(); // Loaded Coat — see startAldricFight for the full lifecycle note
+  G._loadedCoatUsed = false;
   G._hitExtremeThisTurn = true; // Midnight Hunger — see startAldricFight for the sentinel note
   G._maxRollStreak = 0; // The House Always Wins — see startAldricFight for the reset note
   G._houseAlwaysWinsFreeCard = false;
@@ -627,6 +639,8 @@ function startBossFight() {
   G.turn = 0;                // per-combat turn counter; startTurn() takes it to 1 immediately
   G._ashenCrownFired = false;
   G._leyLineCrystalUsed = false; // once per combat — see startAldricFight for the full lifecycle note
+  restoreLoadedCoatDie(); // Loaded Coat — see startAldricFight for the full lifecycle note
+  G._loadedCoatUsed = false;
   G._hitExtremeThisTurn = true; // Midnight Hunger — see startAldricFight for the sentinel note
   G._maxRollStreak = 0; // The House Always Wins — see startAldricFight for the reset note
   G._houseAlwaysWinsFreeCard = false;
@@ -1092,6 +1106,66 @@ function useLeyLineCrystal() {
   animateDieTo(G.currentDie);
   showMsg('🔮 Ley Line Crystal — die forced to ' + G.currentDie + '!');
   renderAll();
+}
+
+// Loaded Coat (Gambler) — once per combat, swap the EQUIPPED die (G.activeDie/G.diceMax), not
+// just one turn's roll like Ley Line Crystal. Distinct from every other die-manipulating relic
+// in this file for that reason: this changes what die the player is playing with for the rest of
+// the fight, so it needs a snapshot-and-restore around the whole combat rather than a one-shot
+// value force.
+function openLoadedCoat() {
+  if (!hasCharacterRelic('loaded_coat')) return;
+  if (G._loadedCoatUsed) { showMsg('Loaded Coat already used this combat!'); return; }
+  const grid = document.getElementById('loaded-coat-grid');
+  const overlay = document.getElementById('loaded-coat-overlay');
+  if (!grid || !overlay) return;
+
+  grid.innerHTML = '';
+  Object.values(DICE_TYPES).forEach(dieOpt => {
+    const isCurrent = dieOpt.type === G.activeDie;
+    const el = document.createElement('div');
+    el.className = 'loaded-coat-tile' + (isCurrent ? ' current' : '');
+    el.innerHTML = `
+      <span class="loaded-coat-tile-emoji">${dieOpt.emoji}</span>
+      <div class="loaded-coat-tile-name">${dieOpt.name}</div>
+      <div class="loaded-coat-tile-range">Rolls 1–${dieOpt.max}${isCurrent ? ' (current)' : ''}</div>
+      <div class="loaded-coat-tile-desc">${dieOpt.desc}</div>
+    `;
+    if (!isCurrent) el.onclick = () => applyLoadedCoat(dieOpt.type);
+    grid.appendChild(el);
+  });
+  overlay.classList.add('visible');
+}
+
+function cancelLoadedCoat() {
+  const overlay = document.getElementById('loaded-coat-overlay');
+  if (overlay) overlay.classList.remove('visible');
+}
+
+function applyLoadedCoat(dieType) {
+  const dieOpt = getDie(dieType);
+  // Snapshot the PRE-swap equipped die exactly once — the moment this fires is also the moment
+  // G.activeDie/G.diceMax still hold the player's real, persistent choice, since nothing else in
+  // this codebase mutates them mid-combat. Restored by restoreLoadedCoatDie() at the true end of
+  // this combat (checkCombatEnd()), never on an Aldric phase transition — see that function.
+  G._loadedCoatSnapshot = { activeDie: G.activeDie, diceMax: G.diceMax };
+  G.activeDie = dieOpt.type;
+  G.diceMax = dieOpt.max;
+  G._loadedCoatUsed = true;
+  cancelLoadedCoat();
+  showMsg('🧥 Loaded Coat — swapped to ' + dieOpt.emoji + ' ' + dieOpt.name + ' for this fight!');
+  renderAll();
+}
+
+// Restores the die snapshotted by applyLoadedCoat(), if any. A no-op when nothing was swapped
+// this combat. Called from checkCombatEnd() at every point that represents the fight GENUINELY
+// ending (win, loss) — deliberately NOT on an Aldric phase transition, since Phase 1 -> 2 -> 3
+// is still the same combat and a Loaded Coat swap should survive across those.
+function restoreLoadedCoatDie() {
+  if (!G._loadedCoatSnapshot) return;
+  G.activeDie = G._loadedCoatSnapshot.activeDie;
+  G.diceMax = G._loadedCoatSnapshot.diceMax;
+  G._loadedCoatSnapshot = null;
 }
 
 // Shared die-face animation used by the Soul dice upgrades (same shape the dice cards use).
@@ -1980,6 +2054,7 @@ function shuffleDeck() {
 
 function checkCombatEnd() {
   if (G.hp <= 0) {
+    restoreLoadedCoatDie(); // defeat is always a genuine combat end
     G.runSouls += G.souls;
     setTimeout(showGameOver, 600);
     return;
@@ -2034,10 +2109,18 @@ function checkCombatEnd() {
     renderAll();
     setTimeout(() => {
       if (G.isFinalBoss) {
+        // A phase transition (true) is NOT a combat end — Phase 1 -> 2 -> 3 is still the same
+        // fight, so a Loaded Coat swap must survive it. Only restore below, once Aldric's final
+        // phase is genuinely defeated (this check returns false).
         if (checkAldricPhaseTransition()) return;
+        restoreLoadedCoatDie();
         showAldricEnding();
         return;
       }
+      // Every path below is a genuine combat end (floor-3 boss beaten — Aldric next is a
+      // SEPARATE combat with its own startAldricFight(); floor 1-2 boss beaten; normal/elite
+      // enemy beaten) — restore once here rather than at each branch.
+      restoreLoadedCoatDie();
       if (G.inBoss && G.currentFloor >= 3) {
         // Last floor boss defeated — now face Aldric
         setTimeout(() => launchFinalBoss(), 1500);

@@ -156,6 +156,8 @@
           <span class="house-streak-pip" id="house-streak-pip-0">🎲</span>
           <span class="house-streak-pip" id="house-streak-pip-1">🎲</span>
         </div>
+        <!-- Loaded Coat (Gambler character relic) — shown only when owned and unused this combat. -->
+        <button class="btn soul-die-btn" id="loaded-coat-btn" onclick="openLoadedCoat()" style="display:none;">🧥 SWAP DIE</button>
       </div>
       <div id="aldric-curse-indicator"></div>
     </div>
@@ -201,6 +203,19 @@
       <div class="path-confirm-btns">
         <button class="path-confirm-btn" onclick="cancelPathConfirm()">Go Back</button>
         <button class="path-confirm-btn confirm" id="path-confirm-yes">Commit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOADED COAT PICKER (Gambler character relic) — same overlay shell as the path-confirm
+       popup above, so a mid-combat choice can appear without leaving the combat screen. -->
+  <div id="loaded-coat-overlay">
+    <div class="path-confirm-box loaded-coat-box">
+      <div class="path-confirm-title">🧥 Loaded Coat — Choose a Die</div>
+      <div class="path-confirm-desc">Active for the rest of this fight only. Your real die returns once the fight ends.</div>
+      <div class="loaded-coat-grid" id="loaded-coat-grid"></div>
+      <div class="path-confirm-btns">
+        <button class="path-confirm-btn" onclick="cancelLoadedCoat()">Cancel</button>
       </div>
     </div>
   </div>

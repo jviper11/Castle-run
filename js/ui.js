@@ -191,7 +191,9 @@ const RELICS = {
 
   devils_ledger:     { name:"Devil's Ledger", emoji:'📓', rarity:'character', hero:'gambler', desc:'Every 20 Gold spent this run adds +1 damage, up to +8.', effect:'gold_spent_dmg_bonus', value:1 },
 
-  house_always_wins: { name:'The House Always Wins', emoji:'🎰', rarity:'character', hero:'gambler', desc:'Roll max 2 turns in a row → next card costs 0.', effect:'max_streak_free_card' }
+  house_always_wins: { name:'The House Always Wins', emoji:'🎰', rarity:'character', hero:'gambler', desc:'Roll max 2 turns in a row → next card costs 0.', effect:'max_streak_free_card' },
+
+  loaded_coat:       { name:'Loaded Coat', emoji:'🧥', rarity:'character', hero:'gambler', desc:'Once per combat, swap your active die for any die type for the rest of that fight.', effect:'once_per_combat_die_swap' }
 };
 
 function hasRelic(key) { return G.relics && G.relics.includes(key); }
@@ -1476,6 +1478,15 @@ function renderSoulDiceControls() {
     llBtn.disabled = !!G._dieSetThisTurn;
   }
 
+  // Loaded Coat (Gambler character relic) — same shown-when-owned-and-unused pattern as Ley
+  // Line Crystal above; not gated on G._dieSetThisTurn since it swaps the die TYPE for the rest
+  // of the fight rather than forcing this turn's roll value.
+  const lcBtn = document.getElementById('loaded-coat-btn');
+  if (lcBtn) {
+    const showLoadedCoat = hasCharacterRelic('loaded_coat') && !G._loadedCoatUsed;
+    lcBtn.style.display = showLoadedCoat ? '' : 'none';
+  }
+
   // The House Always Wins (Gambler character relic) — visible whenever owned, unlike the buttons
   // above which hide once spent; a streak tracker has nothing to hide, it just shows the current
   // count (0, 1, or freshly reset to 0 the instant the free card queues). Each pip lights up for
@@ -1615,7 +1626,23 @@ function renderCores() {
     span.title = `Core: ${b.name}`;
     el.appendChild(span);
   });
+  updateHudRelicFades();
 }
+
+// Both icon rows scroll horizontally with their scrollbar deliberately hidden (mobile HUD has no
+// room for a visible bar), so this fade is the only signal that more icons sit past the edge.
+// Toggled per-container rather than painted unconditionally, so a row that already fits within
+// its width isn't given a misleading fade over its last visible icon.
+function updateHudRelicFade(el) {
+  if (!el) return;
+  el.classList.toggle('has-overflow', el.scrollWidth > el.clientWidth + 1);
+}
+function updateHudRelicFades() {
+  updateHudRelicFade(document.querySelector('.hud-relics'));
+  updateHudRelicFade(document.querySelector('.hud-owned-relics'));
+}
+window.addEventListener('resize', updateHudRelicFades);
+window.addEventListener('orientationchange', () => setTimeout(updateHudRelicFades, 150));
 
 // Reuse the status-tooltip element for relic descriptions (mirrors showStatusTooltip)
 function showRelicTooltip(e, relicKey) {
@@ -1654,6 +1681,7 @@ function renderRelics() {
     span.addEventListener('mouseleave', hideStatusTooltip);
     el.appendChild(span);
   });
+  updateHudRelicFades();
 }
 
 function updateHUD() {
