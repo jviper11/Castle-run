@@ -60,6 +60,20 @@ function startAldricFight() {
   G.aldricDamageDealt = 0;
   G.turn = 0;                // reset once for the whole fight, NOT per phase transition
   G._challenge = null;       // Challenges are floor-boss only — Aldric is never one
+  // Ley Line Crystal (Mage) resets here too, unlike the passive relic-start hooks
+  // (stageCombatStartBlock/applySoulCombatStart run with includeRelics/includeDraw=false for
+  // Aldric — a documented pre-existing gap). This is a manual once-per-combat button action, the
+  // same category as Gambler's Edge / Second Die, which DO reset for Aldric — so it follows
+  // that precedent rather than the passive-relic one: a charge saved from the last Floor-4 fight
+  // is still available for the final boss.
+  G._leyLineCrystalUsed = false;
+  // Midnight Hunger (Vampire) — this hooks into startTurn()/rollDice(), both universal functions
+  // Aldric calls unconditionally, so unlike the passive relic-start hooks it needs no special
+  // exclusion here. `true` is the sentinel meaning "no turn has failed to hit extreme yet" —
+  // startTurn()'s very next call (Aldric's own turn 1) must not queue a bonus for a turn that
+  // never happened, exactly as at the other two fight starts.
+  G._hitExtremeThisTurn = true;
+  G._nextRollBonus = 0;
   G.aldricTurns = 0;
   G.aldricStoneHeart = phase.stoneHeartBase;
   G.aldricRelicsTriggered = [];
@@ -451,6 +465,11 @@ function stageCombatStartBlock(g, includeRelics = true) {
   if (includeRelics) {
     if (hasRelic('iron_vambrace')) g._pendingCombatBlock += 6;
     if (hasRelic('hollow_throne')) g._pendingCombatBlock += 20;
+    // Shadow Wrap (Thief) is a start-of-combat Block grant, same category as Iron Vambrace —
+    // NOT the torn_page/rusted_chain inline pattern. A direct `g.block += 5` at fight start would
+    // be silently wiped by startTurn()'s turn-1 Block reset, reproducing the exact bug that
+    // Iron Vambrace/Hollow Throne needed this staging mechanism to fix in the first place.
+    if (hasCharacterRelic('shadow_wrap', g)) g._pendingCombatBlock += 5;
   }
   if (hasSoulUpgrade('grit')) g._pendingCombatBlock += 5;
 }
@@ -501,6 +520,9 @@ function startCombat(isElite) {
                              // (startBossFight deliberately does NOT clear this: showBossIntro
                              // sets it just before, and clearing would discard the opt-in)
   G._ashenCrownFired = false;
+  G._leyLineCrystalUsed = false; // once per combat — see startAldricFight for the full lifecycle note
+  G._hitExtremeThisTurn = true; // Midnight Hunger — see startAldricFight for the sentinel note
+  G._nextRollBonus = 0;
   // Relic hooks — start of combat
   // (iron_vambrace and hollow_throne Block are staged by stageCombatStartBlock below, so they
   // survive startTurn's turn-1 Block reset)
@@ -594,6 +616,9 @@ function startBossFight() {
   G.cardsPlayedThisCombat = 0;
   G.turn = 0;                // per-combat turn counter; startTurn() takes it to 1 immediately
   G._ashenCrownFired = false;
+  G._leyLineCrystalUsed = false; // once per combat — see startAldricFight for the full lifecycle note
+  G._hitExtremeThisTurn = true; // Midnight Hunger — see startAldricFight for the sentinel note
+  G._nextRollBonus = 0;
   // Relic hooks — start of combat
   // (iron_vambrace and hollow_throne Block are staged by stageCombatStartBlock below, so they
   // survive startTurn's turn-1 Block reset)
@@ -617,6 +642,20 @@ function startBossFight() {
 }
 
 function startTurn() {
+  // Midnight Hunger (Vampire) turn-transition check. Read BEFORE resetting the flag below, so
+  // this reflects whether the turn that JUST ENDED ever hit extreme — the flag is set inside
+  // checkAffinity() throughout that turn, including by the empty-turn auto-roll, so a turn with
+  // zero cards played still resolves correctly here.
+  //
+  // G._hitExtremeThisTurn is seeded `true` at combat start (see startCombat/startBossFight/
+  // startAldricFight) specifically so THIS check is a no-op on turn 1 — there is no "turn that
+  // just ended" yet, and without that seed a fresh false-by-default flag would wrongly queue a
+  // bonus for the very first roll of the fight.
+  if (hasCharacterRelic('midnight_hunger') && G._hitExtremeThisTurn === false) {
+    G._nextRollBonus = 2;
+  }
+  G._hitExtremeThisTurn = false; // now tracks the turn about to start
+
   G.selectedHandIndex = null;
   G.selectedHandKey = null;
   G.turn++;
@@ -737,6 +776,19 @@ function rollDice(g, isInitial = false) {
     }
   } else {
     g._fallacyCount = 0;
+  }
+
+  // Midnight Hunger (Vampire) — queued once, at the last possible modifier before the roll is
+  // finalized, so it composes with everything above (min-roll, Cursed Die, Twinned Die,
+  // Gambler's Fallacy) rather than being overridden by them. Applied via the same formula Second
+  // Die uses on its own bonus (Math.min(roll + bonus, diceMax)), but baked in here rather than as
+  // a separate post-roll button action — so it becomes part of what checkAffinity() and every
+  // other roll-reading call sees as THE roll for the turn, not a later correction. Because Second
+  // Die operates on G.currentDie afterward as an entirely separate mechanism, the two compose
+  // additively with no special-casing needed.
+  if (g._nextRollBonus) {
+    roll = Math.min(roll + g._nextRollBonus, g.diceMax);
+    g._nextRollBonus = 0; // exactly once — cleared immediately on consumption
   }
 
   g.currentDie = roll;
@@ -875,7 +927,16 @@ function checkAffinity(g, roll, affinity) {
   if (affinity === 'extreme') {
     // Use currentDieType max if available, fall back to diceMax
     const thisDieMax = (g.currentDieType && g.currentDieType.max) ? g.currentDieType.max : g.diceMax;
-    return r === 1 || r === thisDieMax;
+    const hit = r === 1 || r === thisDieMax;
+    // Midnight Hunger (Vampire) — single chokepoint, no per-card changes needed. Every extreme
+    // check this turn passes through here, including the turn-start auto-roll's own affinity
+    // highlight (checkAffinityHighlight -> checkAffinity(g, roll, 'extreme')), which fires even
+    // if the player plays no cards at all — so an empty turn is tracked correctly for free.
+    // Inherits every existing guard above (aldricAffinityDisabled, naturalMaxSuppressed), so a
+    // Gambler's-Edge-forced max roll does NOT count as "hit extreme" here either, consistent
+    // with how forced rolls are already excluded from natural-affinity bonuses everywhere else.
+    if (hit && hasCharacterRelic('midnight_hunger', g)) g._hitExtremeThisTurn = true;
+    return hit;
   }
   return false;
 }
@@ -973,6 +1034,25 @@ function applyGamblersEdge(value) {
   G._gamblersEdgeUsed = true;
   animateDieTo(G.currentDie);
   showMsg("♠️ Gambler's Edge — die forced to " + G.currentDie + '!');
+  renderAll();
+}
+
+// Ley Line Crystal (Mage) — once per combat, force the die to 6, clamped to G.diceMax so it stays
+// correct on a d4 (min3 aside, its max face is 4). On any die with max >= 6 (d6 and up, including
+// a Hunter's d8) this sets exactly 6, not the die's own max face — those are only the same number
+// on a d6. Modeled on applyGamblersEdge(): same G._dieSetThisTurn guard (the one-forced-value-
+// per-turn rule), same animateDieTo() finish, but gated on hasCharacterRelic() and a combat-scoped
+// used flag instead of a turn-scoped one.
+function useLeyLineCrystal() {
+  if (!hasCharacterRelic('ley_line_crystal')) return;
+  if (G._leyLineCrystalUsed) { showMsg('Ley Line Crystal already used this combat!'); return; }
+  if (G._dieSetThisTurn) { showMsg('Die can only be set once per turn!'); return; }
+
+  G.currentDie = Math.min(6, G.diceMax);
+  G._dieSetThisTurn = true;
+  G._leyLineCrystalUsed = true;
+  animateDieTo(G.currentDie);
+  showMsg('🔮 Ley Line Crystal — die forced to ' + G.currentDie + '!');
   renderAll();
 }
 
@@ -1138,6 +1218,29 @@ if (card.type === 'Attack' && G._spellEcho > 0) {
 if (card.type === 'Attack' && checkAffinity(G, roll, 'odd') && hasCharacterRelic('warlords_bandage')) {
   healPlayer(G, 4);
   showMsg("🩸 Warlord's Bandage — odd-roll Attack, +4 HP!");
+}
+
+// Stone Grimoire / Frost Seal (Mage) — both gate on `card.affinityBonus === 'high'`, which is
+// exactly the set of Mage cards whose effect scales with a high roll (verified against the full
+// Mage reward pool: every card is either dice:false with no roll-scaling at all — Mana Surge,
+// Arcane Boost, Void Channel, Blizzard, Arcane Momentum, Soul Steal, Iron Wall, Cursed Reroll,
+// Cold Mastery, Burning Soul — or dice:true with affinityBonus:'high'; there is no third
+// category). This is "cast a spell" for these two relics specifically: it cleanly excludes
+// Strike/Defend (no affinityBonus) and every Power, with no card-list to maintain.
+if (card.affinityBonus === 'high') {
+  // Stone Grimoire — flat Block on every spell cast, independent of the roll. No checkAffinity()
+  // call at all, matching "regardless of roll" in the description.
+  if (hasCharacterRelic('stone_grimoire')) {
+    gainBlock(G, 'player', 4);
+    showMsg('📖 Stone Grimoire — +4 Block!');
+  }
+  // Frost Seal — fires on roll <= 3, which is disjoint from the card's own High bonus (roll >= 6
+  // per checkAffinity()'s 'high' branch). Rolls 4-5 trigger neither the card's bonus nor this
+  // relic; that gap is the card's own design, not something this relic is meant to close.
+  if (roll <= 3 && hasCharacterRelic('frost_seal')) {
+    applyStatus(G, 'enemy', '❄️Chill', 1);
+    showMsg('🧊 Frost Seal — low roll, +1 Chill!');
+  }
 }
 if (G.statuses.player.find(s => s.name === '👑BloodLord') && card.type === 'Attack') {
   const lordStacks = G.statuses.player.find(s => s.name === '👑BloodLord');
@@ -1313,7 +1416,11 @@ function endTurn() {
   if (poison) {
     // Poison Master — Poison deals extra dmg per stack (base +1 / + +2) on top of the 1:1 base
     const poisonMaster = G.statuses.player.find(s => s.name === '☠️PoisonMaster');
-    const poisonDmg = poison.stacks + (poisonMaster ? poison.stacks * (poisonMaster.stacks === 2 ? 2 : 1) : 0);
+    // Venomfang (Thief) — flat +1 to the whole tick, not a per-stack multiplier like Poison
+    // Master, so the two sum rather than compound: holding both adds Venomfang's flat 1 on top
+    // of whatever Poison Master's per-stack scaling already produced.
+    const venomfangBonus = hasCharacterRelic('venomfang') ? 1 : 0;
+    const poisonDmg = poison.stacks + (poisonMaster ? poison.stacks * (poisonMaster.stacks === 2 ? 2 : 1) : 0) + venomfangBonus;
     G.enemy.hp -= poisonDmg;
     floatDamage('enemy-combatant', poisonDmg, 'dmg');
     poison.stacks--;
@@ -1440,6 +1547,17 @@ function calculatePlayerAttackDamage(g, amount, options = {}) {
   }
   // Pale Contract — all player attacks deal +4 damage
   if (hasRelic('pale_contract')) amount += 4;
+  // Assassin's Edge (Thief) — every 4th card played THIS TURN deals double damage. Deliberately
+  // NOT a consumed flag like Gilded Quill just below: G._cardsPlayedThisTurn is incremented
+  // before card.effect() runs and does not change again until the next card is played (see the
+  // Aug 15, 2026 fix note on playCard()), so reading it fresh on every dealDamage() call is what
+  // makes a multi-hit 4th-card Attack (or a Spell Echo repeat) double EVERY hit rather than only
+  // the first — a one-shot consumed flag here would silently under-double those. Safe against
+  // leaking into end-of-turn DoT: Burn/Poison ticks subtract g.enemy.hp directly and never call
+  // dealDamage(), so this can only fire while the qualifying card's own effect is resolving.
+  if (hasCharacterRelic('assassins_edge', g) && (g._cardsPlayedThisTurn || 0) % 4 === 0) {
+    amount *= 2;
+  }
   // Gilded Quill — 10th card played this combat deals double damage
   if (g._gildedQuillActive) {
     amount *= 2;

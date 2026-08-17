@@ -175,7 +175,17 @@ const RELICS = {
   // hand-edited save) stays inert on the wrong hero rather than silently working.
   warlords_bandage:  { name:"Warlord's Bandage", emoji:'🩸', rarity:'character', hero:'barbarian', desc:'Heal 4 HP every time you play an Attack on an odd roll.', effect:'odd_attack_heal', value:4 },
   battle_drum:       { name:'Battle Drum',        emoji:'🥁', rarity:'character', hero:'barbarian', desc:'Draw 1 extra card at turn start if last roll was odd.',   effect:'odd_last_roll_draw', value:1 },
-  berserkers_scar:   { name:"Berserker's Scar",   emoji:'🩹', rarity:'character', hero:'barbarian', desc:'Taking damage from an enemy grants 1 Rage.',              effect:'damage_grants_rage', value:1 }
+  berserkers_scar:   { name:"Berserker's Scar",   emoji:'🩹', rarity:'character', hero:'barbarian', desc:'Taking damage from an enemy grants 1 Rage.',              effect:'damage_grants_rage', value:1 },
+
+  stone_grimoire:    { name:'Stone Grimoire',   emoji:'📖', rarity:'character', hero:'mage', desc:'Gain 4 Block every time you cast a spell, regardless of roll.', effect:'spell_cast_block', value:4 },
+  frost_seal:        { name:'Frost Seal',       emoji:'🧊', rarity:'character', hero:'mage', desc:'Low rolls (3 or under) apply 1 Chill to the enemy instead of nothing.', effect:'low_roll_chill', value:1 },
+  ley_line_crystal:  { name:'Ley Line Crystal', emoji:'🔮', rarity:'character', hero:'mage', desc:'Once per combat, set your die to 6 (or its max face if lower).', effect:'once_per_combat_set_six' },
+
+  assassins_edge:    { name:"Assassin's Edge", emoji:'🗡️', rarity:'character', hero:'thief', desc:'Every 4th card played each turn deals double damage.', effect:'fourth_card_double_dmg' },
+  shadow_wrap:       { name:'Shadow Wrap',     emoji:'🥷', rarity:'character', hero:'thief', desc:'Start every combat with 5 Block.',                       effect:'start_block', value:5 },
+  venomfang:         { name:'Venomfang',       emoji:'🐍', rarity:'character', hero:'thief', desc:'Poison deals +1 damage per tick.',                       effect:'poison_tick_bonus', value:1 },
+
+  midnight_hunger:   { name:'Midnight Hunger', emoji:'🌘', rarity:'character', hero:'vampire', desc:"If you didn't hit affinity this turn, your next roll gets +2.", effect:'no_extreme_next_roll_bonus', value:2 }
 };
 
 function hasRelic(key) { return G.relics && G.relics.includes(key); }
@@ -1435,6 +1445,15 @@ function renderSoulDiceControls() {
     geBtn.disabled = !!G._dieSetThisTurn;
   }
   if (picker && !showEdge) picker.classList.remove('visible');
+
+  // Ley Line Crystal (Mage character relic) — same shown-when-owned-and-unused pattern as the
+  // Soul dice buttons above, but gated on hasCharacterRelic() rather than hasSoulUpgrade().
+  const llBtn = document.getElementById('ley-line-crystal-btn');
+  if (llBtn) {
+    const showLeyLine = hasCharacterRelic('ley_line_crystal') && !G._leyLineCrystalUsed;
+    llBtn.style.display = showLeyLine ? '' : 'none';
+    llBtn.disabled = !!G._dieSetThisTurn;
+  }
 }
 
 function renderDicePool() {
