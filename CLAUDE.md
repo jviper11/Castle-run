@@ -129,6 +129,13 @@ Underscore-prefixed fields implement temporary or combat-scoped effects. Relevan
 - `G._disappearCount` / `G._shadowArtistDiscount`.
 - `G._flyActive`.
 - `G._dieSetThisTurn` — enforces one forced die value per turn.
+- `G._diceLockTurnsRemaining` / `G._dieLockedThisTurn` — Dice Stabilizer's die lock. A deliberate
+  pair, not a redundancy: the counter is "future turns that skip their roll" and is already
+  decremented while the turn it paid for is being played, so only the turn flag can answer "is the
+  die locked right now". `startTurn()` branches on the counter alone; every in-turn gate (reroll,
+  Gambler's Edge, Ley Line Crystal) must call `dieLockActive()`, which ORs the two. Swapping either
+  read reintroduces a bug: a counter-only gate unlocks one turn early, and a `dieLockActive()`
+  branch in `startTurn()` makes the lock permanent.
 - `G._guaranteedMax`, `G._minRoll`, `G._fallacyCount`, `G._fallacyThreshold`.
 - `G._hungerDmgThisTurn`.
 
@@ -137,6 +144,29 @@ Before adding or changing one of these fields, locate every initialization, rese
 ---
 
 ## Cards and Rewards
+
+### Consumables
+
+`CONSUMABLES` (`js/ui.js`) holds all 10 items' effects; `CONSUMABLE_AVAILABILITY` beside it
+transcribes GDD §12's "Available From" and "Floor" columns, and is the **only** thing offer sites
+read. Every source (shop stock, the elite drop in `checkCombatEnd()`, `giveReward(g,'consumable')`)
+goes through `offerableConsumables(source, g)` — do not inline a pool filter, for the same reason
+`offerableRelics()` exists. `minFloor` is a zero-based `G.currentFloor` index.
+
+Two render paths, deliberately distinct: `renderConsumableSlots()` for the in-combat row, and
+`renderFieldInventory()` for the out-of-combat `#field-inventory` element (shown by `showScreen()`
+for `FIELD_INVENTORY_SCREENS` only). `useConsumable()` branches on `inCombatScreen()`, which reads
+`G._activeScreen` — **not** `G.enemy`, which is never reset to null after a fight despite what the
+`G` field list above implies. Only `OUT_OF_COMBAT_CONSUMABLES` may be used between fights.
+
+`grantConsumable(key, options)` is the only way to add an item. `addConsumable()` is its shared
+inventory write — do not push to `G.consumables` directly, or the acquire message and the two render
+calls get skipped. At 3/3 it opens the swap prompt and **resolves asynchronously**, so its return
+value cannot report the outcome (`false` means both "refused" and "a prompt is open"). Sequence on
+`options.onDone(granted)` instead; a caller that schedules a screen change afterwards must, or the
+prompt is orphaned by the transition. `options.allowSwapPrompt: false` suppresses the prompt and is
+required wherever payment has already been taken — the shop's pre-charge cap check exists for that
+reason and must not be replaced by the prompt.
 
 Base cards are defined in `CARDS` in `js/data.js`. Upgrades are defined in `CARD_UPGRADES` and registered under keys with a `+` suffix. Card objects generally contain:
 

@@ -328,7 +328,9 @@
     <div id="shop-remove-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:200;overflow-y:auto;padding:1.5rem 1rem;">
       <div style="max-width:580px;margin:0 auto;">
         <h3 style="font-family:'Cinzel',serif;color:var(--gold);text-align:center;margin-bottom:0.4rem;">REMOVE A CARD</h3>
-        <p style="color:var(--text2);text-align:center;font-size:0.85rem;margin-bottom:1rem;">Tap a card to permanently remove it. Cost: 75 🪙</p>
+        <!-- As with the upgrade modal below: overwritten by showShopRemove() to track shopCost(75).
+             Removal's gate and charge were already King's-Debt aware; only this copy was not. -->
+        <p id="shop-remove-cost-text" style="color:var(--text2);text-align:center;font-size:0.85rem;margin-bottom:1rem;">Tap a card to permanently remove it. Cost: 75 🪙</p>
         <div id="shop-remove-grid" class="rest-deck-grid"></div>
         <button class="btn" onclick="closeShopModal('shop-remove-modal')" style="margin-top:1rem;width:100%;">Cancel</button>
       </div>
@@ -338,7 +340,9 @@
     <div id="shop-upgrade-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:200;overflow-y:auto;padding:1.5rem 1rem;">
       <div style="max-width:580px;margin:0 auto;">
         <h3 style="font-family:'Cinzel',serif;color:var(--gold);text-align:center;margin-bottom:0.4rem;">UPGRADE A CARD</h3>
-        <p style="color:var(--text2);text-align:center;font-size:0.85rem;margin-bottom:1rem;">Tap a card to upgrade it. Cost: 80 🪙</p>
+        <!-- Price text is overwritten by showShopUpgrade() so it tracks shopCost(80) under
+             King's Debt; this literal is only the pre-render default. -->
+        <p id="shop-upgrade-cost-text" style="color:var(--text2);text-align:center;font-size:0.85rem;margin-bottom:1rem;">Tap a card to upgrade it. Cost: 80 🪙</p>
         <div id="shop-upgrade-grid" class="rest-deck-grid"></div>
         <button class="btn" onclick="closeShopModal('shop-upgrade-modal')" style="margin-top:1rem;width:100%;">Cancel</button>
       </div>
@@ -452,6 +456,32 @@
     <h2 class="victory-title">THE KING FALLS</h2>
     <p class="victory-sub">The curse is broken. Your companions are free. The castle crumbles.</p>
     <button class="btn" style="margin-top:1rem" onclick="restartGame()">RUN AGAIN</button>
+  </div>
+
+  <!-- INVENTORY-FULL SWAP PROMPT -->
+  <!-- Shown by showConsumableSwapPrompt() (js/ui.js) when an Event or Elite grant arrives at 3/3.
+       Body-level and above every screen on purpose: both grant sites schedule a screen transition
+       immediately afterwards (proceedDoors / the post-combat reward chain), so the prompt has to
+       survive whatever screen ends up underneath it. Choosing only mutates G.consumables, which is
+       safe from any screen. -->
+  <div id="consumable-swap-overlay">
+    <div class="consumable-swap-panel">
+      <div class="consumable-swap-title" id="consumable-swap-title">INVENTORY FULL</div>
+      <div class="consumable-swap-desc" id="consumable-swap-desc"></div>
+      <div class="consumable-swap-list" id="consumable-swap-list"></div>
+      <button class="btn consumable-swap-decline" onclick="declineConsumableSwap()">Leave it behind</button>
+    </div>
+  </div>
+
+  <!-- OUT-OF-COMBAT CONSUMABLE INVENTORY -->
+  <!-- One body-level element rather than a copy inside each of the map/door/rest/shop/event
+       screens: the markup would otherwise be duplicated five times and the five copies would
+       drift. showScreen() toggles the .visible class for exactly the screens where it belongs,
+       and renderFieldInventory() (js/ui.js) fills it. Always renders all 3 slots, including
+       empty ones, so the carry limit is legible outside a fight. -->
+  <div id="field-inventory">
+    <div class="field-inv-label">🎒 ITEMS</div>
+    <div class="field-inv-slots" id="field-inv-slots"></div>
   </div>
 
   <!-- DECK VIEWER OVERLAY -->

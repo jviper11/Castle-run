@@ -199,33 +199,205 @@ const RELICS = {
 function hasRelic(key) { return G.relics && G.relics.includes(key); }
 
 // ═══════════════════════════════════════════════════════════════════
-// CONSUMABLES (batch 1) — inventory model + in-combat use, no acquisition path yet
+// CONSUMABLES (batches 1–2) — inventory model + in-combat use, no acquisition path yet
 // ═══════════════════════════════════════════════════════════════════
 // Unlike RELICS' `effect` field (a string tag dispatched at various passive hook sites), a
-// consumable's `effect` is a real function called directly on use — both entries this batch
-// reuse existing combat functions verbatim (healPlayer/gainBlock), so there is nothing to
-// dispatch through, matching the ask's "no new effect logic needed."
+// consumable's `effect` is a real function called directly on use — every entry reuses an
+// existing combat function verbatim (healPlayer/gainBlock/applyStatus/drawCards), so there is
+// nothing to dispatch through.
+//
+// Listed in GDD §12 table order so this object can be read straight down against the design
+// table. Dice Stabilizer is the one designed item still missing — it needs a new multi-turn
+// die-lock mechanic (no existing function to reuse), unlike these nine.
+//
+// Numbers are GDD §12 verbatim; `desc` doubles as the slot-button tooltip, so it states the
+// same figure the effect applies. Statuses use the exact G.statuses name strings (emoji
+// included) that js/combat.js matches on — a bare 'Weak' would create a second, inert status.
 const CONSUMABLES = {
-  health_potion: { name: 'Health Potion', emoji: '🧪', desc: 'Heal 20 HP.', effect: (g) => healPlayer(g, 20) },
-  block_stone:   { name: 'Block Stone',   emoji: '🪨', desc: 'Gain 15 Block.', effect: (g) => gainBlock(g, 'player', 15) },
+  health_potion:  { name: 'Health Potion',  emoji: '🧪', desc: 'Heal 20 HP.', effect: (g) => healPlayer(g, 20) },
+  smoke_vial:     { name: 'Smoke Vial',     emoji: '💨', desc: 'Apply Weak 2 to the enemy.', effect: (g) => { applyStatus(g, 'enemy', '😵Weak', 2); showMsg('💨 Smoke Vial — enemy Weakened!'); } },
+  fire_flask:     { name: 'Fire Flask',     emoji: '🔥', desc: 'Apply 4 Burn to the enemy.', effect: (g) => { applyStatus(g, 'enemy', '🔥Burn', 4); showMsg('🔥 Fire Flask — 4 Burn!'); } },
+  poison_vial:    { name: 'Poison Vial',    emoji: '☠️', desc: 'Apply 5 Poison to the enemy.', effect: (g) => { applyStatus(g, 'enemy', '☠️Poison', 5); showMsg('☠️ Poison Vial — 5 Poison!'); } },
+  energy_crystal: { name: 'Energy Crystal', emoji: '⚡', desc: 'Gain 2 Energy this turn.', effect: (g) => { g.energy = Math.min(g.energy + 2, g.maxEnergy + 2); showMsg('⚡ Energy Crystal — +2 Energy!'); } },
+  scroll_of_draw: { name: 'Scroll of Draw', emoji: '📜', desc: 'Draw 3 cards immediately.', effect: (g) => { drawCards(g, 3); showMsg('📜 Scroll of Draw — drew 3!'); } },
+  dice_stabilizer:{ name: 'Dice Stabilizer',emoji: '🔒', desc: 'Lock your die at its current result for 2 turns. No rerolling or forcing the die while locked.', effect: (g) => lockDice(g) },
+  gold_pouch:     { name: 'Gold Pouch',     emoji: '💰', desc: 'Gain 40 Gold instantly.', effect: (g) => { g.gold += 40; showMsg('💰 Gold Pouch — +40 Gold!'); } },
+  block_stone:    { name: 'Block Stone',    emoji: '🪨', desc: 'Gain 15 Block.', effect: (g) => gainBlock(g, 'player', 15) },
+  chaos_potion:   { name: 'Chaos Potion',   emoji: '🌀', desc: 'Apply a random status to the enemy: Poison, Burn, Weak, or Vulnerable.', effect: (g) => applyChaosPotion(g) },
 };
 
 const CONSUMABLE_SLOT_CAP = 3;
 
+// GDD §12's "Available From" and "Floor" columns, transcribed. Kept separate from CONSUMABLES for
+// the same reason RELIC_RARITY_MIN_FLOOR is kept separate from RELICS: that table is about what an
+// item DOES, this one is about when and where it may be offered, and only this one is read by the
+// offer sites. `minFloor` values are G.currentFloor indices, which are zero-based — index 1 is
+// Floor 2, index 2 is Floor 3 — matching RELIC_RARITY_MIN_FLOOR exactly.
+//
+// `sources` is the GDD column verbatim, and it is narrower than "every item is sold everywhere":
+// Gold Pouch and Chaos Potion are Event/Magic-Door only and must never be shop stock (paying Gold
+// for a Gold Pouch is a wash by construction), while Fire Flask and Poison Vial are the only two
+// Elite-reward items. `cost` is therefore null for anything with no 'shop' source — there is no
+// price because it is never sold.
+//
+// 'door' (Magic Door) is transcribed here for completeness but has no grant site yet — no Magic
+// Door hands out a consumable. Adding one means calling offerableConsumables('door') there; the
+// data is already correct.
+//
+// NOT in the GDD: the per-item Gold prices. §12 gives no price column, so these are set inside the
+// 50-120 band PROGRESS.md records for shop items, anchored on 50 for Health Potion because that is
+// exactly what the retired hardcoded "Healing Potion" shop entry charged.
+const CONSUMABLE_AVAILABILITY = {
+  health_potion:   { sources: ['shop', 'event'],          minFloor: 0, cost: 50 },
+  smoke_vial:      { sources: ['shop', 'event'],          minFloor: 0, cost: 55 },
+  fire_flask:      { sources: ['shop', 'elite'],          minFloor: 0, cost: 60 },
+  poison_vial:     { sources: ['shop', 'elite'],          minFloor: 0, cost: 60 },
+  energy_crystal:  { sources: ['shop', 'door'],           minFloor: 1, cost: 70 },
+  scroll_of_draw:  { sources: ['shop', 'event'],          minFloor: 0, cost: 65 },
+  dice_stabilizer: { sources: ['shop', 'door'],           minFloor: 1, cost: 75 },
+  gold_pouch:      { sources: ['event', 'door'],          minFloor: 0, cost: null },
+  block_stone:     { sources: ['shop', 'event'],          minFloor: 0, cost: 50 },
+  chaos_potion:    { sources: ['event', 'door'],          minFloor: 2, cost: null },
+};
+
+// The single source of truth for "which consumables may be offered right now", modelled directly
+// on offerableRelics() below — one helper shared by every source, so the floor rule cannot drift
+// between the shop, elite drops and events the way the relic pools had already drifted before
+// offerableRelics() consolidated them.
+function offerableConsumables(source, g = G) {
+  const floor = (g && g.currentFloor) || 0;
+  return Object.keys(CONSUMABLES).filter(key => {
+    const avail = CONSUMABLE_AVAILABILITY[key];
+    if (!avail) return false;                          // no availability data — never offer blind
+    if (!avail.sources.includes(source)) return false;
+    if (source === 'shop' && avail.cost == null) return false; // unsellable; belt and braces
+    return floor >= (avail.minFloor || 0);
+  });
+}
+
+// Items usable outside combat. Everything else needs a live fight to mean anything — enemy
+// statuses need an enemy, Energy/draw/Block are per-turn combat resources, and the die lock needs
+// turns to lock. Health Potion and Gold Pouch are the two whose effect is pure run state.
+const OUT_OF_COMBAT_CONSUMABLES = ['health_potion', 'gold_pouch'];
+
+function isUsableOutOfCombat(key) { return OUT_OF_COMBAT_CONSUMABLES.includes(key); }
+
+// Consumable tiles drawn per shop visit, before the 4-tile slice. Two rather than one so the stock
+// visibly rotates; the retired hardcoded potion was a single guaranteed entry out of five.
+const CONSUMABLE_SHOP_SLOTS = 2;
+
 // Mirrors acquireRelic()'s pattern (plain push + showMsg + a UI refresh call), with one
 // difference relics don't need: a slot cap. Unlike acquireRelic(), this has no dedupe guard —
 // consumables are stackable, so holding two Health Potions is a valid, common case, not a bug.
-function grantConsumable(key) {
+// `options.allowSwapPrompt` (default true) — at 3/3, offer the player a choice of which held item
+// to discard instead of dropping the new one silently. Callers that must not prompt pass false:
+// the shop, whose contract is to refuse BEFORE charging (prompting after payment would let a
+// decline take the Gold for nothing), and js/debug.js, where a modal mid-setup is wrong.
+//
+// `options.onDone(granted)` — called once the grant has fully resolved, which for the prompt path
+// is after the player chooses. Callers that schedule a screen change afterwards must use this
+// rather than sequencing on the return value, because the prompt is asynchronous.
+//
+// Return value is synchronous and therefore cannot describe the prompt path: it is `true` only for
+// an immediate grant, `false` for an immediate refusal AND for "a prompt is now open". Anything
+// that needs the real outcome must read onDone's argument.
+function grantConsumable(key, options = {}) {
   const item = CONSUMABLES[key];
   if (!item) return false;
+  const done = typeof options.onDone === 'function' ? options.onDone : null;
+
   if (G.consumables.length >= CONSUMABLE_SLOT_CAP) {
-    showMsg(`Inventory full (${CONSUMABLE_SLOT_CAP}/${CONSUMABLE_SLOT_CAP}) — cannot carry another item.`);
+    // A prompt is already open — only reachable if a second grant fires while the modal is up,
+    // which the modal itself makes practically impossible. Handled anyway so the function stays
+    // total rather than clobbering the pending choice with a second one.
+    if (options.allowSwapPrompt === false || G._pendingConsumableSwap) {
+      showMsg(`Inventory full (${CONSUMABLE_SLOT_CAP}/${CONSUMABLE_SLOT_CAP}) — cannot carry another item.`);
+      if (done) done(false);
+      return false;
+    }
+    // Ownership of `done` passes to the prompt, which calls it on resolve — so deliberately not
+    // called here.
+    showConsumableSwapPrompt(key, done);
     return false;
   }
+
+  addConsumable(key);
+  if (done) done(true);
+  return true;
+}
+
+// The actual inventory write, shared by the normal grant and the post-swap grant so the acquire
+// message and both render paths cannot drift between them. Does not check the cap — callers do,
+// and the swap path has just freed a slot.
+function addConsumable(key) {
+  const item = CONSUMABLES[key];
+  if (!item) return;
   G.consumables.push(key);
   showMsg(`${item.emoji} ${item.name} acquired!`);
   renderConsumableSlots();
-  return true;
+  renderFieldInventory(); // grants happen out of combat too (shop, event, elite reward)
+}
+
+// Inventory-full choice prompt. Lists the 3 held items by INDEX, not by key, so holding three of
+// the same item still offers three distinct buttons.
+function showConsumableSwapPrompt(key, onDone) {
+  const item = CONSUMABLES[key];
+  const overlay = document.getElementById('consumable-swap-overlay');
+  const list = document.getElementById('consumable-swap-list');
+  const desc = document.getElementById('consumable-swap-desc');
+  if (!overlay || !list || !desc) {
+    // Overlay missing from the DOM. Degrade to the old behaviour — the item is lost, but with a
+    // message — rather than leaving the grant in limbo with no way for the player to resolve it.
+    showMsg(`Inventory full — ${item.emoji} ${item.name} left behind.`);
+    if (onDone) onDone(false);
+    return;
+  }
+  G._pendingConsumableSwap = { key, onDone };
+  desc.innerHTML = `Discard one to make room for <strong>${item.emoji} ${item.name}</strong>,`
+    + ' or leave it behind.';
+  list.innerHTML = '';
+  G.consumables.forEach((heldKey, i) => {
+    const held = CONSUMABLES[heldKey];
+    if (!held) return;
+    const btn = document.createElement('button');
+    btn.className = 'btn consumable-swap-btn';
+    btn.innerHTML = `🗑 Discard ${held.emoji} ${held.name}<span class="swap-btn-sub">${held.desc}</span>`;
+    btn.onclick = () => resolveConsumableSwap(i);
+    list.appendChild(btn);
+  });
+  overlay.classList.add('visible');
+}
+
+function closeConsumableSwapPrompt() {
+  const overlay = document.getElementById('consumable-swap-overlay');
+  if (overlay) overlay.classList.remove('visible');
+  if (G) G._pendingConsumableSwap = null;
+}
+
+// Discard the held item at `index` and complete the pending grant.
+function resolveConsumableSwap(index) {
+  const pending = G && G._pendingConsumableSwap;
+  if (!pending) return;
+  if (index < 0 || index >= G.consumables.length) return;
+  const dropped = CONSUMABLES[G.consumables[index]];
+  // Cleared before the grant so the re-entrancy guard in grantConsumable() cannot see a stale
+  // pending swap, and so a double-click on a button cannot resolve the same prompt twice.
+  closeConsumableSwapPrompt();
+  G.consumables.splice(index, 1);
+  if (dropped) showMsg(`🗑 ${dropped.emoji} ${dropped.name} discarded.`);
+  addConsumable(pending.key);
+  if (pending.onDone) pending.onDone(true);
+}
+
+// Decline the swap: inventory untouched, new item lost. Same outcome as the old silent drop, but
+// now it is the player's decision rather than something that happened to them.
+function declineConsumableSwap() {
+  const pending = G && G._pendingConsumableSwap;
+  if (!pending) return;
+  const item = CONSUMABLES[pending.key];
+  closeConsumableSwapPrompt();
+  if (item) showMsg(`${item.emoji} ${item.name} left behind.`);
+  if (pending.onDone) pending.onDone(false);
 }
 
 // Small slot row, separate from the hand — only currently-held items are rendered (no empty
@@ -246,6 +418,77 @@ function renderConsumableSlots() {
     btn.onclick = () => useConsumable(idx);
     el.appendChild(btn);
   });
+}
+
+// Screens that show the out-of-combat inventory: everywhere the player is between fights and could
+// reasonably want a potion. Deliberately excludes combat-screen (the in-combat slot row above
+// covers it), the title/char screens (no run yet), reward/boss-intro/Crimson screens (mid-flow,
+// and the element would overlap their layouts), and gameover/victory (the run is over).
+const FIELD_INVENTORY_SCREENS = ['path-screen', 'door-screen', 'rest-screen', 'shop-screen', 'event-screen'];
+
+// True while the player is in a fight. Cannot be `!!G.enemy`: G.enemy is never set back to null
+// when a combat ends, so it stays truthy for the rest of the run after the first fight. showScreen()
+// stamps G._activeScreen, which is the only reliable in-vs-out-of-combat signal available.
+//
+// This relies on every fight entry routing through showScreen('combat-screen'). Verified for all
+// five: startAldricFight(), startBossFight() and startSirCrimsonFight() call it themselves, and
+// startCombat() is preceded by showCombatScreen() at both of its call sites (js/game.js's room
+// dispatch and js/debug.js's combat/elite targets). A future fight-start path that skips it would
+// leave the 8 combat-only consumables refused mid-fight — call showCombatScreen() first.
+function inCombatScreen(g = G) { return !!g && g._activeScreen === 'combat-screen'; }
+
+// The out-of-combat counterpart to renderConsumableSlots(). Differences that matter: it renders all
+// 3 slots including empties (the carry limit is worth seeing while shopping), and it disables the 8
+// items whose effect needs a live fight rather than hiding them — a hidden item looks lost.
+function renderFieldInventory() {
+  const wrap = document.getElementById('field-inventory');
+  const el = document.getElementById('field-inv-slots');
+  if (!wrap || !el) return;
+  wrap.classList.toggle('visible', FIELD_INVENTORY_SCREENS.includes(G && G._activeScreen));
+  el.innerHTML = '';
+  const held = (G && G.consumables) || [];
+  for (let i = 0; i < CONSUMABLE_SLOT_CAP; i++) {
+    const key = held[i];
+    if (key === undefined) {
+      const empty = document.createElement('div');
+      empty.className = 'field-inv-empty';
+      empty.textContent = '— empty —';
+      el.appendChild(empty);
+      continue;
+    }
+    const item = CONSUMABLES[key];
+    if (!item) continue;
+    const usable = isUsableOutOfCombat(key);
+    const btn = document.createElement('button');
+    btn.className = 'btn soul-die-btn consumable-slot';
+    btn.innerHTML = `${item.emoji} ${item.name}`
+      + (usable ? '' : '<span class="field-inv-why">Combat only</span>');
+    btn.disabled = !usable;
+    btn.title = usable ? item.desc : `${item.desc} — usable only during a fight.`;
+    if (usable) btn.onclick = () => useConsumable(i);
+    el.appendChild(btn);
+  }
+}
+
+// The rest and shop screens each paint their own HP bar once, inside showRestStop()/showShop().
+// A Health Potion used from the field inventory changes HP without re-running either, so those
+// readouts would keep showing the pre-heal value until the screen was rebuilt. Both element sets
+// exist in the DOM regardless of which screen is active, so updating them unconditionally is
+// simpler than working out which one is up, and harmless for the hidden one.
+function refreshFieldHpDisplays() {
+  const pct = Math.round(G.hp / G.maxHp * 100);
+  [['rest-hp-text', 'rest-hp-bar', 'rest-hp-pct'], ['shop-hp-text', 'shop-hp-bar', 'shop-hp-pct']]
+    .forEach(([textId, barId, pctId]) => {
+      const text = document.getElementById(textId);
+      const bar = document.getElementById(barId);
+      const pctEl = document.getElementById(pctId);
+      if (text) text.textContent = `${Math.max(0, G.hp)} / ${G.maxHp}`;
+      if (bar) bar.style.width = pct + '%';
+      if (pctEl) {
+        pctEl.textContent = pct + '%';
+        pctEl.className = 'rest-hp-pct ' + (pct <= 30 ? 'hp-low' : pct <= 60 ? 'hp-mid' : 'hp-full');
+      }
+    });
 }
 
 // Relics that exist in RELICS but have no implementation anywhere — no hasRelic() hook and no
@@ -369,7 +612,15 @@ function showShop() {
   // Items
   const items = document.getElementById('shop-items');
   items.innerHTML = '';
-  const pool = shuffle([...SHOP_ITEMS]).slice(0, 4);
+  // Consumable stock is generated per visit rather than living in SHOP_ITEMS, so it rotates and
+  // honours GDD §12's floor gating (Energy Crystal / Dice Stabilizer are Floor 2+). Two distinct
+  // slots are drawn, then thrown in with the static card/die stock and sliced to 4 like always —
+  // so consumables compete for shelf space instead of being guaranteed, which is how the single
+  // retired "Healing Potion" entry behaved.
+  const consumableStock = shuffle(offerableConsumables('shop'))
+    .slice(0, CONSUMABLE_SHOP_SLOTS)
+    .map(key => ({ consumable: key, cost: CONSUMABLE_AVAILABILITY[key].cost }));
+  const pool = shuffle([...SHOP_ITEMS, ...consumableStock]).slice(0, 4);
   pool.forEach((item, i) => {
     const el = document.createElement('div');
     el.className = 'shop-item';
@@ -382,7 +633,20 @@ function showShop() {
     // shows. They used to carry hardcoded name/desc strings, which is how a tile titled "Sharp
     // Card" ended up advertising Blizzard. Non-card stock (potions, the die) is unchanged.
     const shopCard = item.card ? CARDS[item.card] : null;
-    if (shopCard) {
+    // Consumable tiles read their name/emoji/desc live from CONSUMABLES for exactly the same
+    // anti-drift reason card tiles read theirs from CARDS — a tile can never advertise something
+    // different from what the purchase grants.
+    const shopConsumable = item.consumable ? CONSUMABLES[item.consumable] : null;
+    if (shopConsumable) {
+      const held = (G.consumables || []).length;
+      const full = held >= CONSUMABLE_SLOT_CAP;
+      if (full) el.style.opacity = '0.5';
+      el.innerHTML = `<span class="shop-item-emoji">${shopConsumable.emoji}</span>`
+        + `<div class="shop-item-name">${shopConsumable.name}</div>`
+        + `<div class="shop-item-type" style="color:var(--purple2)">Consumable · ${held}/${CONSUMABLE_SLOT_CAP} carried</div>`
+        + `<div class="shop-item-desc">${shopConsumable.desc}</div>`
+        + `<div class="shop-item-cost" style="color:${canAfford ? 'var(--energy)' : 'var(--red2)'}">🪙 ${itemCost}</div>`;
+    } else if (shopCard) {
       const rarity = getCardRarity(item.card);
       el.innerHTML = `<span class="shop-item-emoji">${shopCard.emoji}</span>`
         + `<div class="shop-item-name">${shopCard.name}</div>`
@@ -394,8 +658,24 @@ function showShop() {
     }
     el.onclick = () => {
       if (G.gold < itemCost) { showMsg('Not enough gold!'); return; }
+      // Checked BEFORE spending, unlike every other stock type: a full inventory is the one case
+      // where the purchase cannot be delivered, and taking the Gold anyway would be theft.
+      // grantConsumable() also refuses at the cap, but it cannot refund.
+      if (shopConsumable && (G.consumables || []).length >= CONSUMABLE_SLOT_CAP) {
+        showMsg(`Inventory full (${CONSUMABLE_SLOT_CAP}/${CONSUMABLE_SLOT_CAP}) — use something first.`);
+        return;
+      }
       spendGold(G, itemCost);
-      if (shopCard) {
+      if (shopConsumable) {
+        // Routed through the same grant every other source uses, so the cap, the acquire message
+        // and the slot-row refresh are all shared rather than re-implemented at the till.
+        //
+        // allowSwapPrompt:false is the important half. Gold has already been spent by this line, so
+        // the swap prompt must never open here — declining it would mean paying for nothing. The
+        // shop's contract is the pre-charge refusal above instead, which is why that check cannot
+        // be deleted in favour of the prompt.
+        grantConsumable(item.consumable, { allowSwapPrompt: false });
+      } else if (shopCard) {
         // Same grant the reward screen performs, so the card sold is always the card described.
         G.deck.push(item.card);
         showMsg(`${shopCard.name} added to deck!`);
@@ -410,6 +690,7 @@ function showShop() {
       document.getElementById('shop-hp-bar').style.width = newPct + '%';
       document.getElementById('shop-hp-pct').textContent = newPct + '%';
       renderShopDeck();
+      renderFieldInventory(); // a bought consumable appears in the out-of-combat row immediately
       updateHUD();
     };
     items.appendChild(el);
@@ -517,9 +798,15 @@ function renderShopDie() {
 }
 
 function showShopRemove() {
-  if (G.gold < shopCost(75)) { showMsg(`Not enough gold! (${shopCost(75)} 🪙)`); return; }
+  // Removal's gate and charge were already routed through shopCost(); resolving it once matches
+  // showShopUpgrade() and lets the modal copy use the same number the click spends.
+  const cost = shopCost(75);
+  if (G.gold < cost) { showMsg(`Not enough gold! (${cost} 🪙)`); return; }
   const removable = G.deck.filter(k => k !== 'strike' && k !== 'defend');
   if (removable.length === 0) { showMsg('No removable cards in deck!'); return; }
+
+  const removeHint = document.getElementById('shop-remove-cost-text');
+  if (removeHint) removeHint.textContent = `Tap a card to permanently remove it. Cost: ${cost} 🪙`;
 
   const grid = document.getElementById('shop-remove-grid');
   grid.innerHTML = '';
@@ -539,7 +826,7 @@ function showShopRemove() {
       </div>
     `;
     el.onclick = () => {
-      spendGold(G, shopCost(75));
+      spendGold(G, cost);
       const idx = G.deck.indexOf(key);
       G.deck.splice(idx, 1);
       document.getElementById('shop-gold-display').textContent = G.gold;
@@ -553,10 +840,24 @@ function showShopRemove() {
   document.getElementById('shop-remove-modal').style.display = 'block';
 }
 
+// NOTE: this function currently has no caller — the shop's "Card services" row holds only
+// #shop-remove-btn, so the upgrade modal is unreachable in the active build even though its markup
+// exists in index.html. The pricing below is still the live price if a button is ever added.
 function showShopUpgrade() {
-  if (G.gold < 80) { showMsg('Not enough gold! (80 🪙)'); return; }
+  // Routed through shopCost() like every other shop spend. It was a flat 80 at all three points
+  // (the gate, the message and the charge), so King's Debt inflated card removal, relics, dice and
+  // consumables but left card upgrades at list price — the one hole in that relic's downside.
+  // Resolved once here rather than per-site, so the number shown and the number charged are the
+  // same value, not two independent calls that a mid-modal relic pickup could split.
+  const cost = shopCost(80);
+  if (G.gold < cost) { showMsg(`Not enough gold! (${cost} 🪙)`); return; }
   const upgradeable = [...new Set(G.deck.filter(k => !k.endsWith('+') && CARDS[k + '+']))];
   if (upgradeable.length === 0) { showMsg('No upgradeable cards!'); return; }
+
+  // Modal copy carried a hardcoded "Cost: 80 🪙", which would have contradicted the charge under
+  // King's Debt. Set from the same `cost` the click spends.
+  const upgradeHint = document.getElementById('shop-upgrade-cost-text');
+  if (upgradeHint) upgradeHint.textContent = `Tap a card to upgrade it. Cost: ${cost} 🪙`;
 
   const grid = document.getElementById('shop-upgrade-grid');
   grid.innerHTML = '';
@@ -575,7 +876,7 @@ function showShopUpgrade() {
       </div>
     `;
     el.onclick = () => {
-      spendGold(G, 80);
+      spendGold(G, cost);
       const idx = G.deck.indexOf(key);
       G.deck.splice(idx, 1, key + '+');
       document.getElementById('shop-gold-display').textContent = G.gold;
@@ -873,6 +1174,25 @@ function giveReward(g, type, rarity) {
     // body-level fixed element, so it survives the screen change and stays readable after it.
     showMsg(dieGrantMessage(dieOpt, previousDie), 5000);
     setTimeout(proceedDoors, 800);
+  } else if (type === 'consumable') {
+    // Event consumable grant. Same shape as the 'die' branch above — grant, message, then hand off
+    // to proceedDoors() itself — so an event choice calling this needs no proceedDoors() of its
+    // own (see Hidden Cache in js/data.js).
+    //
+    // The pool is GDD §12's Event sources, floor-gated by the shared helper, so a Floor 1 event
+    // can never hand out the Floor 3+ Chaos Potion.
+    //
+    // proceedDoors() is deferred until the grant has fully resolved, via onDone. That matters only
+    // at 3/3, where grantConsumable() opens the swap prompt: firing the screen change 800ms later
+    // regardless would leave the player deciding what to discard on top of the door screen. On the
+    // ordinary path onDone runs synchronously, so the timing is unchanged.
+    const pool = offerableConsumables('event', g);
+    const proceed = () => setTimeout(proceedDoors, 800);
+    if (pool.length) {
+      grantConsumable(pool[Math.floor(Math.random() * pool.length)], { onDone: proceed });
+    } else {
+      proceed();
+    }
   } else {
     showReward();
   }
@@ -1740,13 +2060,23 @@ function renderEnergy() {
   // Gambler Challenge denies the reroll outright, so the button is disabled rather than left
   // live-looking and refusing on click.
   const challengeBlocksReroll = challengeActive(G, 'gambler');
-  rerollBtn.disabled = challengeBlocksReroll || (!G.aldricInfiniteReroll && totalRerollsLeft() <= 0);
+  // Dice Stabilizer — rerolling is unavailable for the whole lock. Given the same disabled-with-a
+  // -reason treatment as the Challenge block rather than being hidden, so the button stays where
+  // the player expects it and says why; unlike the Challenge it is temporary, so the label shows
+  // the remaining turn count. Checked after the Challenge so a Gambler Challenge still wins the
+  // label (it lasts the whole fight, the lock does not).
+  const lockBlocksReroll = !challengeBlocksReroll && dieLockActive(G);
+  rerollBtn.disabled = challengeBlocksReroll || lockBlocksReroll || (!G.aldricInfiniteReroll && totalRerollsLeft() <= 0);
   rerollBtn.innerHTML = challengeBlocksReroll
     ? '🚫 NO REROLL'
-    : `🎲 REROLL <span style="font-size:0.7em;opacity:0.8">(${rerollsLeft})</span>`;
+    : lockBlocksReroll
+      ? `🔒 LOCKED <span style="font-size:0.7em;opacity:0.8">(${dieLockTurnsShown(G)})</span>`
+      : `🎲 REROLL <span style="font-size:0.7em;opacity:0.8">(${rerollsLeft})</span>`;
   rerollBtn.title = challengeBlocksReroll
     ? "Challenge: you may never use a reroll this fight"
-    : ((G._bonusRerolls > 0) ? 'Includes 1 Steady Hand bonus reroll for this combat' : '');
+    : lockBlocksReroll
+      ? `Dice Stabilizer: die held at ${G.currentDie} — no rerolling while locked`
+      : ((G._bonusRerolls > 0) ? 'Includes 1 Steady Hand bonus reroll for this combat' : '');
   renderSoulDiceControls();
   renderDicePool();
   const drawEl = document.getElementById('draw-count');
@@ -1765,11 +2095,17 @@ function renderSoulDiceControls() {
 
   const showSecond = hasSoulUpgrade('second_die') && !G._secondDieUsed;
   const showEdge = hasSoulUpgrade('gamblers_edge') && !G._gamblersEdgeUsed;
+  // Dice Stabilizer — the two forced-set buttons disable alongside their existing
+  // one-set-per-turn rule, so a locked die greys them out instead of letting a click be refused.
+  // Second Die is deliberately NOT disabled here: this batch's block list covers rerolling and
+  // the two forced-set actions only (see the note on lockDice in js/combat.js).
+  const dieLocked = dieLockActive(G);
 
   if (sdBtn) sdBtn.style.display = showSecond ? '' : 'none';
   if (geBtn) {
     geBtn.style.display = showEdge ? '' : 'none';
-    geBtn.disabled = !!G._dieSetThisTurn;
+    geBtn.disabled = !!G._dieSetThisTurn || dieLocked;
+    geBtn.title = dieLocked ? 'Dice Stabilizer: die is locked' : '';
   }
   if (picker && !showEdge) picker.classList.remove('visible');
 
@@ -1779,7 +2115,8 @@ function renderSoulDiceControls() {
   if (llBtn) {
     const showLeyLine = hasCharacterRelic('ley_line_crystal') && !G._leyLineCrystalUsed;
     llBtn.style.display = showLeyLine ? '' : 'none';
-    llBtn.disabled = !!G._dieSetThisTurn;
+    llBtn.disabled = !!G._dieSetThisTurn || dieLocked;
+    llBtn.title = dieLocked ? 'Dice Stabilizer: die is locked' : '';
   }
 
   // Loaded Coat (Gambler character relic) — same shown-when-owned-and-unused pattern as Ley
@@ -2450,6 +2787,12 @@ function renderMap() {
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+  // The single chokepoint for screen changes, so it is the right place to stamp which one is up.
+  // inCombatScreen() and renderFieldInventory() both read this — see the note on inCombatScreen()
+  // for why G.enemy cannot answer the same question. Guarded because showScreen() runs for the
+  // title and character screens before newGame() has created a run.
+  if (G) G._activeScreen = id;
+  renderFieldInventory();
   // Clean up any mirror panel when leaving door screen
   if (id !== 'door-screen' && G && G._currentMirrorPanel) {
     G._currentMirrorPanel.remove();

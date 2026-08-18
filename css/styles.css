@@ -675,6 +675,121 @@ body {
 }
 .soul-die-btn:disabled { opacity: 0.3; cursor: not-allowed; border-color: var(--border); color: var(--text3); }
 
+/* Inventory-full swap prompt (batch 6). z-index above #deck-overlay (300) because it can open
+   while the post-combat reward chain is transitioning screens underneath it, and it must stay
+   on top and modal until the player resolves it. */
+#consumable-swap-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.88);
+  z-index: 400;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+#consumable-swap-overlay.visible { display: flex; }
+.consumable-swap-panel {
+  background: var(--panel);
+  border: 1px solid var(--border2);
+  padding: 1rem 1.1rem;
+  width: min(420px, 94vw);
+  text-align: center;
+}
+.consumable-swap-title {
+  font-family: Cinzel, serif;
+  font-size: 0.95rem;
+  color: var(--gold);
+  letter-spacing: 0.1em;
+  margin-bottom: 0.4rem;
+}
+.consumable-swap-desc {
+  font-size: 0.75rem;
+  color: var(--text2);
+  line-height: 1.45;
+  margin-bottom: 0.8rem;
+}
+.consumable-swap-list { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.8rem; }
+.consumable-swap-btn {
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.7rem;
+  text-align: left;
+  letter-spacing: 0.02em;
+  white-space: normal;
+}
+.consumable-swap-btn .swap-btn-sub {
+  display: block;
+  font-size: 0.6rem;
+  color: var(--text3);
+  letter-spacing: 0;
+  margin-top: 0.15rem;
+}
+.consumable-swap-decline {
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.65rem;
+  border-color: var(--border);
+  color: var(--text3);
+}
+
+@media (max-height: 460px) {
+  .consumable-swap-panel { padding: 0.6rem 0.7rem; width: min(400px, 92vw); }
+  .consumable-swap-title { font-size: 0.8rem; margin-bottom: 0.25rem; }
+  .consumable-swap-desc { font-size: 0.65rem; margin-bottom: 0.5rem; }
+  .consumable-swap-list { gap: 0.25rem; margin-bottom: 0.5rem; }
+  .consumable-swap-btn { padding: 0.28rem 0.4rem; font-size: 0.62rem; }
+  .consumable-swap-btn .swap-btn-sub { font-size: 0.52rem; }
+}
+
+/* Out-of-combat consumable inventory (batch 5). Body-level and fixed, like the message log, so a
+   single element serves the map/door/rest/shop/event screens; showScreen() adds .visible only on
+   those. Bottom-left, opposite the HUD's gold/soul readouts, and pointer-events:none while hidden
+   so it can never intercept a tap on a screen it is not part of. */
+#field-inventory {
+  display: none;
+  position: fixed;
+  left: 0.5rem;
+  bottom: 0.5rem;
+  z-index: 120;
+  background: rgba(10, 8, 9, 0.9);
+  border: 1px solid var(--border);
+  padding: 0.3rem 0.4rem;
+  max-width: min(320px, 46vw);
+}
+#field-inventory.visible { display: block; }
+.field-inv-label {
+  font-family: Cinzel, serif;
+  font-size: 0.5rem;
+  color: var(--gold);
+  letter-spacing: 0.1em;
+  margin-bottom: 0.2rem;
+}
+.field-inv-slots { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; }
+/* Empty slots read as placeholders, not as items — dashed and dimmer than a disabled real item. */
+.field-inv-empty {
+  font-size: 0.45rem;
+  color: var(--text3);
+  border: 1px dashed var(--border);
+  padding: 0 0.3rem;
+  height: 15px;
+  line-height: 15px;
+  letter-spacing: 0.04em;
+  opacity: 0.5;
+}
+/* Combat-only items outside a fight: visibly present but inert, with the reason on the tile. */
+.field-inv-slots .consumable-slot:disabled { opacity: 0.4; }
+.field-inv-why { font-size: 0.4rem; opacity: 0.7; margin-left: 0.25rem; letter-spacing: 0; }
+
+@media (max-height: 460px), (max-width: 820px) {
+  #field-inventory { left: 0.25rem; bottom: 0.25rem; padding: 0.2rem 0.3rem; max-width: 40vw; }
+  .field-inv-label { font-size: 0.42rem; }
+}
+
 /* The House Always Wins (Gambler character relic) streak tracker — same dim/lit visual
    language as .core-icon, sized to sit in the same compact row as the soul-die buttons. */
 #house-streak-tracker { display: flex; gap: 0.15rem; align-items: center; justify-content: center; height: 15px; }

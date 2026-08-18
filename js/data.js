@@ -760,12 +760,19 @@ const FLOOR_ENEMIES = {
     { name:'Throne Guard',   emoji:'👑', hp:95, block:0,  damage:16, reward:38, souls:4,
       special:{ name:'Loyal', desc:'Gains 2 Strength every turn',
         trigger:'turn', effect:(g,turn)=>{ applyStatus(g,'enemy','💢Rage',2); } } },
+    // Ritual / Arcane Overload — damage routed through enemyAttackDamage() so the enemy's own
+    // modifiers (Rage adds, Weak and Chill reduce) apply, exactly as they do to a basic attack and
+    // to Aldric's Fractured Strike. consumeChill is FALSE here: these are 'turn' triggers firing in
+    // endTurn()'s STEP 5, BEFORE the basic attack in STEP 6 calls enemyAttackDamage(G, true) and
+    // spends the stack. Passing true would spend two stacks in one enemy turn. On a defend turn
+    // nothing spends one, which is the GDD rule ("Chill only ticks when the enemy attacks").
+    // The message reports the resolved number, not the base, so it cannot claim 20 while 15 lands.
     { name:'Blood Cultist',  emoji:'🩸', hp:85, block:0,  damage:14, reward:35, souls:4,
       special:{ name:'Ritual', desc:'Deals 20 damage instantly if alive for 4 turns',
-        trigger:'turn', effect:(g,turn)=>{ if(turn===4){ dealDamage(g,'player',20,'enemy'); showMsg('🩸 Ritual complete — 20 damage!'); } } } },
+        trigger:'turn', effect:(g,turn)=>{ if(turn===4){ const dmg=enemyAttackDamage(g,false,20); dealDamage(g,'player',dmg,'enemy'); showMsg(`🩸 Ritual complete — ${dmg} damage!`); } } } },
     { name:'Royal Sorcerer', emoji:'🔮', hp:90, block:0,  damage:13, reward:35, souls:4,
       special:{ name:'Arcane Overload', desc:'Every 3rd turn deals 25 damage',
-        trigger:'turn', effect:(g,turn)=>{ if(turn%3===0){ dealDamage(g,'player',25,'enemy'); showMsg('🔮 Arcane Overload — 25 damage!'); } } } },
+        trigger:'turn', effect:(g,turn)=>{ if(turn%3===0){ const dmg=enemyAttackDamage(g,false,25); dealDamage(g,'player',dmg,'enemy'); showMsg(`🔮 Arcane Overload — ${dmg} damage!`); } } } },
     { name:'Void Wraith',    emoji:'🫥', hp:88, block:0,  damage:15, reward:35, souls:4,
       special:{ name:'Drain', desc:'Removes 2 Block and heals self for the same',
         trigger:'attack', effect:(g)=>{ const s=Math.min(g.block,2); g.block-=s; g.enemy.hp=Math.min(g.enemy.hp+s,g.enemy.maxHp); showMsg('🫥 Void Wraith drains your Block!'); } } },
@@ -811,9 +818,17 @@ const ELITES = [
   { name:"King's Champion", emoji:'👑', hp:160, block:0, damage:20, reward:90, souls:8,
     special:{ name:'Unbreakable', desc:'Immune to all status effects',
       trigger:'immune', effect:(g)=>{ G.statuses.enemy=[]; } } },
+  // Collapse — same enemyAttackDamage() routing as Ritual / Arcane Overload above, and
+  // consumeChill is false for an even stronger reason: this is an 'attack' trigger, so STEP 9 only
+  // runs it on turns the enemy actually attacked, meaning STEP 6 has ALWAYS just spent a Chill
+  // stack. Passing true here would double-spend on every single Collapse, not just sometimes.
+  // Unlike Fractured Strike — which passes true correctly, because processAldricTurn() REPLACES the
+  // basic attack rather than riding alongside it, so its volley is the turn's only attack.
+  // g.block is read after STEP 6 already consumed Block, which is pre-existing "current Block"
+  // behaviour and unchanged here; bypassBlock still sends the result straight to HP.
   { name:'Void Colossus',   emoji:'🌌', hp:170, block:0, damage:18, reward:90, souls:8,
     special:{ name:'Collapse', desc:'Deals damage equal to player current Block when attacking',
-      trigger:'attack', effect:(g)=>{ if(g.block>0){ const bonus=g.block; dealDamage(g,'player',bonus,'enemy',true); showMsg(`🌌 Collapse — ${bonus} bonus damage from your Block!`); } } } },
+      trigger:'attack', effect:(g)=>{ if(g.block>0){ const bonus=enemyAttackDamage(g,false,g.block); dealDamage(g,'player',bonus,'enemy',true); showMsg(`🌌 Collapse — ${bonus} bonus damage from your Block!`); } } } },
 ];
 
 const BOSSES = [
@@ -874,14 +889,13 @@ const EVENTS = [
   },
   {
     icon:'🪙', title:'Hidden Cache',
-    // Text corrected to match the effect: this grants Gold and nothing else. Both the
-    // description ("something extra") and the choice label ("+ item") promised an item that was
-    // never granted — there is no consumable or item-grant path in the codebase to hand out
-    // (Consumables are designed but unbuilt), so the promise was removed rather than a new
-    // item system invented for one event.
-    desc:'Behind a loose stone you find a stash of gold.',
+    // The original "gold + item" promise is restored now that consumables have a real grant path.
+    // It had been stripped back to Gold-only text because none existed; giveReward(g,'consumable')
+    // now draws from GDD §12's Event pool, floor-gated. giveReward() calls proceedDoors() itself,
+    // so this effect deliberately does not.
+    desc:'Behind a loose stone you find a stash of gold and something extra.',
     choices:[
-      { text:'Take it all (25 Gold)', risk:'', effect:(g)=>{ g.gold += 25; updateHUD(); showMsg('💰 +25 Gold!'); setTimeout(proceedDoors,800); } },
+      { text:'Take it all (25 Gold + item)', risk:'', effect:(g)=>{ g.gold += 25; updateHUD(); showMsg('💰 +25 Gold!'); giveReward(g,'consumable'); } },
     ]
   },
   {
@@ -902,8 +916,12 @@ const EVENTS = [
   },
 ];
 
+// Static shop stock — cards and the die. Consumable stock is NOT listed here: it is generated per
+// visit by showShop() from offerableConsumables('shop'), so it rotates and respects GDD §12's floor
+// gating. The hardcoded "Healing Potion" entry that used to head this list was retired when that
+// landed — it healed 20 HP instantly on purchase and never entered the inventory, so it was a
+// different thing from the Health Potion consumable that now shares its price.
 const SHOP_ITEMS = [
-  { emoji:'❤️',  name:'Healing Potion',  desc:'Restore 20 HP',     cost:50, effect:(g)=>{ healPlayer(g,20); showMsg('Restored 20 HP.'); } },
   // ── Card stock ──
   // Card purchases declare only the card KEY and the gold price. Their name, emoji, type, rarity,
   // Energy cost and effect text are read live from CARDS when the tile renders (see showShop in

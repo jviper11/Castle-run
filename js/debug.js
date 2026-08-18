@@ -38,16 +38,23 @@
 //              Or pass a hero key (challenge=mage) to seed that hero specifically.
 //              Pair with `bossintro` to see the opt-in prompt: ?debug=bossintro&challenge=1
 //   relics   comma-separated relic keys, e.g. relics=ash_pendant,iron_vambrace
-//   consumables  comma-separated consumable keys (batch 1: health_potion, block_stone), e.g.
+//   consumables  comma-separated consumable keys, e.g.
 //                consumables=health_potion,health_potion,block_stone — capped at 3, warns and
 //                skips anything past the cap rather than silently dropping it.
+//                Keys: health_potion, smoke_vial, fire_flask, poison_vial, energy_crystal,
+//                scroll_of_draw, dice_stabilizer, gold_pouch, block_stone, chaos_potion
+//                (all of CONSUMABLES).
 //   upgrades comma-separated Soul upgrade keys, e.g. upgrades=grit,second_die
 //   weak / vulnerable / chill / rage / poison / burn
 //            status stacks applied once the fight starts (weak/chill/rage/poison/burn land on
 //            the enemy, vulnerable on the player) — for checking status maths without setup
+//   dicelock=<n>  start with the die already Dice-Stabilizer-locked for n turns, without spending
+//            a turn using the item. Turn 1 has already rolled by then, so the first SKIPPED roll
+//            is turn 2's; dicelock=2 therefore behaves exactly like using the item on turn 1.
 //
 // Example — Aldric with the True Ending gate open and debuffs already on him:
 //   ?debug=aldric&crelics=4&weak=3&chill=2
+// Example — a locked die on a normal fight: ?debug=combat&dicelock=2
 
 (function () {
   const DEFAULTS = { hero: 'mage', gold: 250, souls: 12 };
@@ -66,6 +73,15 @@
     });
     const vuln = parseInt(opts.vulnerable, 10);
     if (vuln > 0) applyStatus(G, 'player', '🫗Vulnerable', vuln);
+    // dicelock=<n> — start already locked for n turns, so the locked state (held value, disabled
+    // reroll + forced-set buttons, expiry) is reachable without first spending a turn on the item.
+    // Must be applied from here rather than from setup(): setup() runs BEFORE the fight-start
+    // function, and all four of those reset G._diceLockTurnsRemaining to 0.
+    const diceLock = parseInt(opts.dicelock, 10);
+    if (diceLock > 0) {
+      G._diceLockTurnsRemaining = diceLock;
+      info(`dicelock: die held at ${G.currentDie} for ${diceLock} turn(s) — turn 1 already rolled, so the first skipped roll is next turn`);
+    }
     if (G.enemy) { renderAll(); updateIntent(); }
   }
 
@@ -136,12 +152,16 @@
         if (RELICS[k]) acquireRelic(k); else warn(`unknown relic "${k}"`);
       });
     }
-    // consumables=<list> — batch 1 has no real acquisition path yet, so this is the only way to
-    // test Health Potion / Block Stone. Mirrors relics= exactly, plus a cap warning since
-    // consumables (unlike relics) are capped at 3 — grantConsumable() itself enforces the cap.
+    // consumables=<list> — consumables have no real acquisition path yet (no shop/event/reward
+    // pool offers them), so this is the only way to get any of them. Mirrors relics= exactly,
+    // plus a cap warning since consumables (unlike relics) are capped at 3 — grantConsumable()
+    // itself enforces the cap. Key-driven, so it needs no edit as items are added: every key in
+    // CONSUMABLES is grantable.
     if (opts.consumables) {
       String(opts.consumables).split(',').map(s => s.trim()).filter(Boolean).forEach(k => {
-        if (CONSUMABLES[k]) { if (!grantConsumable(k)) warn(`consumables: inventory full, could not grant "${k}"`); }
+        // allowSwapPrompt:false — this is run setup, not gameplay, so a 4th key should warn and be
+        // skipped rather than stopping to ask the tester which item to throw away.
+        if (CONSUMABLES[k]) { if (!grantConsumable(k, { allowSwapPrompt: false })) warn(`consumables: inventory full, could not grant "${k}"`); }
         else warn(`unknown consumable "${k}"`);
       });
     }

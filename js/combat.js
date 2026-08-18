@@ -129,6 +129,12 @@ function startAldricFight() {
   // that precedent rather than the passive-relic one: a charge saved from the last Floor-4 fight
   // is still available for the final boss.
   G._leyLineCrystalUsed = false;
+  // Dice Stabilizer — a lock is combat-scoped state, so it never carries into a new fight (an
+  // unused Dice Stabilizer in G.consumables still does, being per-run). Reset here rather than
+  // relying on the undefined-safe reads, so a lock cannot survive a combat that ended mid-lock.
+  // Both fields, since dieLockActive() is the OR of the two — see its note.
+  G._diceLockTurnsRemaining = 0;
+  G._dieLockedThisTurn = false;
   // Loaded Coat (Gambler) — same reasoning as Ley Line Crystal directly above: a manual
   // once-per-combat button charge, not a passive stat hook, so it resets for Aldric too rather
   // than being subject to the passive-relic Aldric gap. G._loadedCoatSnapshot should already be
@@ -639,6 +645,8 @@ function startCombat(isElite) {
                              // sets it just before, and clearing would discard the opt-in)
   G._ashenCrownFired = false;
   G._leyLineCrystalUsed = false; // once per combat — see startAldricFight for the full lifecycle note
+  G._diceLockTurnsRemaining = 0; // Dice Stabilizer — see startAldricFight for the scope note
+  G._dieLockedThisTurn = false;
   restoreLoadedCoatDie(); // Loaded Coat — see startAldricFight for the full lifecycle note
   G._loadedCoatUsed = false;
   G._hitExtremeThisTurn = true; // Midnight Hunger — see startAldricFight for the sentinel note
@@ -739,6 +747,8 @@ function startBossFight() {
   G.turn = 0;                // per-combat turn counter; startTurn() takes it to 1 immediately
   G._ashenCrownFired = false;
   G._leyLineCrystalUsed = false; // once per combat — see startAldricFight for the full lifecycle note
+  G._diceLockTurnsRemaining = 0; // Dice Stabilizer — see startAldricFight for the scope note
+  G._dieLockedThisTurn = false;
   restoreLoadedCoatDie(); // Loaded Coat — see startAldricFight for the full lifecycle note
   G._loadedCoatUsed = false;
   G._hitExtremeThisTurn = true; // Midnight Hunger — see startAldricFight for the sentinel note
@@ -822,6 +832,8 @@ function startSirCrimsonFight() {
   G.turn = 0;
   G._ashenCrownFired = false;
   G._leyLineCrystalUsed = false;
+  G._diceLockTurnsRemaining = 0; // Dice Stabilizer — see startAldricFight for the scope note
+  G._dieLockedThisTurn = false;
   restoreLoadedCoatDie();
   G._loadedCoatUsed = false;
   G._hitExtremeThisTurn = true;
@@ -936,7 +948,43 @@ function startTurn() {
   G.currentDieType = getDie(G.activeDie);
   G.diceMax = G.currentDieType.max;
 
-  rollDice(G, true);
+  // Dice Stabilizer (consumable) — while the lock is up, skip this turn's roll entirely so
+  // G.currentDie carries the locked value forward untouched, and spend one of the 2 locked turns.
+  // Placed here, after diceMax is set but before the roll, so a Loaded Coat die swap mid-lock
+  // still updates diceMax normally; only the roll itself is suppressed.
+  //
+  // Deliberately does NOT touch G._naturalDieValue. Not re-rolling does not make the held value
+  // a forced one, so a locked natural max stays natural for naturalMaxSuppressed() and The House
+  // Always Wins — unlike Ley Line Crystal / Gambler's Edge / Second Die, which overwrite
+  // G.currentDie and thereby break the stamp on purpose.
+  // Reads the COUNTER directly and must NOT use dieLockActive() here: that also reports true for
+  // G._dieLockedThisTurn, which still holds LAST turn's value at this point, so the lock would
+  // re-arm itself every turn and never expire. dieLockActive() answers "is the die locked right
+  // now" for the in-turn gates; only the counter answers "should this turn skip its roll".
+  if ((G._diceLockTurnsRemaining || 0) > 0) {
+    G._diceLockTurnsRemaining--;
+    // Marks THIS turn as a held one, which is what keeps the reroll button and the forced-set
+    // guards blocked on the final locked turn — by now the counter above has already reached 0.
+    // See dieLockActive().
+    G._dieLockedThisTurn = true;
+    // The die HAS a value this turn, it simply was not re-rolled. Line ~914 above set
+    // G.diceRolled = false and rollDice() is what normally sets it back to true, so without this
+    // a locked turn would look un-rolled and useSecondDie() would refuse with "Roll first!".
+    G.diceRolled = true;
+    // rollDice() repaints #current-die and refreshes the affinity highlight from inside its
+    // 400ms animation callback; neither runs now. The value is unchanged, but the highlight,
+    // affinity label and the hand's per-card condition states are all re-derived from it by
+    // checkAffinityHighlight() -> renderHand(), so do the non-animated equivalent here.
+    const dieEl = document.getElementById('current-die');
+    if (dieEl) dieEl.textContent = G.currentDie;
+    checkAffinityHighlight(G, G.currentDie);
+    showMsg(`🔒 Dice Stabilizer — die held at ${G.currentDie} (${G._diceLockTurnsRemaining > 0
+      ? G._diceLockTurnsRemaining + ' more locked turn'
+      : 'lock ends after this turn'}).`);
+  } else {
+    G._dieLockedThisTurn = false; // turn-scoped: this turn rolled, so it is not a held one
+    rollDice(G, true);
+  }
 
   // Apply die bonus effects after roll
   const activeDieData = getDie(G.activeDie);
@@ -1179,6 +1227,11 @@ function useReroll() {
   // (Risk Taker, Wild Combo) are deliberately NOT denied: they cost a card and Energy, which
   // makes them a different resource from the free per-turn reroll this Challenge removes.
   if (challengeActive(G, 'gambler')) { showMsg('🚫 Challenge — no rerolls this fight.'); return; }
+  // Dice Stabilizer — rerolling would defeat the lock the player just paid for. The button is
+  // disabled while locked (renderEnergy), so this is the same defensive-backstop shape as the
+  // Challenge check above. Card effects that reroll the die (Risk Taker, Wild Combo) are NOT
+  // denied here, matching exactly how the Gambler Challenge draws that line.
+  if (dieLockActive(G)) { showMsg('🔒 Dice Stabilizer — die is locked, no rerolls.'); return; }
   if (G._noReroll) { showMsg('💔 Fractured Die — no rerolls this run!'); return; }
   if (totalRerollsLeft() <= 0 && !G.aldricInfiniteReroll) return;
   if (!G.aldricInfiniteReroll) {
@@ -1240,6 +1293,10 @@ function openGamblersEdge() {
   if (!hasSoulUpgrade('gamblers_edge')) return;
   if (G._gamblersEdgeUsed) { showMsg("Gambler's Edge already used this combat!"); return; }
   if (G._dieSetThisTurn) { showMsg('Die can only be set once per turn!'); return; }
+  // Dice Stabilizer — forcing a value would overwrite the locked one. Checked here AND in
+  // applyGamblersEdge() below, mirroring how _dieSetThisTurn is guarded at both points: the
+  // picker's buttons hold a direct onclick, so the apply path must stand on its own.
+  if (dieLockActive(G)) { showMsg('🔒 Dice Stabilizer — die is locked, cannot set it.'); return; }
   const picker = document.getElementById('gamblers-edge-picker');
   if (!picker) return;
   if (picker.classList.contains('visible')) { picker.classList.remove('visible'); return; }
@@ -1260,6 +1317,7 @@ function applyGamblersEdge(value) {
   if (picker) picker.classList.remove('visible');
   if (!hasSoulUpgrade('gamblers_edge') || G._gamblersEdgeUsed) return;
   if (G._dieSetThisTurn) { showMsg('Die can only be set once per turn!'); return; }
+  if (dieLockActive(G)) { showMsg('🔒 Dice Stabilizer — die is locked, cannot set it.'); return; }
 
   G.currentDie = Math.max(1, Math.min(value, G.diceMax));
   G._dieSetThisTurn = true;
@@ -1275,7 +1333,7 @@ function applyGamblersEdge(value) {
 // on a d6. Modeled on applyGamblersEdge(): same G._dieSetThisTurn guard (the one-forced-value-
 // per-turn rule), same animateDieTo() finish, but gated on hasCharacterRelic() and a combat-scoped
 // used flag instead of a turn-scoped one.
-// Consumables (batch 1) — no Energy cost, single-use, click-to-use from the slot row (see
+// Consumables — no Energy cost, single-use, click-to-use from the slot row (see
 // renderConsumableSlots() in js/ui.js). Defensively safe against any out-of-range index (an
 // empty inventory, a stale index after a mid-render race, etc.) rather than assuming the caller
 // always passes something valid — "using at 0/3 or with an empty slot does nothing" is enforced
@@ -1285,15 +1343,120 @@ function useConsumable(index) {
   const key = G.consumables[index];
   const item = CONSUMABLES[key];
   if (!item) return;
-  item.effect(G); // healPlayer()/gainBlock() already call renderAll() themselves
+  // Out-of-combat gate. The field inventory already renders these 8 disabled, so this is the same
+  // defensive-backstop shape as the Challenge and die-lock checks elsewhere in this file — and it
+  // is load-bearing rather than decorative, because an Energy Crystal or Smoke Vial used between
+  // rooms would be silently destroyed: there is no turn to spend the Energy on and no enemy to
+  // debuff, so the item would vanish for nothing.
+  const outOfCombat = !inCombatScreen(G);
+  if (outOfCombat && !isUsableOutOfCombat(key)) {
+    showMsg(`${item.emoji} ${item.name} can only be used during a fight.`);
+    return;
+  }
+  item.effect(G);
   G.consumables.splice(index, 1);
-  renderConsumableSlots(); // catches the array-length change renderAll()'s own call already covered, but cheap and explicit here too
+  if (outOfCombat) {
+    // renderAll() is combat-screen machinery (hand, intent, statuses, die). Outside a fight the
+    // only things that can have changed are HP, Gold and the inventory itself.
+    renderFieldInventory();
+    refreshFieldHpDisplays();
+    updateHUD();
+  } else {
+    // renderAll() rather than renderConsumableSlots() alone, because not every effect renders
+    // itself: healPlayer()/gainBlock()/applyStatus() do, but drawCards() -> drawCardsInner()
+    // deliberately leaves rendering to its caller (playCard() does the same), and the raw
+    // g.energy / g.gold writes in Energy Crystal and Gold Pouch have no render of their own.
+    // renderAll() is a superset of renderConsumableSlots(), so the slot row still updates.
+    renderAll();
+  }
+}
+
+// Chaos Potion's pool. GDD.md's §12 table abbreviates the effect to "Apply random status to
+// enemy", but the raw GDD source names the four exactly — gdd_text.txt:741, "Apply random status
+// to all enemies (Poison, Burn, Weak, or Vulnerable)" — so that is what this list is built from.
+// Two consequences worth stating, since both look like omissions: enemy '💢Rage' can never come
+// up (Rage IS the enemy's Strength buff, so rolling it would make the item help the enemy), and
+// Chill is deliberately absent — the design lists Vulnerable in this slot, not Chill.
+//
+// Stack counts match the dedicated single-status consumables above (Smoke Vial's Weak 2, Fire
+// Flask's 4 Burn, Poison Vial's 5 Poison) so Chaos Potion is a random one of those items rather
+// than a differently-tuned effect. Vulnerable has no dedicated consumable and no GDD figure, so
+// it takes 2 for duration parity with Smoke Vial: Weak and Vulnerable are the mirrored
+// 25%-dealt / 50%-taken debuffs and both decay 1 stack per turn, so 2 is "two turns" for either.
+const CHAOS_POTION_STATUSES = [
+  { name: '☠️Poison',     stacks: 5 },
+  { name: '🔥Burn',       stacks: 4 },
+  { name: '😵Weak',       stacks: 2 },
+  { name: '🫗Vulnerable', stacks: 2 },
+];
+
+function applyChaosPotion(g) {
+  const pick = CHAOS_POTION_STATUSES[Math.floor(Math.random() * CHAOS_POTION_STATUSES.length)];
+  applyStatus(g, 'enemy', pick.name, pick.stacks);
+  showMsg(`🌀 Chaos Potion — ${pick.name} ${pick.stacks}!`);
+}
+
+// ── Dice Stabilizer (consumable) — "Lock your die at its current result for 2 turns" (GDD §12).
+//
+// G._diceLockTurnsRemaining counts LOCKED TURNS STILL TO COME, not turns elapsed, and is spent by
+// startTurn() (see the block around rollDice there). Using the item mid-turn therefore holds the
+// value for the rest of the current turn — no roll happens mid-turn anyway — plus exactly the
+// next 2 turns, so the same face is in play for 3 turns total before normal rolling resumes.
+//
+// Combat-scoped: reset to 0 by all four fight-start functions alongside G._leyLineCrystalUsed, so
+// a lock can never leak into the next fight. An UNUSED Dice Stabilizer still sits in
+// G.consumables, which is per-run by design.
+//
+// Undefined-safe on purpose: `undefined > 0` is false, so a run that never uses the item needs no
+// initialization anywhere and every lock check reads false.
+const DICE_LOCK_TURNS = 2;
+
+// Two fields, because one cannot answer both questions the lock has to answer:
+//
+//   G._diceLockTurnsRemaining — how many FUTURE turns still have their roll suppressed. Spent by
+//                               startTurn(), so it is already decremented while the turn it paid
+//                               for is being played.
+//   G._dieLockedThisTurn      — whether THE CURRENT turn is a held one. Turn-scoped, rewritten by
+//                               every startTurn() (true in the locked branch, false otherwise).
+//
+// The counter alone is off by one for every "is the die locked right now?" check: on the LAST
+// locked turn it has already been decremented to 0, so the reroll button and the forced-set
+// guards would all report unlocked on a turn whose roll was in fact suppressed — letting the
+// player reroll away the value on the final turn of a lock they paid for. dieLockActive() is
+// therefore the OR of the two, and every gate must use it rather than reading either field.
+function dieLockActive(g) {
+  const s = g || G;
+  return (s._diceLockTurnsRemaining || 0) > 0 || !!s._dieLockedThisTurn;
+}
+
+// Turns of holding still to come, counting the current one if it is itself locked — what the
+// player cares about, and what the reroll button shows. Never reads 0 while the lock is up.
+function dieLockTurnsShown(g) {
+  const s = g || G;
+  return (s._diceLockTurnsRemaining || 0) + (s._dieLockedThisTurn ? 1 : 0);
+}
+
+// Re-using while already locked resets the counter to 2 rather than stacking to 4 or being
+// refused — a plain assignment is the whole rule. It is never blocked, so the item always does
+// something visible and can be spent to extend a good face.
+function lockDice(g) {
+  const wasLocked = dieLockActive(g);
+  g._diceLockTurnsRemaining = DICE_LOCK_TURNS;
+  showMsg(wasLocked
+    ? `🔒 Dice Stabilizer — lock on ${g.currentDie} refreshed to ${DICE_LOCK_TURNS} turns.`
+    : `🔒 Dice Stabilizer — die locked at ${g.currentDie} for ${DICE_LOCK_TURNS} turns.`);
+  // No render call needed: useConsumable() ends in renderAll(), which reaches renderEnergy() ->
+  // the reroll button and renderSoulDiceControls() -> the Ley Line / Gambler's Edge buttons, so
+  // all three blocked controls grey out on the same frame the item is spent.
 }
 
 function useLeyLineCrystal() {
   if (!hasCharacterRelic('ley_line_crystal')) return;
   if (G._leyLineCrystalUsed) { showMsg('Ley Line Crystal already used this combat!'); return; }
   if (G._dieSetThisTurn) { showMsg('Die can only be set once per turn!'); return; }
+  // Dice Stabilizer — same reasoning as Gambler's Edge: this forces a value, the lock holds one.
+  // Checked before G._leyLineCrystalUsed is set, so a blocked attempt does not burn the charge.
+  if (dieLockActive(G)) { showMsg('🔒 Dice Stabilizer — die is locked, cannot set it.'); return; }
 
   G.currentDie = Math.min(6, G.diceMax);
   G._dieSetThisTurn = true;
@@ -2437,6 +2600,25 @@ function checkCombatEnd() {
     if (hasRelic('tarnished_coin')) G.gold += 5;
     if (G.lastFightWasElite && hasRelic('iron_ration')) healPlayer(G, 5);
     if (G.lastFightWasElite && hasRelic('grave_robber')) { G.gold += 8; showMsg('⚰️ Grave Robber — +8 Gold!'); }
+    // Elite consumable drop — GDD §12 lists "Elite reward" as a source for exactly two items,
+    // Fire Flask and Poison Vial, so offerableConsumables('elite') returns that pair and nothing
+    // else. Unconditional on an elite win, matching the shape of the two relic hooks directly
+    // above (no roll, no gate beyond the elite flag).
+    //
+    // At 3/3 grantConsumable() opens the swap prompt. No onDone continuation is passed here, unlike
+    // the event grant: the post-combat chain below (death VFX, core/Challenge records, then a
+    // setTimeout into the whole reward flow — boss rewards, Aldric phase transitions) is load-
+    // bearing and must not wait on a player choice. The prompt is a top-most modal, so it simply
+    // stays above whichever reward screen the chain reaches, and resolving it only touches
+    // G.consumables. Cosmetically the prompt can appear over a transitioning screen; functionally
+    // the swap is independent of what is underneath.
+    //
+    // NOT in the GDD: any drop RATE. §12 says only that elites are a source. Guaranteed is the
+    // reading that matches the hooks it sits beside; a percentage chance would need a design call.
+    if (G.lastFightWasElite) {
+      const eliteDrops = offerableConsumables('elite', G);
+      if (eliteDrops.length) grantConsumable(eliteDrops[Math.floor(Math.random() * eliteDrops.length)]);
+    }
 
     const enemySprite = document.getElementById('enemy-sprite');
     spawnDeathBurstVFX(enemySprite);

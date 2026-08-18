@@ -371,7 +371,7 @@ Building toward all 18 over time is the intent (larger pool keeps outcomes unpre
 
 ---
 
-## Consumables — ✅ Design Complete, 🟡 Batch 1 Built and Verified (Aug 18, 2026)
+## Consumables — ✅ Complete (Batches 1–6, Aug 18, 2026)
 
 10 consumables. Carry up to 3 at a time. Found in shops, events, magic doors, chests.
 
@@ -380,21 +380,160 @@ persists across every combat within a run exactly like `G.relics`. `CONSUMABLES`
 the item data; `grantConsumable()`/`useConsumable()`/`renderConsumableSlots()` implement
 grant/use/render. A new in-combat slot row (`#consumable-slots`, floated above `.dice-panel`,
 opposite side from `#soul-die-controls`) shows each held item's icon/name; click-to-use, no
-Energy cost, single-use (spliced out of the array on use). No real acquisition path exists yet —
-items are only obtainable via `js/debug.js`'s new `consumables=` option, mirroring `relics=`.
+Energy cost, single-use (spliced out of the array on use). Items are obtainable from the shop,
+elite rewards and events (see "Acquisition and availability" below), plus `js/debug.js`'s
+`consumables=` option for testing.
+
+Nine of the ten items' `effect` reuses an existing combat function verbatim
+(`healPlayer`/`gainBlock`/`applyStatus`/`drawCards`) — there is no per-item plumbing. Batch 2
+added one shared fix: `useConsumable()` now ends in `renderAll()` instead of
+`renderConsumableSlots()`, because `drawCards()` and the raw `g.energy`/`g.gold` writes do not
+render themselves the way `healPlayer()`/`gainBlock()` do. `renderAll()` is a superset, so the
+slot row still updates. Dice Stabilizer is the one item that needed new mechanism — see below.
 
 | Item | Effect | Floor | Status |
 |---|---|---|---|
 | Health Potion | Heal 20 HP | Any | ✅ Built and Verified (Aug 18, 2026) |
-| Smoke Vial | Apply Weak to enemy 2 turns | Any | ❌ Not built |
-| Fire Flask | Apply 4 Burn | Any | ❌ Not built |
-| Poison Vial | Apply 5 Poison | Any | ❌ Not built |
-| Energy Crystal | Gain 2 Energy this turn | Floor 2+ | ❌ Not built |
-| Scroll of Draw | Draw 3 cards immediately | Any | ❌ Not built |
-| Dice Stabilizer | Lock die at current result for 2 turns | Floor 2+ | ❌ Not built |
-| Gold Pouch | Gain 40 gold | Any | ❌ Not built |
+| Smoke Vial | Apply Weak 2 to enemy | Any | ✅ Built and Verified (Aug 18, 2026) |
+| Fire Flask | Apply 4 Burn | Any | ✅ Built and Verified (Aug 18, 2026) |
+| Poison Vial | Apply 5 Poison | Any | ✅ Built and Verified (Aug 18, 2026) |
+| Energy Crystal | Gain 2 Energy this turn | Floor 2+ | ✅ Built and Verified (Aug 18, 2026) |
+| Scroll of Draw | Draw 3 cards immediately | Any | ✅ Built and Verified (Aug 18, 2026) |
+| Dice Stabilizer | Lock die at current result for 2 turns | Floor 2+ | ✅ Built and Verified (Aug 18, 2026) |
+| Gold Pouch | Gain 40 gold | Any | ✅ Built and Verified (Aug 18, 2026) |
 | Block Stone | Gain 15 Block immediately | Any | ✅ Built and Verified (Aug 18, 2026) |
-| Chaos Potion | Random status on enemy | Floor 3+ | ❌ Not built |
+| Chaos Potion | Random status on enemy | Floor 3+ | ✅ Built and Verified (Aug 18, 2026) |
+
+**Chaos Potion pool (`CHAOS_POTION_STATUSES`, js/combat.js).** `GDD.md`'s §12 table abbreviates
+the effect to "Apply random status to enemy", but the raw GDD source (`gdd_text.txt:741`) spells
+out the pool: **Poison, Burn, Weak, or Vulnerable**. Built against the source — Chill is
+deliberately *not* in it, and enemy `💢Rage` cannot come up (it is the enemy's Strength buff, so
+rolling it would help the enemy). Stacks match the dedicated single-status items (Poison 5,
+Burn 4, Weak 2) so the potion is a random one of those; Vulnerable 2 is the one number with no
+GDD figure, chosen for duration parity with Smoke Vial's Weak 2 since both debuffs decay 1/turn.
+
+**Dice Stabilizer (batch 4) — the one item with real mechanism.** Two fields in `js/combat.js`,
+and the distinction between them is the whole implementation:
+
+- `G._diceLockTurnsRemaining` — how many **future** turns skip their roll. `startTurn()` branches
+  on this field *only* (never on `dieLockActive()`), decrements it, and skips `rollDice()`, leaving
+  `G.currentDie` untouched. Set to `2` by `lockDice()`; re-using while locked resets to 2 rather
+  than stacking.
+- `G._dieLockedThisTurn` — whether **the current** turn is a held one. Turn-scoped, rewritten by
+  every `startTurn()`.
+
+`dieLockActive()` is the OR of the two and is what every in-turn gate must call. The counter alone
+is off by one for "is the die locked right now?": on the **last** locked turn it has already been
+decremented to 0, so a counter-only check reported unlocked on a turn whose roll had in fact been
+suppressed — the reroll button re-enabled itself one turn early and the player could reroll the
+held value away on the final turn of a lock they paid for. Conversely `startTurn()` must *not* use
+`dieLockActive()`, since `_dieLockedThisTurn` still holds last turn's value at that point and the
+lock would re-arm every turn and never expire. Both directions are covered by tests.
+
+Blocked while locked, each at its own trigger point plus a UI disable: `useReroll()` (button shows
+`🔒 LOCKED (n)`), `openGamblersEdge()`/`applyGamblersEdge()`, and `useLeyLineCrystal()`. Blocked
+attempts do not consume the once-per-combat charges. A locked turn still sets `G.diceRolled = true`
+— the die *has* a value, it simply was not re-rolled — without which `useSecondDie()` would refuse
+with a misleading "Roll first!".
+
+`G._naturalDieValue` is deliberately **not** touched by a locked turn: not re-rolling does not make
+the held value a forced one, so a locked natural max stays natural for `naturalMaxSuppressed()` and
+The House Always Wins, unlike Ley Line Crystal / Gambler's Edge / Second Die which overwrite
+`G.currentDie` and break the stamp on purpose.
+
+Roll-keyed effects therefore re-fire on every locked turn, which is the point of the item rather
+than a bug: affinity bonuses, the Arcane Die's even-roll +1 Energy, Titan's Die's max-roll draw
+(6 instead of 5, so +1 card), Battle Drum's odd-roll +1 card, and The House Always Wins' max-roll
+streak. Both fields reset to 0/false in all four fight-start functions, so a lock never crosses a
+combat boundary. `?debug=combat&dicelock=2` starts a fight already locked.
+
+**Die-mutating paths deliberately left unblocked** (batch 4's block list covers rerolling and the
+two forced-set actions only): Second Die's +d2, and card effects that reroll or set the die (Risk
+Taker, Wild Combo, Loaded Die, Safe Pull, Loaded House's guaranteed max). These cost a card and
+Energy, which is the same line the Gambler Challenge already draws for rerolls. They are coherent
+rather than broken — whatever value they leave in `G.currentDie` is what the remaining locked turns
+hold — but if the lock is meant to be absolute, these are the sites to revisit.
+
+**Acquisition and availability (batch 5).** `CONSUMABLE_AVAILABILITY` (js/ui.js) transcribes GDD
+§12's "Available From" and "Floor" columns, and `offerableConsumables(source, g)` is the single
+helper every source calls — modelled on `offerableRelics()`, for the same reason: the relic pools
+had already drifted apart before that helper consolidated them. `minFloor` values are zero-based
+`G.currentFloor` indices, matching `RELIC_RARITY_MIN_FLOOR`.
+
+| Source | Items | Where |
+|---|---|---|
+| Shop | 8 (all but Gold Pouch / Chaos Potion) | `showShop()` draws `CONSUMABLE_SHOP_SLOTS` (2) rotating tiles per visit, thrown in with the static card/die stock and sliced to 4 |
+| Elite reward | Fire Flask, Poison Vial | `checkCombatEnd()`, beside the `iron_ration`/`grave_robber` hooks; unconditional on an elite win |
+| Event | Health Potion, Smoke Vial, Scroll of Draw, Gold Pouch, Block Stone, + Chaos Potion on Floor 3+ | `giveReward(g,'consumable')`; Hidden Cache is the first caller |
+| Magic Door | — | **No direct grant, by decision (Aug 18, 2026).** Doors route into Shop/Event/Elite rooms, which already cover it. The `'door'` entries in `CONSUMABLE_AVAILABILITY` are unread GDD transcription. |
+
+The shop pool is 8, not 10: GDD §12 lists Gold Pouch and Chaos Potion as Event/Magic-Door only, so
+both carry `cost: null` and `offerableConsumables('shop')` filters them out twice over (by source,
+then by the missing price). Paying Gold for a Gold Pouch is a wash by construction.
+
+The retired `SHOP_ITEMS` "Healing Potion" entry healed 20 HP on purchase and never entered the
+inventory — a different thing from the Health Potion consumable, which now shares its 50 Gold price.
+**Per-item prices are not in the GDD** (§12 has no price column); they are set inside the 50-120
+band this document records for shop items. The consumable tile is the one stock type that checks the
+3-slot cap *before* spending Gold — every other tile can always deliver, and taking payment for an
+undeliverable item would be theft.
+
+**Out-of-combat use (batch 5).** `#field-inventory` is one body-level fixed element, not a copy in
+each screen, toggled by `showScreen()` for the five screens in `FIELD_INVENTORY_SCREENS`
+(path/door/rest/shop/event) and filled by `renderFieldInventory()`. It renders all 3 slots including
+empties, so the carry limit is legible while shopping. `OUT_OF_COMBAT_CONSUMABLES` is Health Potion
+and Gold Pouch — the two whose effect is pure run state; the other 8 render disabled with a "Combat
+only" label rather than hidden, since a hidden item looks lost. `useConsumable()` enforces the same
+rule as a backstop, and that check is load-bearing rather than decorative: an Energy Crystal used
+between rooms would be destroyed for nothing.
+
+`inCombatScreen()` reads `G._activeScreen`, stamped by `showScreen()`. It deliberately does **not**
+read `G.enemy`: despite CLAUDE.md describing that field as "null outside combat", nothing ever sets
+it back to null, so it stays truthy for the rest of the run after the first fight. All five fight
+entries were checked to route through `showScreen('combat-screen')`.
+
+**Inventory-full swap prompt (batch 6).** An Event or Elite grant arriving at 3/3 used to be lost
+silently. It now opens `#consumable-swap-overlay` (`showConsumableSwapPrompt()`), listing the 3 held
+items plus "Leave it behind". Choosing discards that item and completes the grant; declining leaves
+the inventory untouched and the new item is lost — the same outcome as before, but as the player's
+decision rather than something that happened to them. Held items are listed **by index**, so holding
+three of the same item still offers three distinct buttons.
+
+Three details carry the weight:
+
+- **`grantConsumable(key, options)` gained `onDone(granted)`.** The prompt is asynchronous, so the
+  synchronous return value cannot describe it — it is `false` both for an immediate refusal and for
+  "a prompt is now open". Anything sequencing on the outcome must use `onDone`. The event grant does:
+  `giveReward(g,'consumable')` defers its `proceedDoors()` until the choice resolves, because firing
+  the screen change 800ms later regardless would leave the player choosing what to discard on top of
+  the door screen. Declining releases the transition too, so an event can never get stuck.
+- **The elite grant deliberately passes no continuation.** The post-combat chain it sits in (death
+  VFX, core/Challenge records, then a `setTimeout` into the whole reward flow) is load-bearing and
+  must not wait on a player choice. The overlay is `z-index: 400`, above `#deck-overlay`, so it
+  stays on top of whatever reward screen the chain reaches; resolving it only touches
+  `G.consumables`, which is safe from any screen. Cosmetically it can appear over a transitioning
+  screen — functionally the swap is independent of what is underneath.
+- **`allowSwapPrompt: false` at two call sites.** The shop passes it because Gold is already spent
+  by that line: a decline would take payment for nothing, which is exactly why the pre-charge cap
+  check above it cannot be deleted in favour of the prompt. `js/debug.js` passes it because a modal
+  mid-setup is wrong for a dev tool — a 4th key still warns and is skipped.
+
+`addConsumable()` was split out as the shared inventory write so the normal grant and the post-swap
+grant cannot drift on the acquire message or either render call. `G._pendingConsumableSwap` holds the
+open choice; it is cleared *before* the grant completes, so a double-click cannot resolve one prompt
+twice and a second grant cannot clobber a pending one.
+
+**Known gaps:**
+- **No Magic Door grant site — closed as won't-build (Aug 18, 2026).** Magic Doors route into
+  Shop/Event/Elite rooms, so those three sources already cover the door path; no direct grant is
+  needed. The `'door'` entries in `CONSUMABLE_AVAILABILITY` are therefore transcription of GDD §12
+  that nothing reads. Consequence worth knowing: Chaos Potion is obtainable only from Floor 3+
+  events, and Energy Crystal / Dice Stabilizer only from Floor 2+ shops.
+- **No drop rate for the elite reward.** GDD §12 says only that elites are a source. Implemented as
+  guaranteed, matching the shape of the relic hooks it sits beside; a percentage would be a design
+  call.
+- **No Gold Pouch price**, by design — but it means an event/door-only item has no shop tile path
+  if it is ever added to shop stock.
 
 ---
 
@@ -485,7 +624,7 @@ Cut during design: **True Roll** (min-roll floor — conflicted with Mage's Fros
 |---|---|
 | Sir Crimson encounter | Full fight + dialogue + story beats between floors. Post-fight dialogue needs a rewrite pass — flagged above, written for the old relic framing. |
 | Boss reward relic choice screen | Pick 1 of 3 after each floor boss |
-| ~~Consumable system (batch 1)~~ | ✅ Implemented Aug 18, 2026 — `G.consumables` inventory (js/game.js), `CONSUMABLES`/`grantConsumable`/`renderConsumableSlots` (js/ui.js), `useConsumable` (js/combat.js), `#consumable-slots` in-combat UI (index.html/styles.css), `consumables=` debug option. Health Potion and Block Stone only — the other 8 designed items and any real (non-debug) acquisition path remain unbuilt. |
+| ~~Consumable system (batches 1–6)~~ | ✅ Implemented Aug 18, 2026 — `G.consumables` inventory (js/game.js), `CONSUMABLES`/`CONSUMABLE_AVAILABILITY`/`offerableConsumables`/`grantConsumable`/`addConsumable`/`renderConsumableSlots`/`renderFieldInventory`/`inCombatScreen` + the swap prompt (js/ui.js), `useConsumable`/`CHAOS_POTION_STATUSES`/`applyChaosPotion`/`lockDice`/`dieLockActive` + the elite drop hook (js/combat.js), `#consumable-slots` / `#field-inventory` / `#consumable-swap-overlay` UI (index.html/styles.css), `consumables=` + `dicelock=` debug options. **Feature-complete: all 10 designed items, shop / elite / event acquisition, GDD floor gating, out-of-combat use for Health Potion + Gold Pouch, and a player-facing choice when a grant arrives at 3/3.** 335 headless checks. Open by design, not omission: no elite drop rate in the GDD, no Magic Door grant (doors route into the three real sources). |
 | ~~Soul in-run stat-upgrade screen~~ | ✅ Implemented Aug 15, 2026 — `SOUL_UPGRADES` (js/data.js), `buySoulUpgrade`/`soulUpgradeOffer`/`soulUpgradeCost` (js/game.js), `showSoulSpend` (js/ui.js), combat hooks (js/combat.js). Headless-tested; in-app device/browser verification still outstanding. |
 | ~~Challenge-mode fight logic~~ | ✅ Implemented Aug 16, 2026 — `CHALLENGES` (js/data.js), `isChallengeEligible`/`challengeActive`/`tickChallengeEscalation` + enforcement (js/combat.js), boss-intro opt-in (js/ui.js), `recordChallengeRelicEarned` (js/meta.js). All 5 heroes verified end-to-end across two real runs. |
 | ~~Core-drop "first time" gating~~ | ✅ Implemented Aug 16, 2026 — `recordCoreCollected()` (js/meta.js) writes only on first-ever defeat. Lore *reveal* UI still unbuilt. |

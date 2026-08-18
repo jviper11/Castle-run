@@ -150,11 +150,22 @@ This file records unresolved conflicts between design documents, progress notes,
 
 ---
 
-## ⚠️ OPEN — Does a damaging enemy *special* count as an "attack" for Chill?
+## ✅ RESOLVED — Does a damaging enemy *special* count as an "attack" for Chill? (Aug 18, 2026)
 
-**Question:** GDD.md says Chill is "-1 stack per enemy attack" and reduces "the enemy's attack damage." Observed behaviour (Aug 15, 2026): only the **basic attack action** counts. A turn-trigger special that deals damage through `resolveEnemyAttack()` (Ritual-style) on a defend-intent turn neither consumed a Chill stack nor had its own damage reduced — it dealt its full 12 rather than 9.
+**Question:** GDD.md says Chill is "-1 stack per enemy attack" and reduces "the enemy's attack damage." Observed behaviour (Aug 15, 2026): only the **basic attack action** counted. A turn-trigger special that deals damage through `resolveEnemyAttack()` (Ritual-style) on a defend-intent turn neither consumed a Chill stack nor had its own damage reduced — it dealt its full 12 rather than 9.
 
-This is self-consistent and arguably correct if "attack" means the basic attack action, but it means Chill is dead weight against enemies whose damage comes mostly from specials. Not changed — needs a design decision on whether special damage should be Chill-reducible (and therefore Chill-consuming). Same question applies to enemy Weak, which likewise only modifies the basic attack.
+This is self-consistent and arguably correct if "attack" means the basic attack action, but it means Chill is dead weight against enemies whose damage comes mostly from specials. Same question applied to enemy Weak, which likewise only modified the basic attack.
+
+**Resolution: the two halves of the question get different answers, and that is the point.**
+
+- **Reducible: yes.** All three damaging specials — Ritual (Blood Cultist), Arcane Overload (Royal Sorcerer) and Collapse (Void Colossus) — now route their damage through `enemyAttackDamage()` before `dealDamage()`, so Rage, Weak and Chill all apply, exactly as they already did for basic attacks and for Aldric's Fractured Strike. The deciding argument is the same one that settled the Aldric case above: a player who spends cards on Weak against the Royal Sorcerer should not watch his headline 25-damage ability ignore it.
+- **Consuming: no.** Every one of the three passes `consumeChill = false`, because the stack is spent once per enemy turn by the basic attack in `endTurn()` STEP 6. Ritual and Arcane Overload are `turn` triggers firing in STEP 5, *before* that; Collapse is an `attack` trigger firing in STEP 9, *after* it, and only on turns the enemy attacked — so for Collapse a `true` would double-spend on literally every activation. This preserves the invariant Fractured Strike established: **one enemy turn spends exactly one Chill stack, however many damage instances that turn contains.** Verified with three instances in one turn (special + basic attack + Collapse) consuming exactly one stack while all three were reduced.
+
+Fractured Strike keeps `consumeChill = true` and is *not* inconsistent with this: `processAldricTurn()` **replaces** the basic attack, so its 3-hit volley is that turn's only attack. These three specials **ride alongside** the basic attack instead.
+
+**Consequence on defend turns:** a Ritual or Arcane Overload landing on a defend-intent turn is now Chill-*reduced* while consuming nothing — Chill can therefore reduce more damage than it has stacks for. That is deliberate, and it matches GDD.md's "Chill only consumes a stack when the enemy attacks (not on defend turns)" more closely than the alternative would.
+
+Each special's `showMsg` now reports the **resolved** number rather than its base, so Arcane Overload no longer announces "25 damage" while 13 lands.
 
 ---
 
@@ -237,9 +248,13 @@ were text-vs-behaviour mismatches rather than broken mechanics, and all three ar
   the d4 Cursed Die (max 4), worse than the starting d6. d4 is now excluded from that pool only;
   it remains available in the Magic Door chooser, where the player sees the die before taking it.
 - **Hidden Cache — promised an item that does not exist.** "Take it all (25 Gold + item)" and
-  "a stash of gold and something extra" granted Gold only. There is no consumable or item-grant
+  "a stash of gold and something extra" granted Gold only. There was no consumable or item-grant
   path in the codebase (Consumables designed, unbuilt), so the text was corrected on both the
   choice and the description rather than inventing an item system for one event.
+  **Superseded Aug 18, 2026 — the original promise is now kept, not trimmed.** Consumables gained
+  real acquisition paths, so both the description and the "+ item" label are restored and the
+  choice calls `giveReward(g,'consumable')`, drawing from GDD §12's Event pool with floor gating.
+  The interim text change is no longer in the code.
 
 **✅ RESOLVED (Aug 16, 2026):** `die_reward` was absent from `roomEmoji()`, `roomLabel()` and
 `getMagicHint()`, so a *revealed* die-reward door fell through to `🚪` / "Unknown" and looked
@@ -297,6 +312,30 @@ key; **delete an entry there when its behaviour lands or the relic stays unobtai
   `midnight_hunger`/`crimson_lens`/`blood_pact` (Vampire), and
   `devils_ledger`/`house_always_wins`/`loaded_coat` (Gambler). See the Session Log in
   `PROGRESS.md` for each batch.
+
+---
+
+## ✅ RESOLVED — King's Debt did not inflate card upgrades, and two modals lied about their price (Aug 18, 2026)
+
+King's Debt reads "Shop prices now cost 25% more", implemented as `shopCost(n)`. Every shop spend
+routed through it — card removal, relics, dice, and the newer consumable stock — **except card
+upgrades**, which charged a flat `80` at all three points (the affordability gate, the
+not-enough-gold message, and `spendGold`). Now `const cost = shopCost(80)`, resolved once and used
+by all three, so the relic's downside has no hole.
+
+**Two display bugs found in the same surface and fixed with it.** Both modals hardcoded their price
+in `index.html` — "Cost: 80 🪙" and "Cost: 75 🪙" — while the code charged `shopCost(...)`. Card
+removal's gate and charge were already King's-Debt aware, so under the relic its modal advertised 75
+and took 94. Both strings now have ids and are written from the same resolved `cost` the click
+spends. (The removal *button* label was already dynamic; only the modal copy was stale.)
+
+**Found while fixing this, not fixed:** `showShopUpgrade()` **has no caller anywhere in the active
+build.** The modal markup exists in `index.html` and the function is complete, but the shop's "Card
+services" row contains only `#shop-remove-btn` — nothing opens the upgrade modal, and no other
+`js/*.js` file references it. So the pricing asymmetry above was latent rather than player-visible,
+and card upgrading in the shop is currently unreachable. The Rest-stop upgrade option is a separate,
+working path (`startRestPick('upgrade')`, free). **Adding a shop upgrade button is a scope/design
+call, deliberately not taken here.**
 
 ---
 
