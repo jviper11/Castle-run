@@ -62,7 +62,13 @@
       "Bash(node echo_diag3.js)",
       "Bash(node echo_diag4.js)",
       "Bash(node echo_shot.js)",
-      "Bash(taskkill //PID 48472 //F)"
+      "Bash(taskkill //PID 48472 //F)",
+      "Bash(node aldric_mercy.js)",
+      "Bash(node aldric_mercy2.js)",
+      "Bash(node aldric_mercy3.js)",
+      "Bash(node aldric_mercy4.js)",
+      "Bash(node aldric_mercy_shot.js)",
+      "Bash(taskkill //PID 46584 //F)"
     ]
   }
 }

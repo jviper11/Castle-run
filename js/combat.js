@@ -40,19 +40,81 @@ const ALDRIC = {
 // superseded True Ending design that no longer exist anywhere (see DESIGN_DISCREPANCIES.md).
 // The relic identities, icons and names are gone. What is kept is the pacing (a beat every
 // 25 HP, each pausing Aldric's attack for the turn) and Aldric's own dialogue, which is his
-// soul surfacing and was never relic-specific.
-//
-// The beats are deliberately UNATTRIBUTED: GDD §9 explicitly defers designing what the five
-// Challenge relics actually do inside this fight, so nothing here claims to be a given relic.
-// The 75 HP beat carried "Aldric damage is halved", which never worked — aldricAttackProfile()
-// hardcodes base 15 for a gate-passed Phase 3 and never reads G.enemy.damage. That dead effect
-// is removed; the beat itself stays, since skipping his attack is its real contribution.
+// soul surfacing and was never relic-specific. The per-beat MECHANICAL effect is no longer fixed
+// to the HP threshold itself — it's looked up dynamically from whichever hero's Challenge relic
+// the priority-compaction below assigns to that slot (see ALDRIC_HERO_BEAT_EFFECTS/
+// computeAldricRelicAssignment). The quotes stay tied to the threshold, not the hero.
 const ALDRIC_RELIC_TRIGGERS = [
-  { hp: 100, quote: '"I remember… the throne…"',        effect: 'Aldric loses all Strength.' },
-  { hp: 75,  quote: '"I swore to protect..."',          effect: 'Aldric falters — no attack this turn.' },
-  { hp: 50,  quote: '"The pact... it is breaking..."',  effect: 'Your Reroll is now infinite.' },
-  { hp: 25,  quote: '"I… am still here…"',              effect: 'Aldric stops attacking.' }
+  { hp: 100, quote: '"I remember… the throne…"' },
+  { hp: 75,  quote: '"I swore to protect..."' },
+  { hp: 50,  quote: '"The pact... it is breaking..."' },
+  { hp: 25,  quote: '"I… am still here…"' }
 ];
+
+// Fixed priority order for compacting the player's held Challenge relics onto the four beats
+// above. Whichever ONE of the 5 isn't held is simply skipped and the remaining 4 compact into
+// the 4 slots in this same relative order — deterministic regardless of which one is missing.
+const ALDRIC_RELIC_PRIORITY = ['barbarian', 'vampire', 'mage', 'thief', 'gambler'];
+
+// Each hero's Phase 3 beat effect — keyed by hero, not by HP threshold, since which hero lands on
+// which threshold varies run to run (see computeAldricRelicAssignment). Barbarian and Gambler
+// keep their original generic effects, since they already matched their own relic's theme;
+// Vampire/Mage/Thief are new this batch, replacing the previous unattributed 75/50/25 HP
+// placeholders (GDD §9 previously deferred all five). The old 25 HP "Aldric stops attacking for
+// the rest of the fight" behavior is retired entirely — none of the five hero effects below do
+// that, so G.aldricStopped (and its check at the top of Phase 3 below) is removed rather than
+// left as unreachable dead code.
+const ALDRIC_HERO_BEAT_EFFECTS = {
+  barbarian: {
+    description: 'Aldric loses all Strength.',
+    apply: (g) => { g.statuses.enemy = g.statuses.enemy.filter(s => s.name !== '💢Rage'); }
+  },
+  vampire: {
+    // The exact number and mechanic the Vampire Challenge boss (The Ancient) already uses
+    // against the player every 3rd turn (tickChallengeEscalation: 8 HP drained straight from
+    // player to boss) — turned back on Aldric here: he loses it, the player gains it.
+    description: 'Aldric loses 8 HP, drained to you.',
+    apply: (g) => {
+      const drain = 8;
+      g.enemy.hp = Math.max(0, g.enemy.hp - drain);
+      healPlayer(g, drain);
+    }
+  },
+  mage: {
+    // Persistent, not a one-time burst — matches how Barbarian's and Gambler's own beats already
+    // last for the remainder of the fight rather than firing once. Reuses the same G.extraDraw
+    // field Torn Page and other extra-draw sources already add to, consumed every turn-start
+    // draw for the rest of combat with no extra plumbing.
+    description: 'Draw 1 extra card every turn for the rest of the fight.',
+    apply: (g) => { g.extraDraw = (g.extraDraw || 0) + 1; }
+  },
+  thief: {
+    // A straightforward burst, not a "lift a restriction" effect — Phase 3 doesn't restrict
+    // Block today, so there's nothing to lift.
+    description: 'Gain 15 Block.',
+    apply: (g) => { gainBlock(g, 'player', 15); }
+  },
+  gambler: {
+    description: 'Your Reroll is now infinite.',
+    apply: (g) => { g.aldricInfiniteReroll = true; }
+  },
+};
+
+// Computes which of the (at least 4) held Challenge relics land on which of the four beats, in
+// ALDRIC_RELIC_PRIORITY order. Read once at fight start (startAldricFight()), same timing as
+// G.aldricHasRelics itself — the beat sequence is fixed for the whole fight, never re-evaluated
+// mid-fight, so a relic earned mid-combat (impossible today, but just in case) couldn't reshuffle it.
+function computeAldricRelicAssignment(g) {
+  let held = ALDRIC_RELIC_PRIORITY.filter(charKey => hasChallengeRelic(charKey));
+  if (held.length >= 5) {
+    // All 5 ever earned across past runs as OTHER heroes — the current hero's own relic can
+    // never be earned THIS run (you can never Challenge your own hero), but a full past career
+    // could have earned it while playing someone else. Exclude it so exactly 4 remain, the same
+    // compaction as any other missing relic.
+    held = held.filter(charKey => charKey !== g.charKey);
+  }
+  return held.slice(0, 4);
+}
 
 function startAldricFight() {
   const phase = ALDRIC.phases[0];
@@ -97,7 +159,6 @@ function startAldricFight() {
   G.aldricRelicsTriggered = [];
   G.aldricAffinityDisabled = false;
   G.aldricInfiniteReroll = false;
-  G.aldricStopped = false;
   // THE TRUE ENDING GATE. Read once, here at fight start — Phase 3's escalation and the True
   // Ending are decided before the first turn and never re-evaluated mid-fight, which is the
   // timing the old check had and is preserved deliberately.
@@ -108,6 +169,16 @@ function startAldricFight() {
   // True Ending, which is precisely what the July 25 redesign removed. It now reads the
   // permanent, cross-run Challenge relic record. G.cores is untouched and keeps its own job.
   G.aldricHasRelics = hasTrueEndingRelics();
+  // Which held relic lands on which of Phase 3's four beats — fixed for the whole fight, same
+  // timing as the gate above. Empty when the gate itself is closed (Phase 3's own "no relics"
+  // branch never reads this).
+  G.aldricRelicAssignment = G.aldricHasRelics ? computeAldricRelicAssignment(G) : [];
+  // GDD §1's mercy choice (offered at the 50 HP beat, gated on G.aldricHasRelics) — this, not
+  // G.aldricHasRelics, is what showAldricEnding() now checks. Holding the gate open is necessary
+  // but no longer sufficient for the True Ending: the player must actively accept mercy when
+  // offered. Declining it, never reaching Phase 3 at all, or losing beforehand all correctly
+  // leave this false, matching the normal ending.
+  G.aldricMercyChosen = false;
   G.aldricBossDice = 0;       // current boss dice roll (0 = not active yet)
   G.aldricDiceCurseActive = false; // Phase 2+ boss rolls each turn // True ending check
 
@@ -264,11 +335,6 @@ function processAldricTurn() {
 
   // PHASE 3: SOULS BURDEN
   if (phase === 3) {
-    if (G.aldricStopped) {
-      showMsg('"I… am still here…"');
-      return;
-    }
-
     if (!G.aldricHasRelics) {
       // No relics — Unbreakable wall. Statuses are cleared FIRST, so the shared modifiers below
       // find nothing to apply: the immunity is preserved, it is just now expressed by the
@@ -279,12 +345,14 @@ function processAldricTurn() {
       return;
     }
 
-    // Has relics — check thresholds
+    // Has relics — check thresholds. Each beat's effect comes from whichever hero
+    // G.aldricRelicAssignment placed at this same index (computed once at fight start).
     const hp = G.enemy.hp;
-    for (const trigger of ALDRIC_RELIC_TRIGGERS) {
+    for (let i = 0; i < ALDRIC_RELIC_TRIGGERS.length; i++) {
+      const trigger = ALDRIC_RELIC_TRIGGERS[i];
       if (hp <= trigger.hp && !G.aldricRelicsTriggered.includes(trigger.hp)) {
         G.aldricRelicsTriggered.push(trigger.hp);
-        showAldricRelicTrigger(trigger);
+        showAldricRelicTrigger(trigger, G.aldricRelicAssignment[i]);
         return; // skip attack this turn for dramatic pause
       }
     }
@@ -293,17 +361,14 @@ function processAldricTurn() {
   }
 }
 
-function showAldricRelicTrigger(trigger) {
-  // Apply effect. Every beat also skips Aldric's attack for the turn — that happens in the
-  // caller, which returns early, and is the 75 HP beat's only contribution now that its dead
-  // damage-halving is gone.
-  if (trigger.hp === 100) {
-    G.statuses.enemy = G.statuses.enemy.filter(s => s.name !== '💢Rage');
-  } else if (trigger.hp === 50) {
-    G.aldricInfiniteReroll = true;
-  } else if (trigger.hp === 25) {
-    G.aldricStopped = true;
-  }
+function showAldricRelicTrigger(trigger, heroKey) {
+  // Apply the effect belonging to whichever hero's relic occupies this beat (see
+  // ALDRIC_HERO_BEAT_EFFECTS/computeAldricRelicAssignment) — no heroKey means the assignment
+  // came up short (shouldn't happen once G.aldricHasRelics is true, but never hard-crash a beat
+  // over it). Every beat also skips Aldric's attack for the turn regardless — that happens in
+  // the caller, which returns early right after this call.
+  const beat = ALDRIC_HERO_BEAT_EFFECTS[heroKey];
+  if (beat) beat.apply(G);
   showMsg('✨ ' + trigger.quote);
 
   // Show dramatic overlay. One shared banner for all four beats — the per-relic icons and
@@ -312,10 +377,45 @@ function showAldricRelicTrigger(trigger) {
   document.getElementById('aldric-relic-icon').textContent = '✨';
   document.getElementById('aldric-relic-name').textContent = 'THE RELICS PULSE';
   document.getElementById('aldric-relic-quote').textContent = trigger.quote;
-  document.getElementById('aldric-relic-effect').textContent = trigger.effect;
+  document.getElementById('aldric-relic-effect').textContent = beat ? beat.description : '';
   overlay.classList.add('visible');
 
   setTimeout(() => overlay.classList.remove('visible'), 3500);
+
+  // GDD §1's mercy choice — tied to the 50 HP beat specifically, never to whichever hero's relic
+  // happens to occupy it this run. Presented alongside this beat's own effect (both overlays
+  // visible together), not instead of it.
+  if (trigger.hp === 50) {
+    showAldricMercyChoice();
+  }
+}
+
+function showAldricMercyChoice() {
+  const overlay = document.getElementById('aldric-mercy-overlay');
+  if (overlay) overlay.classList.add('visible');
+}
+
+// Continuing is the do-nothing path — no state change beyond dismissing the prompt. The fight
+// resumes exactly as if the choice had never been offered, toward a real kill.
+function declineAldricMercy() {
+  const overlay = document.getElementById('aldric-mercy-overlay');
+  if (overlay) overlay.classList.remove('visible');
+}
+
+// Accepting ends the fight immediately by routing through the EXACT same win-resolution pipeline
+// a genuine killing blow already uses (checkCombatEnd()'s enemy-death branch), rather than
+// duplicating gold/Soul/relic-hook logic here — the only thing specific to mercy is setting the
+// flag showAldricEnding() now checks, and forcing G.enemy.hp to 0 first.
+function acceptAldricMercy() {
+  const mercyOverlay = document.getElementById('aldric-mercy-overlay');
+  if (mercyOverlay) mercyOverlay.classList.remove('visible');
+  // The informational relic-trigger banner may still be mid-auto-dismiss (3500ms) — hide it now
+  // rather than let it linger on top of the victory screen checkCombatEnd() is about to show.
+  const relicOverlay = document.getElementById('aldric-relic-msg');
+  if (relicOverlay) relicOverlay.classList.remove('visible');
+  G.aldricMercyChosen = true;
+  G.enemy.hp = 0;
+  checkCombatEnd();
 }
 
 function checkAldricPhaseTransition() {

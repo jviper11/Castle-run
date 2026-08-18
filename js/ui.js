@@ -2409,7 +2409,12 @@ function showScreen(id) {
 function showCombatScreen() { showScreen('combat-screen'); }
 
 function showAldricEnding() {
-  const hasTrueEnding = G.aldricHasRelics;
+  // Holding the relic gate (G.aldricHasRelics) is necessary but no longer sufficient — GDD §1's
+  // mercy choice at the 50 HP beat is the actual decision point now. Declining it, never reaching
+  // Phase 3 (gate closed), or losing beforehand all correctly leave G.aldricMercyChosen false,
+  // which is a real behavior change: holding 4+ relics used to guarantee the True Ending on any
+  // kill regardless of choice.
+  const hasTrueEnding = G.aldricMercyChosen;
   const vs = document.getElementById('victory-screen');
   showScreen('victory-screen');
 

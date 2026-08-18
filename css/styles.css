@@ -1892,6 +1892,28 @@ body {
 .aldric-relic-quote { font-size: 1.1rem; color: #e8ddd0; font-style: italic; line-height: 1.6; margin-bottom: 1.2rem; }
 .aldric-relic-effect { font-size: 0.75rem; color: var(--text3); margin-bottom: 1rem; }
 
+/* ── ALDRIC — mercy choice (GDD §1) ── */
+/* Same fixed/backdrop shell as #aldric-relic-msg, but a higher z-index so it stays on top and
+   interactive after that banner's own 3500ms auto-dismiss, and no auto-dismiss of its own —
+   this one only closes via an explicit choice. */
+#aldric-mercy-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 610;
+  background: rgba(0,0,0,0.82);
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+#aldric-mercy-overlay.visible { display: flex; }
+.aldric-mercy-inner { text-align: center; padding: 2rem; max-width: 360px; }
+.aldric-mercy-title { font-family: Cinzel,serif; font-size: 1rem; color: var(--gold); letter-spacing: 0.15em; margin-bottom: 0.8rem; }
+.aldric-mercy-text { font-size: 0.95rem; color: #e8ddd0; font-style: italic; line-height: 1.6; margin-bottom: 1.5rem; }
+.aldric-mercy-btns { display: flex; gap: 0.8rem; justify-content: center; }
+.aldric-mercy-btn { font-size: 0.8rem; padding: 0.6rem 1.2rem; }
+.aldric-mercy-btn.mercy { border-color: var(--gold); color: var(--gold); }
+
 /* Crack overlay for phase transitions */
 #aldric-cracks {
   position: absolute;

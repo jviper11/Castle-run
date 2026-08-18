@@ -456,7 +456,7 @@ Cut during design: **True Roll** (min-roll floor — conflicted with Mage's Fros
 
 ## King Aldric Final Boss — Designed and implemented; verification incomplete
 
-3 phases. Stone Heart mechanic. Dice corruption in Phase 2. Phase 3 (and the True Ending trigger at 50 HP) only fires if 4 of 5 Challenge relics are held — redesigned July 25, 2026, see Soul/Core/Challenge System section above.
+3 phases. Stone Heart mechanic. Dice corruption in Phase 2. Phase 3 only fires if 4 of 5 Challenge relics are held — redesigned July 25, 2026, see Soul/Core/Challenge System section above. **The True Ending trigger is no longer automatic on the killing blow with the gate held** — as of Aug 17, 2026 it requires actively accepting the mercy choice offered at the 50 HP beat (GDD §1); declining it, or killing him without ever reaching that beat, now correctly gives the normal ending. Each of the 4 held relics also has its own distinct beat effect (Aug 17, 2026) instead of the four previously-unattributed generic placeholders.
 
 ---
 
@@ -482,8 +482,8 @@ Cut during design: **True Roll** (min-roll floor — conflicted with Mage's Fros
 | ~~Challenge-mode fight logic~~ | ✅ Implemented Aug 16, 2026 — `CHALLENGES` (js/data.js), `isChallengeEligible`/`challengeActive`/`tickChallengeEscalation` + enforcement (js/combat.js), boss-intro opt-in (js/ui.js), `recordChallengeRelicEarned` (js/meta.js). All 5 heroes verified end-to-end across two real runs. |
 | ~~Core-drop "first time" gating~~ | ✅ Implemented Aug 16, 2026 — `recordCoreCollected()` (js/meta.js) writes only on first-ever defeat. Lore *reveal* UI still unbuilt. |
 | ~~Aldric Phase 3 gate rewire~~ | ✅ Implemented Aug 16, 2026 — `hasTrueEndingRelics()` (js/meta.js) read once at Aldric fight start. **The True Ending path is now wired end to end.** |
-| Challenge relics' in-fight effects | ⚠ Deferred design (GDD §9). Relics are earn-and-store only; holding 4 opens Phase 3 but no relic has an individual effect. Phase 3's four HP-threshold beats are unattributed placeholders. |
-| Aldric 50 HP "Use the Relics" choice | ⚠ Not built. GDD §1 describes choosing mercy over the killing blow at 50 HP; the True Ending currently fires on the kill itself with the gate passed. |
+| ~~Challenge relics' in-fight effects~~ | ✅ Implemented Aug 17, 2026 — `ALDRIC_HERO_BEAT_EFFECTS` (js/combat.js). Each of the 5 heroes now has a distinct Phase 3 beat effect (Barbarian/Gambler unchanged, Vampire/Mage/Thief new), assigned to the four HP thresholds by `computeAldricRelicAssignment()`'s fixed-priority compaction. |
+| ~~Aldric 50 HP "Use the Relics" choice~~ | ✅ Implemented Aug 17, 2026 — `showAldricMercyChoice()`/`acceptAldricMercy()`/`declineAldricMercy()` (js/combat.js). `showAldricEnding()` now gates on `G.aldricMercyChosen`, set only by actively accepting — holding the relic gate is necessary but no longer sufficient for the True Ending. |
 | 13 remaining events | Build out the 18-event pool designed in GDD.md; only 5 generic events currently exist |
 | Enemy intent consistency testing | Intent logic received April 16 improvements; verify displayed intent against actual actions before recording a Known issue. |
 | Mobile UI polish | April 16 responsive, dice, preview, and overlap work landed; continue short-height and browser-chrome verification. |

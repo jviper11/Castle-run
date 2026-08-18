@@ -536,6 +536,21 @@
     </div>
   </div>
 
+  <!-- ALDRIC — mercy choice (GDD §1), offered alongside the 50 HP beat above, not instead of it.
+       Higher z-index than #aldric-relic-msg so it stays interactive once that banner auto-
+       dismisses. acceptAldricMercy() ends the fight immediately (True Ending); declineAldricMercy()
+       just dismisses this and the fight continues normally toward a real kill. -->
+  <div id="aldric-mercy-overlay">
+    <div class="aldric-mercy-inner">
+      <div class="aldric-mercy-title">A CHOICE</div>
+      <div class="aldric-mercy-text">The relics could end this now, gently. Show him mercy — or see it through to the end.</div>
+      <div class="aldric-mercy-btns">
+        <button class="btn aldric-mercy-btn mercy" onclick="acceptAldricMercy()">🕊️ Show Mercy</button>
+        <button class="btn aldric-mercy-btn" onclick="declineAldricMercy()">⚔️ Continue</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Enemy info popup -->
   <div id="enemy-info-popup">
     <div class="eip-name" id="eip-name">Enemy</div>
