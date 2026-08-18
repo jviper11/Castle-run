@@ -1275,6 +1275,21 @@ function applyGamblersEdge(value) {
 // on a d6. Modeled on applyGamblersEdge(): same G._dieSetThisTurn guard (the one-forced-value-
 // per-turn rule), same animateDieTo() finish, but gated on hasCharacterRelic() and a combat-scoped
 // used flag instead of a turn-scoped one.
+// Consumables (batch 1) — no Energy cost, single-use, click-to-use from the slot row (see
+// renderConsumableSlots() in js/ui.js). Defensively safe against any out-of-range index (an
+// empty inventory, a stale index after a mid-render race, etc.) rather than assuming the caller
+// always passes something valid — "using at 0/3 or with an empty slot does nothing" is enforced
+// here, not just by the UI only rendering real items.
+function useConsumable(index) {
+  if (!G.consumables || index < 0 || index >= G.consumables.length) return;
+  const key = G.consumables[index];
+  const item = CONSUMABLES[key];
+  if (!item) return;
+  item.effect(G); // healPlayer()/gainBlock() already call renderAll() themselves
+  G.consumables.splice(index, 1);
+  renderConsumableSlots(); // catches the array-length change renderAll()'s own call already covered, but cheap and explicit here too
+}
+
 function useLeyLineCrystal() {
   if (!hasCharacterRelic('ley_line_crystal')) return;
   if (G._leyLineCrystalUsed) { showMsg('Ley Line Crystal already used this combat!'); return; }

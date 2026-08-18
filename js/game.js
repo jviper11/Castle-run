@@ -22,6 +22,10 @@ function newGame(charKey) {
     goldSpentThisRun: 0, // Devil's Ledger (Gambler) — per-run, not persisted via meta.js (GDD: "this run")
     soulUpgrades: [], _vitalityBuys: 0,   // in-run Soul spending — both reset with the run
     relics: [], rareOffset: 0, lastFightWasElite: false, phantomBladeFired: false,
+    // Consumables (batch 1) — same lifecycle as relics: persists across every combat within a
+    // run, only reset by a fresh newGame() here. Capped at 3 (enforced by grantConsumable(), not
+    // here), duplicates of the same item key are allowed (stackable, unlike one-of-each relics).
+    consumables: [],
     extraDraw: 0, startingDrawCount: 5, maxHandSize: 8, _noReroll: false, cardsPlayedThisCombat: 0,
     deck: [...ch.starterDeck],
     drawPile: [], discardPile: [], hand: [],

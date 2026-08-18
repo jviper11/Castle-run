@@ -68,7 +68,18 @@
       "Bash(node aldric_mercy3.js)",
       "Bash(node aldric_mercy4.js)",
       "Bash(node aldric_mercy_shot.js)",
-      "Bash(taskkill //PID 46584 //F)"
+      "Bash(taskkill //PID 46584 //F)",
+      "Bash(git -C \"c:\\\\Users\\\\Jteja\\\\castle\\\\Castle-run\" log -1 --format=%ci -- castle-run.html)",
+      "Bash(git -C \"c:\\\\Users\\\\Jteja\\\\castle\\\\Castle-run\" status --porcelain castle-run.html)",
+      "Bash(node consumables.js)",
+      "Bash(node consumables2.js)",
+      "Bash(node consumables3.js)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8777/index.html)",
+      "Bash(node consumables_shot.js)",
+      "Bash(powershell -Command \"Get-NetTCPConnection -LocalPort 8777 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess\")",
+      "Bash(netstat -ano)",
+      "Bash(powershell -Command \"Stop-Process -Id 54080 -Force\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" --max-time 3 http://localhost:8777/index.html)"
     ]
   }
 }

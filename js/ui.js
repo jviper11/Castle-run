@@ -198,6 +198,56 @@ const RELICS = {
 
 function hasRelic(key) { return G.relics && G.relics.includes(key); }
 
+// ═══════════════════════════════════════════════════════════════════
+// CONSUMABLES (batch 1) — inventory model + in-combat use, no acquisition path yet
+// ═══════════════════════════════════════════════════════════════════
+// Unlike RELICS' `effect` field (a string tag dispatched at various passive hook sites), a
+// consumable's `effect` is a real function called directly on use — both entries this batch
+// reuse existing combat functions verbatim (healPlayer/gainBlock), so there is nothing to
+// dispatch through, matching the ask's "no new effect logic needed."
+const CONSUMABLES = {
+  health_potion: { name: 'Health Potion', emoji: '🧪', desc: 'Heal 20 HP.', effect: (g) => healPlayer(g, 20) },
+  block_stone:   { name: 'Block Stone',   emoji: '🪨', desc: 'Gain 15 Block.', effect: (g) => gainBlock(g, 'player', 15) },
+};
+
+const CONSUMABLE_SLOT_CAP = 3;
+
+// Mirrors acquireRelic()'s pattern (plain push + showMsg + a UI refresh call), with one
+// difference relics don't need: a slot cap. Unlike acquireRelic(), this has no dedupe guard —
+// consumables are stackable, so holding two Health Potions is a valid, common case, not a bug.
+function grantConsumable(key) {
+  const item = CONSUMABLES[key];
+  if (!item) return false;
+  if (G.consumables.length >= CONSUMABLE_SLOT_CAP) {
+    showMsg(`Inventory full (${CONSUMABLE_SLOT_CAP}/${CONSUMABLE_SLOT_CAP}) — cannot carry another item.`);
+    return false;
+  }
+  G.consumables.push(key);
+  showMsg(`${item.emoji} ${item.name} acquired!`);
+  renderConsumableSlots();
+  return true;
+}
+
+// Small slot row, separate from the hand — only currently-held items are rendered (no empty
+// placeholder boxes), so the row grows/shrinks as items are used rather than always showing 3
+// fixed slots. Floated the same way #soul-die-controls is (see css/styles.css), on the opposite
+// side of the dice panel, so neither disturbs the panel's fixed grid/mobile sizing.
+function renderConsumableSlots() {
+  const el = document.getElementById('consumable-slots');
+  if (!el) return;
+  el.innerHTML = '';
+  (G.consumables || []).forEach((key, idx) => {
+    const item = CONSUMABLES[key];
+    if (!item) return;
+    const btn = document.createElement('button');
+    btn.className = 'btn soul-die-btn consumable-slot';
+    btn.textContent = `${item.emoji} ${item.name}`;
+    btn.title = item.desc;
+    btn.onclick = () => useConsumable(idx);
+    el.appendChild(btn);
+  });
+}
+
 // Relics that exist in RELICS but have no implementation anywhere — no hasRelic() hook and no
 // acquireRelic() pickup branch — so buying or picking one grants a no-op. Verified by auditing
 // every key against the whole codebase. **Delete a key from this list the moment its behaviour
@@ -1374,6 +1424,7 @@ function renderAll() {
   renderHand();
   renderEnergy();
   renderStatuses();
+  renderConsumableSlots();
   updateHUD();
   updateIntent();
 }

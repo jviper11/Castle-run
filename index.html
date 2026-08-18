@@ -125,6 +125,11 @@
 
     <div class="hand-area" id="hand-area">
     <div class="dice-panel">
+      <!-- Consumables (batch 1) — small slot row, separate from the hand, floated above the
+           dice panel on the opposite side from #soul-die-controls so neither disturbs the
+           panel's fixed grid/mobile sizing. Only currently-held items render (see
+           renderConsumableSlots() in js/ui.js); empty inventory means an empty, invisible row. -->
+      <div id="consumable-slots"></div>
       <!-- Current roll -->
       <div class="dice-display">
         <div class="die" id="current-die">?</div>

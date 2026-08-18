@@ -38,6 +38,9 @@
 //              Or pass a hero key (challenge=mage) to seed that hero specifically.
 //              Pair with `bossintro` to see the opt-in prompt: ?debug=bossintro&challenge=1
 //   relics   comma-separated relic keys, e.g. relics=ash_pendant,iron_vambrace
+//   consumables  comma-separated consumable keys (batch 1: health_potion, block_stone), e.g.
+//                consumables=health_potion,health_potion,block_stone — capped at 3, warns and
+//                skips anything past the cap rather than silently dropping it.
 //   upgrades comma-separated Soul upgrade keys, e.g. upgrades=grit,second_die
 //   weak / vulnerable / chill / rage / poison / burn
 //            status stacks applied once the fight starts (weak/chill/rage/poison/burn land on
@@ -131,6 +134,15 @@
     if (opts.relics) {
       String(opts.relics).split(',').map(s => s.trim()).filter(Boolean).forEach(k => {
         if (RELICS[k]) acquireRelic(k); else warn(`unknown relic "${k}"`);
+      });
+    }
+    // consumables=<list> — batch 1 has no real acquisition path yet, so this is the only way to
+    // test Health Potion / Block Stone. Mirrors relics= exactly, plus a cap warning since
+    // consumables (unlike relics) are capped at 3 — grantConsumable() itself enforces the cap.
+    if (opts.consumables) {
+      String(opts.consumables).split(',').map(s => s.trim()).filter(Boolean).forEach(k => {
+        if (CONSUMABLES[k]) { if (!grantConsumable(k)) warn(`consumables: inventory full, could not grant "${k}"`); }
+        else warn(`unknown consumable "${k}"`);
       });
     }
     if (opts.upgrades) {
