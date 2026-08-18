@@ -246,7 +246,11 @@ const CARDS = {
   curse_weakness:  { name:'Curse of Weakness', emoji:'💔', type:'Curse', cost:1, desc:'Does nothing. A dead weight in your deck.', dice:false, effect:(g)=>{ showMsg('💔 Curse of Weakness — wasted energy!'); } },
   curse_debt:      { name:'Curse of Debt',     emoji:'⛓️', type:'Curse', cost:0, desc:'Unplayable. Takes 3 damage at start of combat.', dice:false, effect:(g)=>{ showMsg('⛓️ Curse of Debt — you suffer!'); } },
   curse_confusion: { name:'Curse of Confusion',emoji:'🌀', type:'Curse', cost:0, desc:'Unplayable. A random card in hand costs +2 each turn.', dice:false, effect:(g)=>{ showMsg('🌀 Curse of Confusion!'); } },
-  curse_binding:   { name:'Curse of Binding',  emoji:'🔗', type:'Curse', cost:0, desc:'Unplayable. One card permanently costs 2 more.', dice:false, effect:(g)=>{ showMsg('🔗 Curse of Binding!'); } },
+  // "card type", not "card": the surcharge is stored against a card KEY in G.cursedCardCosts, and
+  // G.deck holds bare key strings with no per-copy identity — so there is no way to tax one copy and
+  // spare another. Cursing a key you hold four of taxes all four. The text says so rather than
+  // promising a narrower effect than the data model can deliver.
+  curse_binding:   { name:'Curse of Binding',  emoji:'🔗', type:'Curse', cost:0, desc:'Unplayable. One card type in your deck permanently costs 2 more.', dice:false, effect:(g)=>{ showMsg('🔗 Curse of Binding!'); } },
 
   // reward cards
   ragefuel:    { name:'Rage Fuel',   emoji:'💢',  type:'Power',  cost:1, desc:'Gain 1 Strength. All attacks deal +1 damage this combat.',   dice:false, effect:(g)=>{ applyStatus(g,'player','💢Rage',1); showMsg('💢 Rage Fuel — +1 Strength!'); } },
@@ -423,21 +427,40 @@ const CARD_UPGRADES = {
 //
 // Keyed by BASE card key — '+' upgrades inherit the same condition automatically, and any new
 // card whose key starts with one of these gets the treatment for free.
+// `hard: true` marks a condition playCard() ENFORCES rather than merely warns about. The default
+// (absent) is the original contract: a warning, with the card's own effect() as the source of truth.
+//
+// The distinction exists because Curses have no effect() worth reaching — an unplayable Curse that
+// stayed tappable would spend the tap, the Energy and the play, then print a flavour message. Every
+// entry below without `hard` keeps the old warning-only behaviour exactly.
 const CARD_PLAY_CONDITIONS = {
   backstab:    { met: (g) => wouldBeFirstCardThisTurn(g), reason: 'Must be the first card played this turn' },
   deathrattle: { met: (g) => g.hp <= g.maxHp * 0.5,       reason: 'Only playable below 50% HP' },
   loadeddie:   { met: (g) => !g._dieSetThisTurn,          reason: 'Die can only be set once per turn' },
   voidchannel: { met: (g) => g.hand.length >= 3,          reason: 'Needs 2 other cards in hand' },
   arcaneboost: { met: (g) => g.hand.length >= 2,          reason: 'Needs another card in hand to discard' },
+  // The three Curses whose printed text says "Unplayable". Curse of Weakness is deliberately ABSENT:
+  // its text is "Does nothing. A dead weight in your deck", which means it IS playable and wastes
+  // the Energy — a different (and already correct) kind of dead card.
+  curse_debt:      { met: () => false, hard: true, reason: 'Unplayable — it only bleeds you at the start of each fight' },
+  curse_confusion: { met: () => false, hard: true, reason: 'Unplayable — it taxes another card in hand each turn' },
+  curse_binding:   { met: () => false, hard: true, reason: 'Unplayable — its surcharge is already permanent' },
 };
 
 // Why a card in hand cannot currently resolve, or null when it is fine to play.
-// This is a WARNING only — playCard() and the card's own effect() remain the source of truth,
-// and a player who taps anyway still gets the real rejection.
+// For conditions without `hard`, this is a WARNING only — playCard() and the card's own effect()
+// remain the source of truth, and a player who taps anyway still gets the real rejection.
 function getCardBlockReason(g, cardKey) {
   const cond = CARD_PLAY_CONDITIONS[String(cardKey).replace(/\+$/, '')];
   if (!cond) return null;
   return cond.met(g) ? null : cond.reason;
+}
+
+// True when the condition is one playCard() must refuse outright. Same base-key normalization as
+// getCardBlockReason(), so a '+' upgrade of an unplayable card is equally unplayable.
+function isHardBlocked(g, cardKey) {
+  const cond = CARD_PLAY_CONDITIONS[String(cardKey).replace(/\+$/, '')];
+  return !!(cond && cond.hard && !cond.met(g));
 }
 
 // Register upgraded cards into CARDS with a '+' suffix key
@@ -1000,6 +1023,168 @@ const EVENTS = [
       { text:'Drink the flask', risk:'Unknown effect', effect:(g)=>drinkRandomPotion(g) },
       { text:'Take notes — upgrade a random card', risk:'', effect:(g)=>upgradeRandomDeckCard(g) },
       { text:'Leave it all', risk:'', effect:(g)=>proceedDoors() },
+    ]
+  },
+
+  // ── Batch 3 (Aug 18, 2026) — the three Curse-granting events. ──
+  //
+  // Same conventions as batch 1 above: one resolution per choice, unaffordable choices message and
+  // return without proceeding, spendGold() for agreed payments and plain `g.gold +=` for gains.
+  //
+  // Every "take the money and run" choice here hands out a random curse from CURSE_EVENT_POOL,
+  // which excludes Curse of Weakness — the Altar's smash grants that one by name.
+  {
+    icon:'👻', title:"The Merchant's Ghost",
+    desc:'A translucent pedlar counts coins that make no sound. His wares are all subtly wrong.',
+    choices:[
+      // Flat 90, deliberately NOT shopCost(90): every price in EVENTS is flat, and routing this one
+      // through the shop markup would make it the only exception. One-line change if a ghost
+      // merchant should count as a shop for King's Debt purposes.
+      { text:'Buy a cursed relic (90 Gold)', risk:'It will have a downside', effect:(g)=>{
+          if (g.gold < 90) { showMsg('Not enough gold — he waves you away.'); return; }
+          // Availability checked BEFORE charging, matching the shop's own contract: a purchase that
+          // cannot be delivered must not take the Gold.
+          if (!offerableTradeoffRelics(g).length) { showMsg('👻 "You already carry all my curses."'); return; }
+          spendGold(g,90); grantTradeoffRelic(g); updateHUD(); setTimeout(proceedDoors,900);
+        } },
+      { text:'Ignore him', risk:'', effect:(g)=>proceedDoors() },
+      { text:'Rob the dead (+30 Gold)', risk:'Gain a Curse card', effect:(g)=>{
+          g.gold += 30; updateHUD();
+          showMsg('👻 +30 Gold — but something follows you out.');
+          grantRandomCurse(g);
+          setTimeout(proceedDoors,900);
+        } },
+    ]
+  },
+  {
+    icon:'🗿', title:'The Crying Statue',
+    desc:'A stone figure weeping real tears. It has been crying here a very long time.',
+    choices:[
+      // giveReward(g,'relic') owns its own proceedDoors(), so this effect deliberately does not.
+      { text:'Comfort it — receive a relic', risk:'', effect:(g)=>giveReward(g,'relic') },
+      { text:'Smash it open (+25 Gold)', risk:'Gain a Curse card', effect:(g)=>{
+          g.gold += 25; updateHUD();
+          showMsg('🗿 +25 Gold — the weeping stops. Something else starts.');
+          grantRandomCurse(g);
+          setTimeout(proceedDoors,900);
+        } },
+      { text:'Leave it weeping', risk:'', effect:(g)=>proceedDoors() },
+    ]
+  },
+  {
+    // 🔪, not 🩸: The Blood Pool above already owns 🩸, and two events sharing an icon read as the
+    // same event recurring.
+    icon:'🔪', title:'The Bloodied Altar',
+    desc:'A slab worn smooth by centuries of offerings. It knows what it wants.',
+    choices:[
+      // Two Power cards from the player's own hero pool, granted straight to the deck rather than
+      // through the reward screen — the choice was already the decision. Floored HP cost via
+      // loseHP(..., 1), matching The Shrine of Ash: a transaction should not end the run.
+      { text:'Sacrifice blood — gain 2 Power cards', risk:'Cost: 15 HP', effect:(g)=>{
+          loseHP(g,15,1); updateHUD();
+          grantHeroPowerCards(g,2);
+          setTimeout(proceedDoors,900);
+        } },
+      { text:'Leave the altar', risk:'', effect:(g)=>proceedDoors() },
+      // Weakness by name, not from CURSE_EVENT_POOL — the mildest curse for the choice with no
+      // upside at all, which is what makes it different from robbing the Ghost or smashing the Statue.
+      { text:'Smash the altar', risk:'Gain Curse of Weakness', effect:(g)=>{
+          showMsg('🩸 The slab cracks. The blood remembers you.');
+          grantCurse(g,'curse_weakness');
+          setTimeout(proceedDoors,900);
+        } },
+    ]
+  },
+
+  // ── Batch 4 (Aug 18, 2026) — scouting events. ──
+  //
+  // Three of the four offer a boss hint via the shared getBossHint(), which reads the boss actually
+  // assigned to the current floor (bosses are shuffled per run, so a fixed index would be wrong four
+  // runs in five). Hints are held on screen longer than a normal toast — the log is body-level and
+  // survives the screen change, so the scouting information stays readable on the door screen.
+  //
+  // Same conventions as the earlier batches: one resolution per choice, spendGold() for agreed
+  // payments, plain `g.gold +=` for gains, HP costs floored so an event cannot end the run.
+  {
+    icon:'🧱', title:'The Whispering Walls',
+    desc:'The stones here murmur to each other. Pressing an ear to them, the whispers almost resolve into words.',
+    choices:[
+      { text:'Listen closely', risk:'', effect:(g)=>{
+          const hint = getBossHint(g);
+          showMsg(hint ? `🧱 The walls whisper: ${hint}` : '🧱 The walls have nothing to say.', 5000);
+          setTimeout(proceedDoors,900);
+        } },
+      { text:'Ignore the whispering', risk:'', effect:(g)=>proceedDoors() },
+      { text:'Shout back', risk:'Cost: 8 HP', effect:(g)=>{
+          loseHP(g,8,1); updateHUD();
+          showMsg('🧱 Something answers. The wall gives up what it was hiding.');
+          giveReward(g,'relic'); // owns its own proceedDoors()
+        } },
+    ]
+  },
+  {
+    icon:'✉️', title:"The Prisoner's Letter",
+    desc:'A sealed letter wedged into a crack in the mortar, addressed in a shaking hand to someone outside.',
+    choices:[
+      { text:'Read it', risk:'', effect:(g)=>{
+          const hint = getBossHint(g);
+          showMsg(hint ? `✉️ The letter warns of what waits below: ${hint}` : '✉️ The ink has run. Nothing legible remains.', 5000);
+          setTimeout(proceedDoors,900);
+        } },
+      { text:'Burn it for warmth (+15 Gold)', risk:'', effect:(g)=>{
+          g.gold += 15; updateHUD();
+          showMsg('✉️ Sealing wax and gold leaf. +15 Gold.');
+          setTimeout(proceedDoors,800);
+        } },
+      // Banks the Gold instead of paying now — collected at the NEXT event, not this one.
+      // See bankEventGold()/armPendingEventGold()/payPendingEventGold() in js/ui.js.
+      { text:'Promise to deliver it', risk:'Paid at the next event', effect:(g)=>{
+          bankEventGold(g, PRISONER_LETTER_GOLD);
+          showMsg(`✉️ You pocket the letter. Someone will pay ${PRISONER_LETTER_GOLD} Gold for it.`, 4000);
+          setTimeout(proceedDoors,900);
+        } },
+    ]
+  },
+  {
+    icon:'🖼️', title:'The Portrait Gallery',
+    desc:'A long hall of paintings, every subject facing the door you came through.',
+    choices:[
+      { text:'Study the portraits', risk:'', effect:(g)=>{
+          showMsg('🖼️ Faces stare out from cracked frames. Knights. Nobles. A queen whose name the paint itself has worn away. Every one of them walked these halls once. None of them walked back out.', 7000);
+          const hint = getBossHint(g);
+          if (hint) showMsg(`🖼️ One frame is newer than the rest: ${hint}`, 5000);
+          setTimeout(proceedDoors,1200);
+        } },
+      { text:'Burn the canvases (+20 Gold)', risk:'', effect:(g)=>{
+          g.gold += 20; updateHUD();
+          showMsg('🖼️ Gilt frames melt down nicely. +20 Gold.');
+          setTimeout(proceedDoors,800);
+        } },
+      // Free, unlike The Merchant's Ghost's 90 Gold — but from the identical pool, so it is always a
+      // Rare with a built-in downside rather than a clean one.
+      { text:'Take the cursed portrait', risk:'A relic with a downside', effect:(g)=>{
+          if (!offerableTradeoffRelics(g).length) { showMsg('🖼️ Every cursed frame in the hall is already yours.'); return; }
+          showMsg('🖼️ You lift one from the wall. The eyes follow you.');
+          grantTradeoffRelic(g);
+          setTimeout(proceedDoors,900);
+        } },
+    ]
+  },
+  {
+    icon:'🗝️', title:'The Old Prisoner',
+    desc:'A man behind rusted bars, thin as the bars themselves. He has been here longer than the rust.',
+    choices:[
+      { text:'Break him out', risk:'Cost: 10 HP', effect:(g)=>{
+          loseHP(g,10,1); updateHUD();
+          showMsg('🗝️ The lock gives. He presses something into your hand and runs.');
+          giveReward(g,'relic'); // owns its own proceedDoors()
+        } },
+      { text:'Leave him', risk:'', effect:(g)=>proceedDoors() },
+      { text:'Share your food (heal 12 HP)', risk:'', effect:(g)=>{
+          healPlayer(g,12); updateHUD();
+          showMsg('🗝️ He eats, and insists you eat too. You feel steadier. +12 HP.');
+          setTimeout(proceedDoors,900);
+        } },
     ]
   },
 ];

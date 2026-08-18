@@ -350,13 +350,62 @@ Full roster across all 4 floors designed. Mix of classic fantasy and corrupted c
 
 ---
 
-## Events — 🟡 18 designed, 10 built (batch 1 landed Aug 18, 2026)
+## Events — 🟡 18 designed, 17 built (batches 1, 3 and 4 landed Aug 18, 2026)
 
 Categories: Gold events, HP-for-Gold trades, Curse card rewards, Risk events, Classic reworked.
 
 **Correction (July 25, 2026):** this section previously read "✅ Complete (18 events) — all implemented in prototype." That was false — confirmed by direct code inspection: only **5 generic events** existed in `js/data.js`, and none of them matched the 18 named events actually designed in `GDD.md`. This was a design-only gap, not a migration loss — the legacy monolith `castle-run.html` never had the 18 events either.
 
 Building toward all 18 over time is the intent (larger pool keeps outcomes unpredictable; comeback tools should exist by chance, not by the system detecting player struggle). The `bone_key` relic is paused (removed from shop/reward pools, definition preserved) because it depends on "The Locked Chest" event, which doesn't exist yet — see `DESIGN_DISCREPANCIES.md`.
+
+### Curse cards — ✅ all 4 functional (Aug 18, 2026)
+
+The four `type:'Curse'` entries in `CARDS` were stubs whose printed downsides were unimplemented —
+`js/data.js` recorded them as "do nothing or self-only". All four now behave as printed. **Batch 3's
+three events are the real source** (see below) — The Merchant's Ghost and The Crying Statue each roll
+one of the three real curses, The Bloodied Altar grants Weakness by name. `js/debug.js`'s `curses=`
+option remains for testing.
+
+| Curse | Behaviour | Where |
+|---|---|---|
+| Weakness | Unchanged — playable, wastes 1 Energy, does nothing. Deliberately **not** in `CARD_PLAY_CONDITIONS`. | — |
+| Debt | 3 damage per copy in `G.deck`, at every fight start including Aldric. Floored at 1 HP. | `applyCurseOfDebt()` |
+| Confusion | While in hand, one other card in hand costs +2 for that turn only. | `applyCurseOfConfusion()` |
+| Binding | One card **key** permanently costs +2, accumulating if two copies pick the same key. | `resolveCurseOfBinding()` |
+
+**`CARD_PLAY_CONDITIONS` gained a `hard: true` flag**, enforced by `playCard()` via
+`isHardBlocked()`. It was needed because that table is documented as a *warning* system — the card
+stays tappable and `effect()` is the authority — which is fine for Backstab but not for a Curse with
+no effect worth reaching: the tap would spend the Energy and the play, then print flavour text. The
+refusal **must stay above** `playCard()`'s `getCardEnergyCost(..., { consume: true })` call, or a
+mis-tap on an unplayable Curse would silently burn a queued Mana Surge / Soulbound Gauntlet / House
+Always Wins free card. Every entry without `hard` keeps the old contract, asserted.
+
+**Binding is key-level, and that is forced rather than chosen.** `G.deck` holds bare key strings with
+no per-copy identity, so "one card" is unimplementable — only "one card key" is. Cursing a key you
+hold four copies of taxes all four. The card's description was reworded to "one card type" so the
+tile does not promise a narrower effect than the data model can deliver. Candidates are the
+**distinct** non-Curse base keys, so a 4-copy starter is not four times likelier to be picked than a
+singleton on top of already being four times worse to lose (verified over 2000 rolls).
+
+Binding is **counter-driven** (`G.cursedBindingsResolved`) rather than hooked to deck entry: cards
+enter `G.deck` at the reward screen, the shop and events with no shared chokepoint, so a per-site
+hook would be three places to forget. The counter makes `resolveCurseOfBinding()` safe to call from
+anywhere, any number of times — the debug grant calls it immediately, and every fight start calls it
+as a safety net.
+
+**Both surcharges are read in `getCardEnergyCost()` against the base cost, above every existing
+modifier.** Position is load-bearing: Soulbound Gauntlet, The House Always Wins and Shadow Artist are
+hard overrides to **0**, not discounts, so taxing afterwards would let a curse resurrect a card the
+game had just promised was free. Taxing first also stops Mana Surge's floored `-1` from being wasted
+on a cursed 0-cost card (0+2−1 = 1, where the other order gives 2). Keys are normalized with the same
+trailing-`+` strip `CARD_PLAY_CONDITIONS` uses, so the player cannot upgrade a permanent curse off.
+
+**Debt is floored at 1 HP** via `loseHP()`'s own `floorAt`, and therefore never consumes a
+survive-killing-blow relic. The printed text promises damage, not death; the player has had no chance
+to act, has no counterplay, and `checkCombatEnd()` at fight-start time would run before the combat
+screen exists. Flagged as a reading of the text rather than a silent narrowing — if curses are meant
+to be able to end a run, this is the line to change.
 
 ### Batch 1 — five events from existing mechanics (Aug 18, 2026)
 
@@ -421,6 +470,144 @@ and calls `getMagicHint(type, 1)` rather than the live floor, because that funct
 floor 0 by design and a paid tip must say something on every floor. `getMagicHint()` gained a
 `'boss'` entry for the end-of-path case; Magic Doors never produce that type, so nothing else is
 affected.
+
+### Batch 4 — four scouting events (Aug 18, 2026)
+
+`EVENTS` now holds 17. The Whispering Walls, The Prisoner's Letter, The Portrait Gallery, The Old
+Prisoner. All 17 titles and all 17 icons remain unique, asserted.
+
+**`getBossHint(g)`** (`js/ui.js`) names the boss actually assigned to the current floor and states its
+real damage. It **must** read `G.map[G.currentFloor].boss`: floor bosses come from a per-run *shuffled*
+copy of `BOSSES` (`G.floorBosses`, stamped onto each floor by the map builder in `js/game.js`), so
+`BOSSES[G.currentFloor]` would be wrong four runs in five. Verified across all 4 floors × all 5
+bosses, plus a case that deliberately assigns a boss the fixed-index version would have got wrong.
+Returns `null` with no crash when a floor has no boss.
+
+Distinct from each boss's own `.hint` field, which is the atmospheric line the boss-intro screen
+shows — this is the concrete scouting version. Three of the four events surface it (Listen, Read,
+Study), each with a long-lived toast so the information stays readable on the door screen the player
+transitions to.
+
+**The Prisoner's Letter's deferred payout** is the one piece of real plumbing here.
+`G.pendingEventGold` (run-scoped, in the `newGame()` literal beside `pendingExtraDraw`) plus a
+separate `G._pendingEventGoldArmed` flag:
+
+| Step | State |
+|---|---|
+| "Promise to deliver" clicked | amount set, **not armed** |
+| that same event's resolution | armed is false → pays nothing |
+| the NEXT event opens (`showEvent`) | armed becomes true |
+| that event's resolution | pays, clears both fields |
+| any later event | bank empty → nothing |
+
+**Two fields, not one, and that is the whole trick.** The payout check runs immediately after the very
+click that creates the bank, so a single "pending amount" could not tell "banked during the event now
+resolving" from "banked earlier" — it would pay itself instantly. Verified: nothing at the banking
+event, exactly +20 at the next one (measured as the *difference* against an unbanked control run, since
+some choices pay Gold themselves), nothing at a third, and the bank simply expires unpaid if the run
+ends first — which is the risk the choice advertises.
+
+One accepted imprecision, documented at the call site: a choice that refuses itself (an unaffordable
+price messaging and returning) still reaches the payout line, so a banked payout can arrive on a
+refused click. The player is standing in the correct *event* either way, so the bank is not held back
+for a cleaner moment that may never come.
+
+**The Portrait Gallery's "take the cursed portrait"** draws from the same `TRADEOFF_RELICS` pool as
+The Merchant's Ghost, but free rather than 90 Gold. Verified over 600 takes that it yields only the
+four downside-carrying Rares and never one of the clean ones, and that the two events' pools are
+identical. Owning all four refuses and leaves the event open.
+
+Both HP-cost choices (Shout, Break him out) are floored at 1 HP via `loseHP()`'s `floorAt`, matching
+every other event cost.
+
+### Event-triggered combat — 🟡 plumbing only, no real event uses it yet (Aug 18, 2026)
+
+`startEventCombat(enemyDef, onVictory)` (`js/combat.js`) is the fifth fight-start function: a fight
+begun by an event choice, taking an explicit enemy object rather than drawing from a floor pool.
+Built as shared plumbing ahead of the four event designs that will need it — **nothing in
+`js/data.js` calls it**, and the only way to reach it is `dbg('eventcombat')`.
+
+On victory `checkCombatEnd()` short-circuits on `G.enemy.isEventCombat`, mirroring the `isSirCrimson`
+branch: it skips the entire gold/soul/relic-hook/elite-drop/Cores chain — all of which assume the
+fight came from a floor room — plays the death VFX, then invokes `G._eventCombatVictoryCallback`.
+**Loss has no special case at all**, by design: it falls through the same `G.hp <= 0` branch every
+other fight uses.
+
+Details worth keeping:
+
+- **It shows the combat screen itself**, unlike `startCombat()` (whose two callers do it). Its real
+  callers will be event choices running with the event screen up, and `inCombatScreen()` reads
+  `G._activeScreen` — skipping it would leave the consumable row and the out-of-combat use gate wrong
+  for the entire fight.
+- **It sets neither `G.inBoss` nor `G.lastFightWasElite`.** Sir Crimson sets `inBoss` for boss-level
+  difficulty and only gets away with it because his short-circuit returns before every `G.inBoss`-gated
+  read; an event fight has no reason to claim boss status, so the reward-window helpers stay correctly
+  false.
+- **All the ordinary start-of-combat hooks do run** — relics, soul upgrades, curses, and the banked
+  Broken Clock draw. An event fight is a real fight: a player holding Iron Vambrace starts it with
+  Block, and a Curse of Debt in the deck bleeds them.
+- **The callback is captured and cleared before the death-VFX timeout**, so a re-entrant
+  `checkCombatEnd()` cannot fire it twice, and it is assigned unconditionally at fight start (to
+  `null` when absent) so a previous fight's callback can never fire for a later one.
+- **The engine navigates nowhere on its own** — where to go after the win is entirely the callback's
+  decision. Asserted, so a future caller that forgets to navigate fails loudly rather than stranding
+  the player on a corpse.
+- It calls `restoreLoadedCoatDie()`, which Sir Crimson's branch omits. That omission is pre-existing
+  and self-healing (every fight start restores it), but a swapped die would still show on the map
+  screen in between, so this branch does it properly.
+
+**Throwaway, delete when a real event lands:** `DUMMY_EVENT_ENEMY` ("Practice Dummy", 30 HP, 6 damage,
+no `special`, no `moves`) and `js/debug.js`'s `eventcombat` target. Both carry explicit delete markers,
+asserted by the suite so they cannot quietly become permanent.
+
+### Batch 3 — the three Curse-granting events (Aug 18, 2026)
+
+`EVENTS` now holds 13. The Merchant's Ghost, The Crying Statue, The Bloodied Altar. These are the
+first real source of Curse cards — until now `js/debug.js`'s `curses=` was the only way to get one.
+Same choice conventions as batch 1 above.
+
+**`CURSE_EVENT_POOL`** (`js/ui.js`) is the three curses a random roll can inflict:
+`curse_debt`, `curse_confusion`, `curse_binding`. **Curse of Weakness is deliberately excluded** and
+granted by name only, by the Altar's smash — it is the one curse that is merely dead weight, so it is
+the mild outcome of the choice with no upside rather than something a random roll can substitute for
+a real curse. If Weakness ever enters that pool, smashing the Altar stops being distinguishable from
+robbing the Ghost. Verified across 600 rolls per event.
+
+**`grantCurse(g, key)`** is the shared deck write. It calls `resolveCurseOfBinding()` after the push,
+which matters: a Curse of Binding granted without it sits inert until the next fight start happens to
+sweep it up, so the surcharge would appear a room later than the card. Verified that a Binding grant
+surcharges a key immediately and that `getCardEnergyCost()` reads it on the spot.
+
+**`TRADEOFF_RELICS`** is the four Rares with built-in downsides — King's Debt, Cursed Hourglass, The
+Pale Contract, Fractured Die. The Merchant's Ghost sells only from this list, verified over 600
+purchases to never yield one of the clean Rares. It deliberately **does not** use `offerableRelics()`:
+that applies GDD §9 floor gating, under which Rares are Floor 3+ only, and this event's premise is a
+guaranteed tradeoff Rare at any floor. Ownership filtering is kept; the floor gate is not.
+
+**Price: 90 Gold, flat.** Inside the 80-150 relic band this document records, and a fair premium over
+the shop's `shopCost(80)` given it bypasses the rare floor gate and guarantees a downside-carrying
+Rare. Two things worth knowing rather than discovering later:
+
+- **Flat, not `shopCost(90)`** — so King's Debt does not inflate it. Every price in `EVENTS` is flat
+  and routing this one through the shop markup would make it the only exception. Defensible either
+  way (it *is* a merchant); one line to change if a ghost's price should count as a shop price.
+- **Buying King's Debt nets −30, not −90**, because its own pickup grants +60 Gold immediately. It is
+  by far the cheapest of the four, and there is no way to pick which one you get. Asserted, so the
+  interaction is recorded rather than surprising.
+
+Availability is checked **before** charging, matching the shop's contract: owning all four refuses
+and leaves the event open rather than taking 90 Gold for nothing.
+
+**The Bloodied Altar** grants 2 Power cards from the player's own hero pool, straight into the deck.
+Every hero has **exactly 3** Power cards, all in their rare tier — so the pool is only one deeper
+than the grant. `grantHeroPowerCards()` therefore prefers unowned keys but falls back to allowing a
+duplicate rather than granting fewer than promised: a player holding 2 of their 3 Powers would
+otherwise get a short reward from a choice that already cost them 15 HP. Verified for all five heroes
+that both grants are real `type:'Power'` cards from that hero's own pool and never another hero's,
+across 400 sacrifices covering all 15 Powers. HP cost is floored at 1 like The Shrine of Ash's.
+
+**Balance note, not a defect:** two rare Powers for 15 HP is a strong rate, and Power cards are the
+top tier of every hero's pool. Flagged rather than quietly adjusted — the numbers are as specified.
 
 **Known non-issue, verified:** `giveReward(g, type, rarity)`'s `rarity` argument has never been read
 — `showReward()` rolls its own rarity. So "gain a rare card" on Ancient Tome, The Offering and now The
@@ -700,7 +887,7 @@ Cut during design: **True Roll** (min-roll floor — conflicted with Mage's Fros
 | ~~Aldric Phase 3 gate rewire~~ | ✅ Implemented Aug 16, 2026 — `hasTrueEndingRelics()` (js/meta.js) read once at Aldric fight start. **The True Ending path is now wired end to end.** |
 | ~~Challenge relics' in-fight effects~~ | ✅ Implemented Aug 17, 2026 — `ALDRIC_HERO_BEAT_EFFECTS` (js/combat.js). Each of the 5 heroes now has a distinct Phase 3 beat effect (Barbarian/Gambler unchanged, Vampire/Mage/Thief new), assigned to the four HP thresholds by `computeAldricRelicAssignment()`'s fixed-priority compaction. |
 | ~~Aldric 50 HP "Use the Relics" choice~~ | ✅ Implemented Aug 17, 2026 — `showAldricMercyChoice()`/`acceptAldricMercy()`/`declineAldricMercy()` (js/combat.js). `showAldricEnding()` now gates on `G.aldricMercyChosen`, set only by actively accepting — holding the relic gate is necessary but no longer sufficient for the True Ending. |
-| 8 remaining events | Build out the 18-event pool designed in GDD.md; 10 exist as of Aug 18, 2026 (5 generic + batch 1's 5) |
+| 1 remaining event | Build out the 18-event pool designed in GDD.md; 17 exist as of Aug 18, 2026 (5 generic + batch 1's 5 + batch 3's 3 + batch 4's 4) |
 | Enemy intent consistency testing | Intent logic received April 16 improvements; verify displayed intent against actual actions before recording a Known issue. |
 | Mobile UI polish | April 16 responsive, dice, preview, and overlap work landed; continue short-height and browser-chrome verification. |
 

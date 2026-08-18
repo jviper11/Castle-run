@@ -936,6 +936,10 @@ function leavShop() { proceedDoors(); }
 function showEvent() {
   const ev = rand(EVENTS);
   showScreen('event-screen');
+  // Arm any Gold banked by an EARLIER event (Prisoner's Letter's "deliver it"). Deliberately here,
+  // as this event opens, and not at bank time — see bankEventGold() for why the two-field dance is
+  // needed to stop the banking event from paying itself.
+  armPendingEventGold(G);
   document.getElementById('event-icon').textContent = ev.icon;
   document.getElementById('event-title').textContent = ev.title;
   document.getElementById('event-desc').textContent = ev.desc;
@@ -945,7 +949,15 @@ function showEvent() {
     const el = document.createElement('div');
     el.className = 'event-choice';
     el.innerHTML = `${c.text}${c.risk ? `<div class="event-choice-risk">⚠ ${c.risk}</div>` : ''}`;
-    el.onclick = () => c.effect(G);
+    el.onclick = () => {
+      c.effect(G);
+      // Paid after the choice resolves, so the payout message lands under the choice's own.
+      // Note: a choice that refuses itself (an unaffordable price messaging and returning without
+      // proceeding) also reaches this line, so a banked payout can arrive on a refused click. That
+      // is still the correct EVENT — the player is standing in it — so the bank is not held back for
+      // a cleaner moment that may never come.
+      payPendingEventGold(G);
+    };
     ch.appendChild(el);
   });
 }
@@ -1288,6 +1300,134 @@ const EVENT_POTION_POOL = [
       done();
     } },
 ];
+
+// ── Boss-hint + deferred-payout event helpers (batch 4) ─────────────────────────────────────
+//
+// Reads the boss actually assigned to the current floor. Floor bosses are drawn from a SHUFFLED
+// copy of BOSSES per run (G.floorBosses, stamped onto each floor as `.boss` by the map builder in
+// js/game.js), so the hint has to read G.map[G.currentFloor].boss rather than any fixed ordering —
+// naming BOSSES[G.currentFloor] would be right one run in five.
+//
+// Distinct from each boss's own `.hint` field, which is the atmospheric line the boss-intro screen
+// shows. This is the concrete scouting version: who it is and how hard it hits.
+function getBossHint(g = G) {
+  const floor = g && g.map && g.map[g.currentFloor];
+  const boss = floor && floor.boss;
+  if (!boss) return null;
+  return `${boss.emoji} ${boss.name} guards Floor ${g.currentFloor + 1} — it strikes for ${boss.damage}.`;
+}
+
+// Prisoner's Letter — Gold promised now, handed over at the NEXT event.
+//
+// Two fields rather than one, because a single "pending amount" cannot distinguish "banked during
+// the event currently resolving" from "banked earlier": the payout check runs immediately after the
+// same click that created the bank, so a one-field version would pay out instantly.
+//
+//   g.pendingEventGold      — the amount owed, or 0.
+//   g._pendingEventGoldArmed — false until a LATER event is shown, true from then on.
+//
+// Lifecycle: Deliver banks (amount set, armed false) -> that event's own resolution sees armed
+// false and pays nothing -> showEvent() arms it when the next event opens -> that event's
+// resolution pays and clears. A third event finds an empty bank. If the run ends before another
+// event appears, the bank simply expires unpaid, which is the risk the choice advertises.
+const PRISONER_LETTER_GOLD = 20;
+
+function bankEventGold(g, amount) {
+  g.pendingEventGold = (g.pendingEventGold || 0) + amount;
+  g._pendingEventGoldArmed = false;
+}
+
+// Called by showEvent() as each event opens. Arms a bank created at an EARLIER event.
+function armPendingEventGold(g) {
+  if ((g.pendingEventGold || 0) > 0) g._pendingEventGoldArmed = true;
+}
+
+// Called by showEvent() right after a choice's effect runs. Pays only an armed bank.
+function payPendingEventGold(g) {
+  if (!g._pendingEventGoldArmed || (g.pendingEventGold || 0) <= 0) return 0;
+  const amount = g.pendingEventGold;
+  g.pendingEventGold = 0;
+  g._pendingEventGoldArmed = false;
+  g.gold += amount;
+  updateHUD();
+  showMsg(`✉️ The letter was worth keeping — +${amount} Gold.`);
+  return amount;
+}
+
+// ── Curse-granting event helpers (batch 3) ──────────────────────────────────────────────────
+//
+// The three curses an event can inflict at random. Curse of Weakness is deliberately EXCLUDED and
+// reserved for The Bloodied Altar's "smash" choice, which grants it by name: Weakness is the only
+// one of the four that is merely dead weight (playable, wastes 1 Energy, does nothing), so it is the
+// mild outcome a specific choice hands out rather than something a random roll can substitute for a
+// real curse. Keep this list and that one choice in step — if Weakness ever appears here, smashing
+// the Altar stops being distinguishable from robbing the Ghost.
+const CURSE_EVENT_POOL = ['curse_debt', 'curse_confusion', 'curse_binding'];
+
+// Add a Curse to the run's deck. Routed through one helper so every curse-granting event gets the
+// deck write, the Binding resolution and the acquire message identically — resolveCurseOfBinding()
+// in particular must run after the push, or a Curse of Binding sits inert until the next fight start
+// picks it up.
+function grantCurse(g, key) {
+  const card = CARDS[key];
+  if (!card || card.type !== 'Curse') return false;
+  g.deck.push(key);
+  showMsg(`${card.emoji} ${card.name} — added to your deck.`);
+  resolveCurseOfBinding(g); // no-op for the other three; assigns the victim key for Binding
+  return true;
+}
+
+function grantRandomCurse(g) {
+  return grantCurse(g, CURSE_EVENT_POOL[Math.floor(Math.random() * CURSE_EVENT_POOL.length)]);
+}
+
+// The four Rare relics that carry a built-in downside, as opposed to the clean Rares (Void Compass,
+// Crimson Phylactery, Soulbound Gauntlet…). The Merchant's Ghost sells ONLY from this list — buying
+// a cursed relic from a dead merchant should never hand over a strictly-good one.
+//
+// Deliberately does NOT use offerableRelics(): that applies GDD §9's floor gating, under which Rares
+// are Floor 3+ only, and this event's whole premise is a guaranteed tradeoff Rare at any floor. The
+// ownership filter is kept (buying a duplicate would grant nothing), the floor gate is not.
+const TRADEOFF_RELICS = ['kings_debt', 'cursed_hourglass', 'pale_contract', 'fractured_die'];
+
+function offerableTradeoffRelics(g) {
+  return TRADEOFF_RELICS.filter(k => RELICS[k] && !(g.relics || []).includes(k));
+}
+
+// Grant one random unowned tradeoff relic via the shared acquireRelic(), so the pickup side effects
+// fire — King's Debt's +60 Gold, Fractured Die's reroll loss.
+function grantTradeoffRelic(g) {
+  const pool = offerableTradeoffRelics(g);
+  if (!pool.length) return false;
+  acquireRelic(pool[Math.floor(Math.random() * pool.length)]);
+  return true;
+}
+
+// Power-type cards from the player's OWN hero pool, for The Bloodied Altar. Every hero has exactly
+// 3 (all in their rare tier), which is why this prefers keys not already in the deck but falls back
+// to allowing a duplicate rather than granting fewer than asked: a player who already owns 2 of
+// their 3 Powers would otherwise get a short reward from a choice that cost them 15 HP. Duplicate
+// card keys are legal throughout (starter decks hold several Strikes).
+function heroPowerCardPool(g) {
+  const pools = CHAR_REWARD_POOLS[g.charKey] || {};
+  return [...new Set([...(pools.common || []), ...(pools.uncommon || []), ...(pools.rare || [])])]
+    .filter(k => CARDS[k] && CARDS[k].type === 'Power');
+}
+
+function grantHeroPowerCards(g, count) {
+  const pool = heroPowerCardPool(g);
+  if (!pool.length) return [];
+  const unowned = shuffle(pool.filter(k => !g.deck.includes(k)));
+  const rest = shuffle(pool);
+  const granted = [];
+  for (let i = 0; i < count; i++) {
+    const key = unowned.length ? unowned.shift() : rest[i % rest.length];
+    g.deck.push(key);
+    granted.push(key);
+  }
+  showMsg(`🩸 Gained ${granted.map(k => CARDS[k].name).join(' and ')}!`);
+  return granted;
+}
 
 // One random pool entry, then on to the doors. The shared body of both "drink" choices.
 function drinkRandomPotion(g) {

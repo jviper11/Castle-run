@@ -14,6 +14,8 @@
 //   dbg('floor', { floor: 3 })        Floor 3 path-select, play the floor normally
 //   dbg('combat')                     a normal battle on the current//given floor
 //   dbg('elite', { floor: 2 })        an elite fight on Floor 2
+//   dbg('eventcombat')                the event-combat plumbing proof of concept (dummy enemy;
+//                                     winning returns to path select, losing is a normal game over)
 //
 // ── URL ────────────────────────────────────────────────────────────
 //   ?debug=aldric
@@ -44,6 +46,10 @@
 //                Keys: health_potion, smoke_vial, fire_flask, poison_vial, energy_crystal,
 //                scroll_of_draw, dice_stabilizer, gold_pouch, block_stone, chaos_potion
 //                (all of CONSUMABLES).
+//   curses   comma-separated Curse card keys pushed into the deck, e.g.
+//            curses=curse_debt,curse_debt,curse_binding — duplicates are meaningful (Debt scales
+//            per copy, each Binding surcharges its own card key). Keys: curse_weakness, curse_debt,
+//            curse_confusion, curse_binding.
 //   upgrades comma-separated Soul upgrade keys, e.g. upgrades=grit,second_die
 //   weak / vulnerable / chill / rage / poison / burn
 //            status stacks applied once the fight starts (weak/chill/rage/poison/burn land on
@@ -165,6 +171,22 @@
         else warn(`unknown consumable "${k}"`);
       });
     }
+    // curses=<list> — pushes Curse cards straight into G.deck. No real source exists yet (the three
+    // curse-granting events are a later batch), so this is the only way to get one. Duplicates are
+    // allowed and meaningful: Curse of Debt scales per copy, and each Curse of Binding surcharges
+    // its own card key.
+    //
+    // resolveCurseOfBinding() is called once after the whole list is pushed rather than per key, so
+    // a Binding cannot pick another Binding's own key mid-loop and every copy chooses from the final
+    // deck. It is counter-driven, so this is safe even though every fight start also calls it.
+    if (opts.curses) {
+      String(opts.curses).split(',').map(s => s.trim()).filter(Boolean).forEach(k => {
+        if (CARDS[k] && CARDS[k].type === 'Curse') G.deck.push(k);
+        else warn(`unknown curse "${k}" (expected curse_weakness, curse_debt, curse_confusion or curse_binding)`);
+      });
+      resolveCurseOfBinding(G);
+      info(`curses: deck now holds ${G.deck.filter(k => CARDS[k] && CARDS[k].type === 'Curse').length} curse card(s)`);
+    }
     if (opts.upgrades) {
       String(opts.upgrades).split(',').map(s => s.trim()).filter(Boolean).forEach(k => {
         if (SOUL_UPGRADES[k]) {
@@ -216,6 +238,17 @@
       startCombat(true);
       applyStatuses(opts);
       info(`Floor ${floorNum} elite — ${G.enemy.name}`);
+    },
+    // Event-triggered combat plumbing, proof of concept. No real event starts a fight yet, so this
+    // is the only way to reach startEventCombat(). Unlike the targets above it does NOT call
+    // showCombatScreen() first — startEventCombat() shows the combat screen itself, because its real
+    // callers will be event choices running with the event screen up.
+    // **Delete alongside DUMMY_EVENT_ENEMY once a real event supplies its own enemy.**
+    eventcombat(opts) {
+      const { floorNum } = setup(opts);
+      startDummyEventCombat();
+      applyStatuses(opts);
+      info(`Floor ${floorNum} event combat — ${G.enemy.name} (win returns to path select)`);
     },
   };
 

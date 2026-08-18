@@ -85,7 +85,7 @@ killing blow" choice — today the True Ending fires on the killing blow with th
 
 ### Dev jump tool (`js/debug.js`)
 
-Skip straight to a fight instead of replaying floors. Console: `dbg('aldric')`, `dbg('boss', {floor: 2})`, `dbg('floor', {floor: 3})`, also `bossintro`, `combat`, `elite`. URL: `?debug=aldric`, `?debug=boss&floor=2`. Options: `hero`, `floor`, `gold`, `souls`, `hp`, `cores` (4 unlocks Aldric's Phase 3), `relics=a,b`, `upgrades=a,b`, and status stacks `weak`/`chill`/`rage`/`poison`/`burn` (enemy) and `vulnerable` (player). It calls the real `newGame()` and fight-start functions, so the resulting fight is an ordinary one — there is no separate "test mode". Inert unless `?debug=` is present or a console global is called; full option list is documented at the top of the file.
+Skip straight to a fight instead of replaying floors. Console: `dbg('aldric')`, `dbg('boss', {floor: 2})`, `dbg('floor', {floor: 3})`, also `bossintro`, `combat`, `elite`, `eventcombat`. URL: `?debug=aldric`, `?debug=boss&floor=2`. Options: `hero`, `floor`, `gold`, `souls`, `hp`, `cores` (4 unlocks Aldric's Phase 3), `relics=a,b`, `upgrades=a,b`, and status stacks `weak`/`chill`/`rage`/`poison`/`burn` (enemy) and `vulnerable` (player). It calls the real `newGame()` and fight-start functions, so the resulting fight is an ordinary one — there is no separate "test mode". Inert unless `?debug=` is present or a console global is called; full option list is documented at the top of the file.
 
 ### Legacy snapshot
 
@@ -137,6 +137,11 @@ Underscore-prefixed fields implement temporary or combat-scoped effects. Relevan
   read reintroduces a bug: a counter-only gate unlocks one turn early, and a `dieLockActive()`
   branch in `startTurn()` makes the lock permanent.
 - `G._guaranteedMax`, `G._minRoll`, `G._fallacyCount`, `G._fallacyThreshold`.
+- `G._confusedCardKey` — Curse of Confusion's taxed card for the current turn. Turn-scoped, and
+  cleared at the top of `applyCurseOfConfusion()` before re-picking, so a tax can never outlive its
+  turn. Note its two run-scoped counterparts, `G.cursedCardCosts` and `G.cursedBindingsResolved`,
+  are deliberately **not** underscore-prefixed and live in the `newGame()` literal — "permanently"
+  means no fight-start function may reset them.
 - `G._hungerDmgThisTurn`.
 
 Before adding or changing one of these fields, locate every initialization, reset, read, and write. Do not assume every underscore field resets at the same lifecycle boundary.
@@ -191,6 +196,41 @@ in `js/data.js`, keyed by base card key so the `+` upgrade inherits the conditio
 `renderHand()` dims the tile and shows the reason when the condition is not met. The indicator is
 a warning only — the card stays tappable and `effect()` remains the source of truth.
 
+**Except when the entry carries `hard: true`**, which `playCard()` enforces by refusing the play
+outright via `isHardBlocked()`. Only the three unplayable Curses use it, because a Curse has no
+`effect()` worth reaching — a tappable one would spend the tap, the Energy and the play, then print
+flavour text. That refusal **must stay above** `playCard()`'s
+`getCardEnergyCost(..., { consume: true })` call, which spends the one-shot discounts (Mana Surge,
+Soulbound Gauntlet, The House Always Wins); refusing after it would let a mis-tap burn a queued free
+card. Every entry without `hard` keeps the warning-only contract exactly.
+
+### Curses
+
+Four exist; three have mechanics. Curse of Weakness is correct as-is — "does nothing" is a playable
+1-cost card with a message-only effect, so it is deliberately **absent** from `CARD_PLAY_CONDITIONS`.
+
+- **Curse of Debt** — `applyCurseOfDebt()`, 3 damage per copy in `G.deck`, at all four fight starts
+  (Aldric included). Counts `G.deck` only: `shuffleDeck()` empties `G.hand` and rebuilds
+  `G.drawPile` from the deck, so counting those too would double-count the same card. Floored at
+  1 HP via `loseHP()`'s `floorAt` — the printed text promises damage, not death, and there is no
+  counterplay or safe death path before turn 1.
+- **Curse of Binding** — `resolveCurseOfBinding()` surcharges one **card key** permanently in
+  `G.cursedCardCosts`. Key-level is forced by the data model: `G.deck` holds bare key strings with
+  no per-copy identity, so cursing a key you hold four of taxes all four (the card's text says
+  "card type" for this reason). Counter-driven via `G.cursedBindingsResolved` rather than a
+  deck-entry hook, because cards enter `G.deck` at the reward screen, the shop and events with no
+  shared chokepoint — so it is safe to call from anywhere, any number of times.
+- **Curse of Confusion** — `applyCurseOfConfusion()` sets `G._confusedCardKey` for one turn. Called
+  from `startTurn()` **after the draw, in both branches** (the Titan's Die max-draw path returns
+  early). Requires a copy in `G.hand`, not merely the deck. Excludes itself and every hard-blocked
+  card, since taxing something unplayable is a silently wasted turn.
+
+Both surcharges are read in `getCardEnergyCost()` **against the base cost, above every existing
+modifier**. That position is load-bearing: Soulbound Gauntlet, The House Always Wins and Shadow
+Artist are hard overrides to 0, so taxing afterwards would let a curse resurrect a card the game
+just promised was free. Keys are normalized with the same trailing-`+` strip
+`CARD_PLAY_CONDITIONS` uses, so upgrading cannot shake a permanent curse off.
+
 The hand-side check runs while the card is still in `G.hand`; the effect-side check runs after
 `playCard()` has removed and counted it. The two are off by one, deliberately (compare
 `wouldBeFirstCardThisTurn()` with `isFirstCardThisTurn()`). Change one, change the other.
@@ -209,6 +249,31 @@ Code presence does not prove that these layers agree.
 - Block, statuses, Powers, and enemy intent must be visible and must agree with the action that resolves.
 - Power cards provide combat-long effects and are expected to Exhaust on play when defined that way.
 - The combat loop must always reach a valid win, loss, or next-turn state.
+
+### Fight-start functions
+
+There are five: `startCombat()`, `startBossFight()`, `startAldricFight()`, `startSirCrimsonFight()`
+and `startEventCombat()`. They each re-reset the same long list of per-combat state, so **a new
+per-combat flag must be added to all of them** — the verification suites assert the hook lists stay
+paired rather than counting call sites, precisely because that list keeps growing.
+
+`startEventCombat(enemyDef, onVictory)` is for a fight started by an event choice rather than by
+walking into a room. It takes an explicit enemy object instead of drawing from a floor pool, and
+unlike `startCombat()` it calls `showScreen('combat-screen')` **itself** — its callers run with the
+event screen up, and `inCombatScreen()` reads `G._activeScreen`, so skipping that would break the
+consumable row and the out-of-combat gate for the whole fight. It sets neither `G.inBoss` nor
+`G.lastFightWasElite`, so the boss/elite reward machinery stays correctly out of the way.
+
+On victory, `checkCombatEnd()` short-circuits on `G.enemy.isEventCombat` — the same shape as the
+`isSirCrimson` branch, and for the same reason: everything after those branches assumes the fight came
+from a floor room (the gold/soul rate keys off `G.inBoss`/`G.lastFightWasElite`, the relic hooks and
+elite consumable drop assume a room fight, the Cores/Challenge block assumes `G.map`'s floor boss
+died). It plays the death VFX and then invokes `G._eventCombatVictoryCallback`, captured and cleared
+*before* the timeout so a re-entrant `checkCombatEnd()` cannot fire it twice. **The engine navigates
+nowhere on its own** — where to go next is entirely the callback's decision.
+
+**Loss has no special case at all**, deliberately: `G.hp <= 0` falls through the same first branch
+every other fight uses.
 
 ### Typical flow
 

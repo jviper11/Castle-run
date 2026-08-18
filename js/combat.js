@@ -209,6 +209,10 @@ function startAldricFight() {
   G.isFinalBoss = true;
   stageCombatStartBlock(G, false);
   applySoulCombatStart(G, false);
+  // Unconditional for Aldric, unlike the two calls above: those are gated off here by the
+  // documented relic/draw exclusion, but a Curse is a card in the deck, and the deck is the deck.
+  // Debt bleeding the player at the start of the final fight is the curse working, not a leak.
+  applyCurseCombatStart(G);
 
   showScreen('combat-screen');
   updateCombatSprites(G.charKey, 'aldric');
@@ -557,6 +561,103 @@ function roomLabel(type) {
 // COMBAT
 // ═══════════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════════
+// CURSES — the three with real mechanics (GDD Curse card rewards)
+// ═══════════════════════════════════════════════════════════════════
+// Curse of Weakness has no hook here on purpose: "Does nothing. A dead weight in your deck" is
+// already exactly what a playable 1-cost card with a message-only effect does.
+//
+// All three surcharge/damage values live here rather than inline, so the numbers the descriptions
+// print have exactly one definition.
+const CURSE_DEBT_DAMAGE = 3;       // per copy held, at the start of every combat
+const CURSE_CONFUSION_TAX = 2;     // one other card in hand, this turn only
+const CURSE_BINDING_TAX = 2;       // one card key, permanently
+
+// How many copies of `key` the run's master deck holds. G.deck is the only list that is stable at
+// fight-start time — shuffleDeck() empties G.hand and rebuilds G.drawPile from G.deck, so counting
+// hand or draw pile as well would either double-count or miss copies depending on call order.
+function countInDeck(g, key) {
+  return (g.deck || []).filter(k => String(k).replace(/\+$/, '') === key).length;
+}
+
+// Curse of Debt — "Takes 3 damage at start of combat", once per copy held. Called from all four
+// fight-start functions, so it applies to normal fights, bosses, Sir Crimson and Aldric alike: a
+// curse in the deck is a curse in every fight.
+//
+// Floored at 1 HP, deliberately. The printed text promises damage, not death, and there is no safe
+// way to die here — the player has had no chance to act, has no counterplay, and checkCombatEnd()
+// at fight-start time would run before the combat screen is built. loseHP()'s own floorAt does it,
+// so the survive-killing-blow relics are not consumed by a curse that could never have killed.
+function applyCurseOfDebt(g) {
+  const copies = countInDeck(g, 'curse_debt');
+  if (copies <= 0) return;
+  const dmg = CURSE_DEBT_DAMAGE * copies;
+  loseHP(g, dmg, 1);
+  showMsg(`⛓️ Curse of Debt — ${dmg} damage${copies > 1 ? ` (${copies} copies)` : ''}!`);
+}
+
+// Curse of Binding — each copy permanently surcharges one card KEY. See the note on curse_binding
+// in js/data.js for why this is key-level and not per-copy.
+//
+// Driven by a counter rather than a deck-entry hook: G.cursedBindingsResolved records how many
+// copies have already chosen, so this can be called from anywhere (a grant site, a fight start)
+// any number of times and still assign exactly one key per copy. There is no single chokepoint
+// where a card "enters the deck" — G.deck.push() happens at the reward screen, the shop and events
+// — so a counter sweep is what keeps this correct without a hook at every one of them.
+//
+// Candidates are the DISTINCT non-Curse base keys in the deck. Distinct matters: drawing from the
+// raw array would make a 4-copy starter four times likelier to be cursed than a singleton, on top
+// of already being four times worse to lose.
+function resolveCurseOfBinding(g) {
+  const copies = countInDeck(g, 'curse_binding');
+  let resolved = g.cursedBindingsResolved || 0;
+  if (copies <= resolved) return;
+  if (!g.cursedCardCosts) g.cursedCardCosts = {};
+  while (resolved < copies) {
+    const candidates = [...new Set((g.deck || [])
+      .map(k => String(k).replace(/\+$/, ''))
+      .filter(k => CARDS[k] && CARDS[k].type !== 'Curse'))];
+    if (!candidates.length) break; // a deck of nothing but Curses has nothing to bind
+    const victim = candidates[Math.floor(Math.random() * candidates.length)];
+    // Accumulates rather than overwrites, so two Bindings landing on the same key total +4.
+    g.cursedCardCosts[victim] = (g.cursedCardCosts[victim] || 0) + CURSE_BINDING_TAX;
+    const name = (CARDS[victim] && CARDS[victim].name) || victim;
+    showMsg(`🔗 Curse of Binding — ${name} now costs ${CURSE_BINDING_TAX} more, permanently.`);
+    resolved++;
+  }
+  g.cursedBindingsResolved = resolved;
+}
+
+// Curse of Confusion — "A random card in hand costs +2 each turn". Re-picked every turn from the
+// hand the player was just dealt, which is why startTurn() calls this AFTER its draw rather than
+// beside the other per-turn resets.
+//
+// Requires a copy in HAND, not merely in the deck: the text describes a card in hand taxing another
+// card in hand, and the curse being unplayable means it clogs that hand until end of turn discards
+// it. In the draw pile it does nothing, which is the intended difference from Binding.
+//
+// Excludes itself and every other hard-blocked card from the candidate list — taxing something that
+// cannot be played is a guaranteed no-op, which would silently waste the turn's effect.
+function applyCurseOfConfusion(g) {
+  g._confusedCardKey = null; // cleared every turn first, so a stale tax can never survive a turn
+  const holding = (g.hand || []).some(k => String(k).replace(/\+$/, '') === 'curse_confusion');
+  if (!holding) return;
+  const candidates = [...new Set((g.hand || [])
+    .map(k => String(k).replace(/\+$/, ''))
+    .filter(k => CARDS[k] && k !== 'curse_confusion' && !isHardBlocked(g, k)))];
+  if (!candidates.length) return; // nothing else playable in hand — no tax rather than a self-tax
+  g._confusedCardKey = candidates[Math.floor(Math.random() * candidates.length)];
+  const name = (CARDS[g._confusedCardKey] && CARDS[g._confusedCardKey].name) || g._confusedCardKey;
+  showMsg(`🌀 Curse of Confusion — ${name} costs ${CURSE_CONFUSION_TAX} more this turn!`);
+}
+
+// Shared fight-start entry point for the deck-scanning curses, so the four fight-start functions
+// each gain one call rather than two.
+function applyCurseCombatStart(g) {
+  resolveCurseOfBinding(g); // safety net — a grant site may already have resolved it
+  applyCurseOfDebt(g);
+}
+
 // Spend the extra card draws banked outside combat (The Broken Clock's "wind it", and the same
 // entry in EVENT_POTION_POOL — see js/ui.js). Called from startCombat(), startBossFight() and
 // startSirCrimsonFight() immediately after each resets G.extraDraw to 0, so the bank survives that
@@ -685,6 +786,7 @@ function startCombat(isElite) {
   if (hasRelic('cursed_hourglass')) { G.extraDraw += 2; G.maxHandSize = 4; }
   stageCombatStartBlock(G);
   applySoulCombatStart(G);
+  applyCurseCombatStart(G);
 
   updateCombatSprites(G.charKey, null);
   document.getElementById('player-name').textContent = G.char.name.toUpperCase();
@@ -788,6 +890,7 @@ function startBossFight() {
   if (hasRelic('cursed_hourglass')) { G.extraDraw += 2; G.maxHandSize = 4; }
   stageCombatStartBlock(G);
   applySoulCombatStart(G);
+  applyCurseCombatStart(G);
 
   showScreen('combat-screen');
   document.getElementById('player-sprite').textContent = G.char.emoji;
@@ -871,6 +974,7 @@ function startSirCrimsonFight() {
   if (hasRelic('cursed_hourglass')) { G.extraDraw += 2; G.maxHandSize = 4; }
   stageCombatStartBlock(G);
   applySoulCombatStart(G);
+  applyCurseCombatStart(G);
 
   showScreen('combat-screen');
   document.getElementById('player-sprite').textContent = G.char.emoji;
@@ -882,6 +986,110 @@ function startSirCrimsonFight() {
   shuffleDeck();
   startTurn();
   renderAll();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// EVENT-TRIGGERED COMBAT — shared plumbing
+// ═══════════════════════════════════════════════════════════════════
+//
+// A fight started by an event choice rather than by walking into a battle room. Modeled on
+// startCombat() for all the per-combat state resets, but takes an explicit enemy object instead of
+// drawing from a floor pool, and hands control back to a caller-supplied callback on victory instead
+// of running the normal reward chain.
+//
+// `enemyDef` needs at minimum { name, emoji, hp, damage }. Everything else is filled in below.
+// `onVictory` is invoked once, after the death VFX, by checkCombatEnd()'s isEventCombat branch.
+//
+// Two things this deliberately does NOT do, both because none of it applies to an event fight:
+//   • No gold/soul/relic-hook/Cores chain on victory — see the isEventCombat short-circuit in
+//     checkCombatEnd(), which mirrors the isSirCrimson one.
+//   • No G.inBoss. Unlike Sir Crimson (who sets it for boss-level difficulty and gets away with it
+//     only because his short-circuit returns before every G.inBoss-gated read), an event fight has
+//     no reason to claim boss status, so the reward-window helpers stay correctly false.
+//
+// LOSS is deliberately unhandled: G.hp <= 0 falls through checkCombatEnd()'s first branch, the same
+// one every other fight in the game uses. An event fight is as lethal as any other.
+function startEventCombat(enemyDef, onVictory) {
+  if (!enemyDef) return;
+
+  const e = {
+    reward: 0, souls: 0,   // never read — the isEventCombat branch returns before the gold/soul
+                           // chain — but kept explicit for honesty, as Sir Crimson's are
+    intent: 'attack',
+    block: 0,
+    ...enemyDef,
+    maxHp: enemyDef.maxHp || enemyDef.hp,
+    turnCount: 0,          // endTurn() STEP 5 increments this for `trigger:'turn'` specials
+    isEventCombat: true,   // checkCombatEnd()'s short-circuit to the onVictory hand-off
+  };
+  G.enemy = e;
+
+  // Assigned unconditionally, even when the caller passes nothing: a previous event fight's callback
+  // must never be able to fire for this one.
+  G._eventCombatVictoryCallback = typeof onVictory === 'function' ? onVictory : null;
+
+  G.block = 0;
+  G.statuses = { player: [], enemy: [] };
+  G.exhaustedPile = [];
+  G.inBoss = false;
+  G.isFinalBoss = false;
+  G.lastFightWasElite = false;   // keeps the elite-only hooks and the Void Compass screen out
+  G._voidCompassOffered = false;
+  G.phantomBladeFired = false;
+  G.extraDraw = 0;
+  spendPendingExtraDraw();
+  G.startingDrawCount = 5;
+  G.maxHandSize = 8;
+  G.cardsPlayedThisCombat = 0;
+  G.turn = 0;
+  G._challenge = null;           // Challenges are floor-boss only
+  G._ashenCrownFired = false;
+  G._leyLineCrystalUsed = false; // once per combat — see startAldricFight for the full lifecycle note
+  G._diceLockTurnsRemaining = 0; // Dice Stabilizer — see startAldricFight for the scope note
+  G._dieLockedThisTurn = false;
+  restoreLoadedCoatDie();        // Loaded Coat — see startAldricFight for the full lifecycle note
+  G._loadedCoatUsed = false;
+  G._hitExtremeThisTurn = true;  // Midnight Hunger — see startAldricFight for the sentinel note
+  G._maxRollStreak = 0;          // The House Always Wins — see startAldricFight for the reset note
+  G._houseAlwaysWinsFreeCard = false;
+  G._nextRollBonus = 0;
+  // Relic hooks — start of combat. Included in full: an event fight is a real fight, and a player
+  // holding Iron Vambrace should start it with Block like any other.
+  if (hasRelic('cracked_hourglass')) { G.rerollUsed = false; G.rerollsLeft = rerollAllowance(); }
+  if (hasRelic('rusted_chain')) G.statuses.enemy.push({ name:'🫗Vulnerable', stacks:1 });
+  if (hasRelic('torn_page')) G.extraDraw += 1;
+  if (hasRelic('cursed_hourglass')) { G.extraDraw += 2; G.maxHandSize = 4; }
+  stageCombatStartBlock(G);
+  applySoulCombatStart(G);
+  applyCurseCombatStart(G);
+
+  // Shown here rather than left to the caller, unlike startCombat() (whose two call sites both call
+  // showCombatScreen() first). An event choice runs with the event screen up, so without this the
+  // fight would resolve invisibly — and inCombatScreen() reads G._activeScreen, so the consumable
+  // row and the out-of-combat gate would both be wrong for the whole fight.
+  showScreen('combat-screen');
+  updateCombatSprites(G.charKey, null);
+  document.getElementById('player-name').textContent = G.char.name.toUpperCase();
+  document.getElementById('enemy-sprite').textContent = e.emoji;
+  document.getElementById('enemy-name').textContent = e.name.toUpperCase();
+  document.getElementById('enemy-sprite').classList.remove('dying');
+
+  shuffleDeck();
+  startTurn();
+  renderAll();
+}
+
+// Throwaway proof-of-concept enemy for this batch. Simple stats, no `special`, no `moves` — it
+// exercises the plumbing (custom enemy in, victory callback out) without committing to any of the
+// four real events' designs. Reachable only through js/debug.js's `eventcombat` target.
+// **Delete this and its debug target once a real event supplies its own enemy.**
+const DUMMY_EVENT_ENEMY = { name: 'Practice Dummy', emoji: '🎯', hp: 30, block: 0, damage: 6 };
+
+function startDummyEventCombat() {
+  startEventCombat(DUMMY_EVENT_ENEMY, () => {
+    showMsg('🎯 Practice Dummy defeated — event combat plumbing works.', 4000);
+    showPathSelect();
+  });
 }
 
 function startTurn() {
@@ -1032,6 +1240,10 @@ function startTurn() {
   if (activeDieData.bonus === 'max_draw' && roll === activeDieData.max) {
     drawCards(G, 6 + (G.extraDraw || 0), { turnStart: true });
     drawBattleDrum();
+    // Curse of Confusion picks from the hand that was just dealt, so it has to run after every draw
+    // this turn — including here, in the Titan's Die max-draw branch that returns early. Same
+    // both-branches reason as drawBattleDrum() above.
+    applyCurseOfConfusion(G);
     renderAll();
     updateIntent();
     return;
@@ -1039,6 +1251,7 @@ function startTurn() {
 
   drawCards(G, (G.startingDrawCount || 5) + (G.extraDraw || 0), { turnStart: true });
   drawBattleDrum();
+  applyCurseOfConfusion(G);
   renderAll();
   updateIntent();
 }
@@ -1593,6 +1806,24 @@ function getCardEnergyCost(g, cardKey, options = {}) {
   const consume = !!options.consume;
   let cost = card.cost;
 
+  // ── Curse surcharges, applied to the BASE cost before every modifier below ──
+  //
+  // Position is deliberate and load-bearing. Three of the modifiers below (Soulbound Gauntlet,
+  // The House Always Wins, Shadow Artist) are hard overrides to 0, not discounts. Taxing AFTER them
+  // would let a surcharge resurrect a card the game had just promised was free — a "next card free"
+  // effect would hand back a card costing 2. Taxing first means the tax is simply part of what the
+  // card costs, and every discount and free-card effect then applies on top, unchanged.
+  //
+  // It also matters for Mana Surge's floored -1: a 0-cost card taxed to 2 becomes 1 (tax first),
+  // where taxing afterwards would waste the discount on the floor and leave it at 2.
+  //
+  // Keys normalized the same way CARD_PLAY_CONDITIONS is, so a '+' upgrade inherits the surcharge
+  // and the player cannot upgrade their way out of a permanent curse.
+  const baseKey = String(cardKey).replace(/\+$/, '');
+  cost += (g.cursedCardCosts && g.cursedCardCosts[baseKey]) || 0;
+  // Curse of Confusion — this turn's single taxed card. Turn-scoped, re-picked by startTurn().
+  if (g._confusedCardKey && g._confusedCardKey === baseKey) cost += CURSE_CONFUSION_TAX;
+
   // Mana Surge — the next card played after it costs 1 less
   if (g._manaSurge && cardKey !== 'manasurge') {
     cost = Math.max(0, cost - 1);
@@ -1623,6 +1854,19 @@ function getCardEnergyCost(g, cardKey, options = {}) {
 function playCard(cardKey) {
   const card = CARDS[cardKey];
   if (!card) return;
+
+  // Hard-blocked cards (CARD_PLAY_CONDITIONS entries flagged `hard`, i.e. the three unplayable
+  // Curses) are refused outright. renderHand() already dims them, but that indicator is documented
+  // as a warning only, so without this the tap would go through: the play would be counted, the
+  // Energy spent, and a Curse's flavour-text effect() would run as if it had done something.
+  //
+  // MUST stay above the getCardEnergyCost({consume:true}) call below. That call spends the one-shot
+  // discounts — Mana Surge, Soulbound Gauntlet's free card, The House Always Wins' free card — so
+  // refusing after it would let a mis-tap on an unplayable Curse silently burn a queued free card.
+  if (isHardBlocked(G, cardKey)) {
+    showMsg(`🚫 ${card.name} — ${getCardBlockReason(G, cardKey)}`);
+    return;
+  }
 
   // The only place a card's key is recorded anywhere G is reachable from. dealDamage() has no
   // cardKey parameter — threading one through every card effect's dealDamage(g,'enemy',...) call
@@ -2607,6 +2851,34 @@ function checkCombatEnd() {
       setTimeout(() => {
         G._sirCrimsonFought = true;
         showSirCrimsonOutro();
+      }, 700);
+      return;
+    }
+
+    // Event-triggered combat (startEventCombat) — same shape as the Sir Crimson short-circuit
+    // directly above, and for the same reason: everything below assumes the fight came from a floor
+    // room. The gold/soul rate is keyed to G.inBoss/G.lastFightWasElite, the relic hooks and elite
+    // consumable drop assume a room fight, and the Cores/Challenge block assumes G.map's floor boss
+    // just died. An event fight is none of those, so it skips the lot and hands control to whatever
+    // the event asked to happen next.
+    //
+    // Differs from Sir Crimson's branch in one deliberate respect: it calls restoreLoadedCoatDie().
+    // This is a genuine combat end, and Aldric's win path restores the die too. (Sir Crimson's
+    // omission is pre-existing and self-healing, since every fight-start function restores it as
+    // well — but a swapped die would still show on the map screen in between, so this does it here.)
+    if (G.enemy.isEventCombat) {
+      // Captured and cleared BEFORE the timeout so the callback cannot fire twice if checkCombatEnd()
+      // is re-entered while the death animation is still playing.
+      const onVictory = G._eventCombatVictoryCallback;
+      G._eventCombatVictoryCallback = null;
+      restoreLoadedCoatDie();
+      const enemySprite = document.getElementById('enemy-sprite');
+      spawnDeathBurstVFX(enemySprite);
+      enemySprite.classList.add('dying');
+      updateHUD();
+      renderAll();
+      setTimeout(() => {
+        if (onVictory) onVictory();
       }, 700);
       return;
     }

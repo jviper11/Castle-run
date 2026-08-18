@@ -44,6 +44,20 @@ function newGame(charKey) {
     // that must survive between rooms, exactly like mapBlind directly above, not per-combat state.
     // G.extraDraw cannot hold it — every fight-start function resets that to 0.
     pendingExtraDraw: 0,
+    // Gold promised by one event and handed over at the NEXT one (Prisoner's Letter's "deliver it").
+    // Run-scoped and un-prefixed for the same reason as pendingExtraDraw above: it must survive
+    // between rooms. See bankEventGold() in js/ui.js for why the armed flag is a separate field.
+    pendingEventGold: 0,
+    // Curse of Binding — permanent per-CARD-KEY Energy surcharges, read by getCardEnergyCost().
+    // Run-scoped and un-prefixed like pendingExtraDraw above, because "permanently costs 2 more"
+    // has to outlive every combat; no fight-start function may reset it.
+    // Keys are normalized to the base key (trailing '+' stripped), so upgrading a cursed card does
+    // not shake the surcharge off.
+    cursedCardCosts: {},
+    // How many Curse of Binding copies have already chosen their victim. Compared against the
+    // number of copies actually in the deck, so resolveCurseOfBinding() can be called from
+    // anywhere, any number of times, and still assign exactly one key per copy.
+    cursedBindingsResolved: 0,
     // Sir Crimson mid-run story beats (GDD §5) — each fires exactly once per run, so unlike the
     // per-combat "_xOffered" flags (reset in startCombat()/startBossFight()), these belong in the
     // newGame() literal itself, alongside _vitalityBuys above, the other field that must survive
