@@ -38,6 +38,12 @@ function newGame(charKey) {
     floorBosses: shuffledBosses,
     cores: [],
     mapBlind: 0,
+    // Banked extra card draws owed to the NEXT fight to start — The Broken Clock event's "wind it",
+    // and the same effect in the event potion pool (js/ui.js). Deliberately un-prefixed and declared
+    // here rather than underscore-prefixed like the combat flags: this is run-scoped pending state
+    // that must survive between rooms, exactly like mapBlind directly above, not per-combat state.
+    // G.extraDraw cannot hold it — every fight-start function resets that to 0.
+    pendingExtraDraw: 0,
     // Sir Crimson mid-run story beats (GDD §5) — each fires exactly once per run, so unlike the
     // per-combat "_xOffered" flags (reset in startCombat()/startBossFight()), these belong in the
     // newGame() literal itself, alongside _vitalityBuys above, the other field that must survive

@@ -535,6 +535,9 @@ function getMagicHint(type, floor) {
     shop: 'The scent of candle wax and gold drifts from beneath.',
     rest: 'Warm orange light bleeds under the door.',
     die_reward: 'A faint rattle, like dice waiting to be claimed.',
+    // 'boss' is unreachable through a Magic Door (showDoors never assigns it), so this entry exists
+    // for The Gambler's Dice tip in js/data.js, which can look one room past the end of a path.
+    boss: 'Something enormous breathes on the other side. It is waiting for you.',
   };
   return hints[type] || null;
 }
@@ -553,6 +556,25 @@ function roomLabel(type) {
 // ═══════════════════════════════════════════════════════════════════
 // COMBAT
 // ═══════════════════════════════════════════════════════════════════
+
+// Spend the extra card draws banked outside combat (The Broken Clock's "wind it", and the same
+// entry in EVENT_POTION_POOL — see js/ui.js). Called from startCombat(), startBossFight() and
+// startSirCrimsonFight() immediately after each resets G.extraDraw to 0, so the bank survives that
+// reset and then simply sums with the relic bonuses applied further down (torn_page,
+// cursed_hourglass). Zeroed on spend, which is what makes it exactly-once.
+//
+// Deliberately NOT called from startAldricFight(): that function is the one fight-start that never
+// resets G.extraDraw at all, because Aldric inherits the Floor 3 boss fight's value by design (see
+// the applySoulCombatStart note below). Calling this there would add the bank a second time on top
+// of the value it inherited. A bank cannot survive unspent into Aldric anyway — the Floor 3 boss
+// always sits between an event room and the final fight, and spends it.
+function spendPendingExtraDraw() {
+  const banked = G.pendingExtraDraw || 0;
+  if (banked <= 0) return;
+  G.extraDraw += banked;
+  G.pendingExtraDraw = 0;
+  showMsg(`🕰️ Wound clock — +${banked} card this battle!`);
+}
 
 // Soul-upgrade hooks that fire at the start of every combat (GDD §15). Called from
 // startCombat(), startBossFight() and startAldricFight() so the run-long upgrades apply to
@@ -636,6 +658,7 @@ function startCombat(isElite) {
   G._voidCompassOffered = false; // Void Compass post-elite relic reward fires once per fight
   G.phantomBladeFired = false;
   G.extraDraw = 0;
+  spendPendingExtraDraw();
   G.startingDrawCount = 5;   // cards drawn at the start of each turn
   G.maxHandSize = 8;         // cap that in-turn draw effects can fill up to
   G.cardsPlayedThisCombat = 0;
@@ -741,6 +764,7 @@ function startBossFight() {
                                // Compass) don't misfire on a boss that follows an elite
   G.phantomBladeFired = false;
   G.extraDraw = 0;
+  spendPendingExtraDraw();
   G.startingDrawCount = 5;   // cards drawn at the start of each turn
   G.maxHandSize = 8;         // cap that in-turn draw effects can fill up to
   G.cardsPlayedThisCombat = 0;
@@ -826,6 +850,7 @@ function startSirCrimsonFight() {
   G.lastFightWasElite = false;
   G.phantomBladeFired = false;
   G.extraDraw = 0;
+  spendPendingExtraDraw();
   G.startingDrawCount = 5;
   G.maxHandSize = 8;
   G.cardsPlayedThisCombat = 0;

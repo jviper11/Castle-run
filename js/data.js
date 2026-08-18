@@ -914,6 +914,94 @@ const EVENTS = [
       { text:'Leave it', risk:'', effect:(g)=>proceedDoors() },
     ]
   },
+
+  // ── Batch 1 (Aug 18, 2026) — five events built entirely from existing mechanics. ──
+  //
+  // Conventions every choice here follows, matching the five generic events above:
+  //   • Every effect ends the event exactly once — either by calling proceedDoors() itself, or by
+  //     handing off to giveReward()/showReward(), which own the transition. Never both.
+  //   • A choice that cannot be afforded shows a message and RETURNS WITHOUT proceeding, leaving
+  //     the event screen live so the player can pick a different choice. Event choices have no
+  //     render-time affordability gating, so the check has to live in the effect.
+  //   • Gold the player agrees to pay goes through spendGold() (the shared chokepoint that feeds
+  //     Devil's Ledger); Gold gained is a plain `g.gold +=`, matching every existing gain site.
+  {
+    icon:'🏛️', title:'The Shrine of Ash',
+    desc:'A cracked shrine buried in grey ash. It accepts payment in blood, or in gold, or it can simply be broken open.',
+    choices:[
+      // loseHP(..., 1) rather than dealDamage(): floored at 1 HP so a shrine cannot end the run.
+      // The Offering above deliberately keeps its unfloored dealDamage() — that event's whole
+      // framing is a gamble with your life, this one is a transaction.
+      { text:'Offer your blood — take a card', risk:'Cost: 15 HP', effect:(g)=>{ loseHP(g,15,1); updateHUD(); showMsg('🏛️ The ash drinks deeply.'); giveReward(g,'card','rare'); } },
+      { text:'Offer 20 Gold — restore 20 HP', risk:'Cost: 20 Gold', effect:(g)=>{
+          if (g.gold < 20) { showMsg('Not enough gold — the shrine is unmoved.'); return; }
+          spendGold(g,20); healPlayer(g,20); updateHUD(); showMsg('🏛️ +20 HP for 20 Gold.'); setTimeout(proceedDoors,800);
+        } },
+      { text:'Break it open — take its relic', risk:'', effect:(g)=>giveReward(g,'relic') },
+    ]
+  },
+  {
+    // Icon is 🦴, not 🎲: The Gambler's Curse above already uses 🎲, and two events sharing an icon
+    // read as the same event recurring. The titles are close enough as it is.
+    icon:'🦴', title:"The Gambler's Dice",
+    desc:'A skeletal hand rattles two dice in a cup and waits. "Fifty gold says the bones like you."',
+    choices:[
+      { text:'Bet 50 Gold — double or nothing', risk:'50% chance to lose it', effect:(g)=>{
+          if (g.gold < 50) { showMsg('Not enough gold — the hand withdraws.'); return; }
+          spendGold(g,50);
+          // The 50 is taken first, so a win pays 100 back for a net +50 and a loss simply keeps it.
+          if (Math.random() < 0.5) { g.gold += 100; showMsg('🦴 The bones like you — +50 Gold net!'); }
+          else { showMsg('🦴 The bones do not like you. 50 Gold gone.'); }
+          updateHUD(); setTimeout(proceedDoors,900);
+        } },
+      { text:'Pass', risk:'', effect:(g)=>proceedDoors() },
+      // Proceeds like every other choice rather than staying open: a non-terminal choice could be
+      // clicked repeatedly, paying 20 Gold each time for the identical hint.
+      { text:'Buy a tip (20 Gold)', risk:'Cost: 20 Gold', effect:(g)=>{
+          if (g.gold < 20) { showMsg('Not enough gold for a tip.'); return; }
+          spendGold(g,20); updateHUD();
+          const tip = nextRoomTip(g);
+          // Held long, like the die-grant toast: the log is body-level and survives the screen
+          // change, so the tip stays readable on the door screen it describes.
+          showMsg(tip ? `🔮 ${tip}` : '🔮 The bones say nothing useful.', 5000);
+          setTimeout(proceedDoors,900);
+        } },
+    ]
+  },
+  {
+    icon:'🕰️', title:'The Broken Clock',
+    desc:'A grandfather clock, hands frozen at midnight. Something inside it is still ticking.',
+    choices:[
+      // Banks into G.pendingExtraDraw, spent by spendPendingExtraDraw() at the next fight start.
+      { text:'Wind it — draw 1 extra card next battle', risk:'', effect:(g)=>{
+          g.pendingExtraDraw = (g.pendingExtraDraw || 0) + 1;
+          showMsg('🕰️ The clock winds tight. You will see one more card next battle.');
+          setTimeout(proceedDoors,900);
+        } },
+      { text:'Smash it open (+20 Gold)', risk:'', effect:(g)=>{ g.gold += 20; updateHUD(); showMsg('🕰️ +20 Gold in loose brass.'); setTimeout(proceedDoors,800); } },
+      { text:'Leave it ticking', risk:'', effect:(g)=>proceedDoors() },
+    ]
+  },
+  {
+    icon:'🍾', title:'The Cellar of Bottles',
+    desc:'Racks of unlabelled bottles line the walls, floor to ceiling. A few of them are moving.',
+    choices:[
+      { text:'Drink one', risk:'Unknown effect', effect:(g)=>drinkRandomPotion(g) },
+      // Three grants, chained one at a time — see grantConsumablesSequentially() for why a loop
+      // would silently drop bottles once the inventory is partly full.
+      { text:'Take three bottles', risk:'', effect:(g)=>takeThreeBottles(g) },
+      { text:'Leave the cellar', risk:'', effect:(g)=>proceedDoors() },
+    ]
+  },
+  {
+    icon:'⚗️', title:'Abandoned Laboratory',
+    desc:'Someone was working here and left in a hurry. A half-full flask sits beside a page of notes.',
+    choices:[
+      { text:'Drink the flask', risk:'Unknown effect', effect:(g)=>drinkRandomPotion(g) },
+      { text:'Take notes — upgrade a random card', risk:'', effect:(g)=>upgradeRandomDeckCard(g) },
+      { text:'Leave it all', risk:'', effect:(g)=>proceedDoors() },
+    ]
+  },
 ];
 
 // Static shop stock — cards and the die. Consumable stock is NOT listed here: it is generated per

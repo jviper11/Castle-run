@@ -605,9 +605,13 @@ function showShop() {
   // Gold
   document.getElementById('shop-gold-display').textContent = G.gold;
 
-  // Update remove button label with current price (kings_debt aware)
+  // Card-service button labels, both priced live so King's Debt shows on the button rather than
+  // only surfacing at the till. Each label reads the same shopCost(base) its own modal resolves,
+  // which is what keeps the two buttons from drifting apart or from their own modals.
   const removeBtnEl = document.getElementById('shop-remove-btn');
   if (removeBtnEl) removeBtnEl.textContent = `🗑 Remove Card (${shopCost(75)}🪙)`;
+  const upgradeBtnEl = document.getElementById('shop-upgrade-btn');
+  if (upgradeBtnEl) upgradeBtnEl.textContent = `✨ Upgrade Card (${shopCost(80)}🪙)`;
 
   // Items
   const items = document.getElementById('shop-items');
@@ -840,9 +844,10 @@ function showShopRemove() {
   document.getElementById('shop-remove-modal').style.display = 'block';
 }
 
-// NOTE: this function currently has no caller — the shop's "Card services" row holds only
-// #shop-remove-btn, so the upgrade modal is unreachable in the active build even though its markup
-// exists in index.html. The pricing below is still the live price if a button is ever added.
+// Reached from #shop-upgrade-btn in the shop's "Card services" row, alongside #shop-remove-btn.
+// This is the paid second entry point to the Rest stop's free card upgrade — both perform the
+// upgrade with the shared upgradeCard() in js/data.js, so the mechanic itself has exactly one
+// implementation and only the framing (cost, picker UI, what happens afterwards) differs.
 function showShopUpgrade() {
   // Routed through shopCost() like every other shop spend. It was a flat 80 at all three points
   // (the gate, the message and the charge), so King's Debt inflated card removal, relics, dice and
@@ -876,9 +881,17 @@ function showShopUpgrade() {
       </div>
     `;
     el.onclick = () => {
+      // upgradeCard() is the shared mechanic the Rest stop already uses, rather than an inline
+      // deck splice. Two reasons it matters here:
+      //   • It also swaps the key in G.drawPile and G.hand when present, which the old inline
+      //     splice did not. Irrelevant to a shop visit (shuffleDeck() rebuilds both next combat),
+      //     but it means "upgrade a card" now has one definition instead of two that could drift.
+      //   • It returns a boolean, so Gold is spent only when the upgrade actually happened. The
+      //     old code called spendGold() first and then spliced blind: had the key been missing,
+      //     `G.deck.splice(-1, 1, ...)` would have replaced the LAST card in the deck instead,
+      //     and charged for it. Unreachable through this UI, but paid-for-nothing by construction.
+      if (!upgradeCard(key)) return;   // upgradeCard() messages its own failure reason
       spendGold(G, cost);
-      const idx = G.deck.indexOf(key);
-      G.deck.splice(idx, 1, key + '+');
       document.getElementById('shop-gold-display').textContent = G.gold;
       updateHUD();
       showMsg(`✨ ${cu.name} — upgraded!`);
@@ -1193,9 +1206,156 @@ function giveReward(g, type, rarity) {
     } else {
       proceed();
     }
+  } else if (type === 'relic') {
+    // Event relic grant, same grant-message-proceed shape as the two branches above.
+    //
+    // This branch had to exist rather than reusing the fall-through: `giveReward(g,'relic')` would
+    // otherwise land in showReward() below and offer a CARD, silently granting the wrong reward
+    // type. Deliberately a direct single grant via acquireRelic() (the shared pickup, so Ivory
+    // Die / Hollow Throne / King's Debt side effects fire) rather than a 1-of-3 picker screen —
+    // the elite and boss relic screens own that presentation, and an event choice the player has
+    // already committed to should resolve, not open another chooser.
+    //
+    // offerableRelics() supplies ownership filtering, the unimplemented-relic exclusion and GDD §9
+    // floor gating, so a Floor 1 event cannot hand out a Rare. It returns [key, relic] entries.
+    const relicPool = offerableRelics(g);
+    if (relicPool.length) {
+      acquireRelic(relicPool[Math.floor(Math.random() * relicPool.length)][0]);
+    } else {
+      showMsg('Nothing of value remains here.');
+    }
+    setTimeout(proceedDoors, 800);
   } else {
     showReward();
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// EVENT HELPERS (batch 1)
+// ═══════════════════════════════════════════════════════════════════
+// Shared "drink the unlabelled bottle" pool, used by both The Cellar of Bottles and Abandoned
+// Laboratory (js/data.js). Lives here rather than in data.js for the same reason CONSUMABLES does:
+// every entry is a call into run-state functions defined in this file and js/combat.js.
+//
+// EVERY ENTRY CHANGES RUN-PERSISTENT STATE ONLY. No entry applies a status, and that is a hard
+// constraint rather than a stylistic choice: all four fight-start functions assign
+// `G.statuses = { player: [], enemy: [] }` fresh, so a Weak/Rage/Chill/Vulnerable applied at an
+// event is wiped before the next fight can read it — it would be a guaranteed no-op, not merely an
+// edge case. Curse cards are excluded for the same reason: js/data.js records that all four
+// "do nothing or self-only", so their printed downsides ("Unplayable", "3 damage at combat start")
+// are unimplemented and adding one would grant a near-blank card.
+//
+// Effects therefore stay in the categories that genuinely survive a room transition: HP, Max HP,
+// Gold, the pendingExtraDraw bank, and the consumable inventory.
+//
+// `apply(g, done)` MUST call done() exactly once, on every path. The consumable entry resolves
+// asynchronously when the inventory is full (grantConsumable() opens the swap prompt), which is why
+// the whole pool is written to a callback contract instead of returning.
+const EVENT_POTION_POOL = [
+  { good: true,  label: 'a warmth spreads through you',        apply: (g, done) => { healPlayer(g, 15); showMsg('🧪 +15 HP!'); done(); } },
+  { good: true,  label: 'you feel permanently hardier',        apply: (g, done) => { g.maxHp += 5; healPlayer(g, 5); showMsg('🧪 +5 Max HP!'); done(); } },
+  { good: true,  label: 'the dregs are flecked with gold',     apply: (g, done) => { g.gold += 30; updateHUD(); showMsg('🧪 +30 Gold!'); done(); } },
+  { good: true,  label: 'your thoughts sharpen',               apply: (g, done) => { g.pendingExtraDraw = (g.pendingExtraDraw || 0) + 1; showMsg('🧪 +1 card next battle!'); done(); } },
+  { good: true,  label: 'something solid rolls into your hand', apply: (g, done) => {
+      // Floor-gated by the shared helper, like every other consumable source. onDone carries the
+      // swap-prompt case: at 3/3 the player is asked what to discard, and done() must wait for that
+      // answer or the event's screen change would orphan the prompt.
+      const pool = offerableConsumables('event', g);
+      if (!pool.length) { showMsg('🧪 ...nothing but sediment.'); done(); return; }
+      grantConsumable(pool[Math.floor(Math.random() * pool.length)], { onDone: () => done() });
+    } },
+  // Floored at 1 HP: an event is not a fight, and a random potion killing the run outright is a
+  // different kind of event from the one these two are written as. loseHP()'s own floorAt does it.
+  { good: false, label: 'it burns going down',                 apply: (g, done) => { loseHP(g, 10, 1); updateHUD(); showMsg('🧪 -10 HP!'); done(); } },
+  { good: false, label: 'you feel hollowed out',               apply: (g, done) => {
+      // Mirrors hollow_throne's own Max HP reduction, including the current-HP clamp, and refuses
+      // to drop maxHp to a level that would leave the run unwinnable at 1.
+      const drop = Math.min(5, Math.max(0, g.maxHp - 10));
+      g.maxHp -= drop;
+      g.hp = Math.min(g.hp, g.maxHp);
+      updateHUD();
+      showMsg(drop > 0 ? `🧪 -${drop} Max HP!` : '🧪 ...it tastes of nothing.');
+      done();
+    } },
+  { good: false, label: 'your purse feels lighter',            apply: (g, done) => {
+      // Not spendGold(): that chokepoint is for prices the player agreed to pay, and it feeds
+      // Devil's Ledger's "Gold spent this run" total. A potion stealing Gold is a loss, not a
+      // purchase, so it must not score toward a relic that rewards spending.
+      const lost = Math.min(25, g.gold);
+      g.gold -= lost;
+      updateHUD();
+      showMsg(lost > 0 ? `🧪 -${lost} Gold!` : '🧪 ...you had nothing to lose.');
+      done();
+    } },
+];
+
+// One random pool entry, then on to the doors. The shared body of both "drink" choices.
+function drinkRandomPotion(g) {
+  const pick = EVENT_POTION_POOL[Math.floor(Math.random() * EVENT_POTION_POOL.length)];
+  showMsg(`🍾 You drink — ${pick.label}...`);
+  pick.apply(g, () => setTimeout(proceedDoors, 900));
+}
+
+// Grant several consumables one at a time, each waiting for the previous to finish. Sequencing is
+// required, not cosmetic: grantConsumable() refuses outright while a swap prompt is already open
+// (its re-entrancy guard), so firing three grants in a loop at a partly-full inventory would open
+// one prompt and silently drop the rest. Chaining through onDone gives the player one prompt per
+// bottle instead.
+function grantConsumablesSequentially(keys, done) {
+  let i = 0;
+  const next = () => {
+    if (i >= keys.length) { if (done) done(); return; }
+    const key = keys[i++];
+    grantConsumable(key, { onDone: next });
+  };
+  next();
+}
+
+// The Cellar's "take three bottles". Draws with replacement, so duplicates are possible and fine —
+// consumables are stackable.
+function takeThreeBottles(g) {
+  const pool = offerableConsumables('event', g);
+  if (!pool.length) { showMsg('The racks are empty.'); setTimeout(proceedDoors, 800); return; }
+  const picks = [0, 1, 2].map(() => pool[Math.floor(Math.random() * pool.length)]);
+  grantConsumablesSequentially(picks, () => setTimeout(proceedDoors, 800));
+}
+
+// Abandoned Laboratory's "take notes". Upgrades one random upgradeable card via the shared
+// upgradeCard(), the same mechanic the Rest stop and the shop both use. Eligibility is tested with
+// CARD_UPGRADES[k], matching the Rest stop; a deck of nothing but already-upgraded cards is a real
+// state, so it is handled rather than assumed away.
+function upgradeRandomDeckCard(g) {
+  const upgradeable = [...new Set(g.deck.filter(k => !k.endsWith('+') && CARD_UPGRADES[k]))];
+  if (!upgradeable.length) {
+    showMsg('The notes describe nothing your deck can still learn.');
+    setTimeout(proceedDoors, 900);
+    return;
+  }
+  const key = upgradeable[Math.floor(Math.random() * upgradeable.length)];
+  const name = (CARDS[key] && CARDS[key].name) || key;
+  if (upgradeCard(key)) {
+    const upgraded = (CARD_UPGRADES[key] && CARD_UPGRADES[key].name) || (key + '+');
+    showMsg(`📓 ${name} → ${upgraded}!`);
+  }
+  setTimeout(proceedDoors, 900);
+}
+
+// The Gambler's Dice "buy a tip". Reads the room the player is about to walk into: the event's own
+// choice effects run BEFORE proceedDoors() advances the path index, so the next room is at
+// currentRoomIndex() + 1, and running off the end of the path means the floor boss is next.
+//
+// getMagicHint() is called with floor 1 rather than G.currentFloor on purpose — it returns null for
+// floor 0 by design (Floor 1 Magic Doors show their type outright and need no hint), and a tip the
+// player paid 20 Gold for must say something on every floor. The room label is appended for the
+// same reason: a door hint is meant to be suggestive, a purchase should be informative.
+function nextRoomTip(g) {
+  const floor = g.map[g.currentFloor];
+  const path = floor && floor[`path${floor.currentPath}`];
+  if (!path) return null;
+  const nextIdx = currentRoomIndex() + 1;
+  const type = nextIdx >= path.length ? 'boss' : path[nextIdx].type;
+  const hint = getMagicHint(type, 1);
+  return `${hint ? hint + ' ' : ''}(${roomLabel(type)} ahead.)`;
 }
 
 function skipReward() {

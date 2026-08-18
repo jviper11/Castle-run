@@ -329,13 +329,31 @@ removal's gate and charge were already King's-Debt aware, so under the relic its
 and took 94. Both strings now have ids and are written from the same resolved `cost` the click
 spends. (The removal *button* label was already dynamic; only the modal copy was stale.)
 
-**Found while fixing this, not fixed:** `showShopUpgrade()` **has no caller anywhere in the active
-build.** The modal markup exists in `index.html` and the function is complete, but the shop's "Card
-services" row contains only `#shop-remove-btn` — nothing opens the upgrade modal, and no other
-`js/*.js` file references it. So the pricing asymmetry above was latent rather than player-visible,
-and card upgrading in the shop is currently unreachable. The Rest-stop upgrade option is a separate,
-working path (`startRestPick('upgrade')`, free). **Adding a shop upgrade button is a scope/design
-call, deliberately not taken here.**
+**Found while fixing this:** `showShopUpgrade()` had **no caller anywhere in the active build** —
+the modal markup and the function were complete, but the shop's "Card services" row held only
+`#shop-remove-btn`, so the pricing asymmetry above was latent rather than player-visible.
+
+**Resolved Aug 18, 2026 — the service is now reachable.** `#shop-upgrade-btn` sits beside
+`#shop-remove-btn` in that row, styled identically (`class="btn"`, `flex:1`, same font size), and
+both labels are priced live from `shopCost()` in `showShop()` so King's Debt is visible on the button
+rather than only surfacing at the till.
+
+Wiring it up exposed two things in the previously-dead handler, both fixed:
+
+- **It duplicated the upgrade mechanic.** The Rest stop calls the shared `upgradeCard()`
+  (`js/data.js`); the shop did its own `G.deck.splice(idx, 1, key + '+')`, which skipped
+  `upgradeCard()`'s `G.drawPile`/`G.hand` sync. Harmless in a shop (`shuffleDeck()` rebuilds both
+  next combat) but it meant "upgrade a card" had two definitions. The shop now calls
+  `upgradeCard()`, so there is one.
+- **It charged before it acted.** `spendGold()` ran unconditionally, then spliced blind. Had the key
+  been absent from the deck, `G.deck.splice(-1, 1, ...)` would have **replaced the last card in the
+  deck instead** — and charged for it. Unreachable through the UI, but paid-for-nothing by
+  construction. Gold is now spent only after `upgradeCard()` returns true.
+
+The Rest-stop path (`startRestPick('upgrade')`, free) is unchanged and remains the other entry point.
+The two eligibility tests differ in form but are equivalent by construction: the shop filters on
+`CARDS[k + '+']`, the Rest stop on `CARD_UPGRADES[k]`, and `js/data.js` registers the former from
+the latter.
 
 ---
 

@@ -307,8 +307,11 @@
     </div>
 
     <!-- Card services -->
+    <!-- Both price labels are overwritten by showShop() so they track shopCost() under King's
+         Debt; the literals here are only the pre-render defaults. -->
     <div style="display:flex;gap:0.8rem;width:min(700px,95vw);justify-content:center;">
       <button id="shop-remove-btn" class="btn" style="flex:1;font-size:0.85rem;" onclick="showShopRemove()">🗑 Remove Card (75🪙)</button>
+      <button id="shop-upgrade-btn" class="btn" style="flex:1;font-size:0.85rem;" onclick="showShopUpgrade()">✨ Upgrade Card (80🪙)</button>
     </div>
 
     <!-- Deck viewer -->
