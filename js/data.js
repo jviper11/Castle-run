@@ -892,6 +892,17 @@ const CHALLENGES = {
   gambler:   { type:'Denial',     rule:'You may never use a reroll.' },
 };
 
+// The Sleeping Shade — event-only enemy, not part of any floor's FLOOR_ENEMIES pool. HP matches
+// Blood Cultist (Floor 4, hp:85); the one-time turn-3 burst follows the same pattern as Blood
+// Cultist's Ritual / Royal Sorcerer's Arcane Overload above, since every named Floor 3-4 enemy
+// carries a special and a special-less guard at this weight read as under-tuned for what it
+// guards (a real fight gated behind a guaranteed relic reward).
+const SLEEPING_SHADE_ENEMY = {
+  name: 'The Sleeping Shade', emoji: '🫥', hp: 85, block: 0, damage: 13,
+  special: { name: 'Night Terror', desc: 'On turn 3, lashes out for 15 bonus damage',
+    trigger: 'turn', effect: (g, turn) => { if (turn === 3) { const dmg = enemyAttackDamage(g, false, 15); dealDamage(g, 'player', dmg, 'enemy'); showMsg(`🌑 Night Terror — ${dmg} damage!`); } } },
+};
+
 const EVENTS = [
   {
     icon:'📜', title:'Ancient Tome',
@@ -1183,6 +1194,34 @@ const EVENTS = [
       { text:'Share your food (heal 12 HP)', risk:'', effect:(g)=>{
           healPlayer(g,12); updateHUD();
           showMsg('🗝️ He eats, and insists you eat too. You feel steadier. +12 HP.');
+          setTimeout(proceedDoors,900);
+        } },
+    ]
+  },
+  {
+    icon:'🌙', title:'The Sleeping Shade',
+    desc:'A pool of living darkness breathes in the corner, curled like something dreaming. It has not noticed you yet.',
+    choices:[
+      { text:'Wake it', risk:'Fight', effect:(g)=>{
+          startEventCombat(SLEEPING_SHADE_ENEMY, () => {
+            // Guaranteed relic on a real win — prefers rare, but falls back to whatever
+            // offerableRelics() actually offers (still respecting ownership/unimplemented/floor
+            // gating) rather than risking a wasted victory when rares aren't offerable yet
+            // (Floor 1-2, RELIC_RARITY_MIN_FLOOR.rare) or are all already owned.
+            const rarePool = offerableRelics(g).filter(([key, relic]) => relic.rarity === 'rare');
+            const pool = rarePool.length ? rarePool : offerableRelics(g);
+            if (pool.length) acquireRelic(pool[Math.floor(Math.random() * pool.length)][0]);
+            else showMsg('Nothing of value remains here.');
+            proceedDoors();
+          });
+        } },
+      { text:'Sneak past', risk:'', effect:(g)=>proceedDoors() },
+      { text:'Leave an offering (-20 Gold)', risk:'', effect:(g)=>{
+          if (g.gold < 20) { showMsg('Not enough gold to leave an offering.'); return; }
+          const commonPool = offerableRelics(g).filter(([key, relic]) => relic.rarity === 'common');
+          if (!commonPool.length) { showMsg('🌙 It has no use for what little you carry.'); return; }
+          spendGold(g,20);
+          acquireRelic(commonPool[Math.floor(Math.random() * commonPool.length)][0]);
           setTimeout(proceedDoors,900);
         } },
     ]

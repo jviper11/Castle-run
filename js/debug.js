@@ -14,8 +14,6 @@
 //   dbg('floor', { floor: 3 })        Floor 3 path-select, play the floor normally
 //   dbg('combat')                     a normal battle on the current//given floor
 //   dbg('elite', { floor: 2 })        an elite fight on Floor 2
-//   dbg('eventcombat')                the event-combat plumbing proof of concept (dummy enemy;
-//                                     winning returns to path select, losing is a normal game over)
 //
 // ── URL ────────────────────────────────────────────────────────────
 //   ?debug=aldric
@@ -238,17 +236,6 @@
       startCombat(true);
       applyStatuses(opts);
       info(`Floor ${floorNum} elite — ${G.enemy.name}`);
-    },
-    // Event-triggered combat plumbing, proof of concept. No real event starts a fight yet, so this
-    // is the only way to reach startEventCombat(). Unlike the targets above it does NOT call
-    // showCombatScreen() first — startEventCombat() shows the combat screen itself, because its real
-    // callers will be event choices running with the event screen up.
-    // **Delete alongside DUMMY_EVENT_ENEMY once a real event supplies its own enemy.**
-    eventcombat(opts) {
-      const { floorNum } = setup(opts);
-      startDummyEventCombat();
-      applyStatuses(opts);
-      info(`Floor ${floorNum} event combat — ${G.enemy.name} (win returns to path select)`);
     },
   };
 

@@ -1079,19 +1079,6 @@ function startEventCombat(enemyDef, onVictory) {
   renderAll();
 }
 
-// Throwaway proof-of-concept enemy for this batch. Simple stats, no `special`, no `moves` — it
-// exercises the plumbing (custom enemy in, victory callback out) without committing to any of the
-// four real events' designs. Reachable only through js/debug.js's `eventcombat` target.
-// **Delete this and its debug target once a real event supplies its own enemy.**
-const DUMMY_EVENT_ENEMY = { name: 'Practice Dummy', emoji: '🎯', hp: 30, block: 0, damage: 6 };
-
-function startDummyEventCombat() {
-  startEventCombat(DUMMY_EVENT_ENEMY, () => {
-    showMsg('🎯 Practice Dummy defeated — event combat plumbing works.', 4000);
-    showPathSelect();
-  });
-}
-
 function startTurn() {
   // Midnight Hunger (Vampire) turn-transition check. Read BEFORE resetting the flag below, so
   // this reflects whether the turn that JUST ENDED ever hit extreme — the flag is set inside

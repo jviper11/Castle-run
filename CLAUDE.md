@@ -85,7 +85,7 @@ killing blow" choice — today the True Ending fires on the killing blow with th
 
 ### Dev jump tool (`js/debug.js`)
 
-Skip straight to a fight instead of replaying floors. Console: `dbg('aldric')`, `dbg('boss', {floor: 2})`, `dbg('floor', {floor: 3})`, also `bossintro`, `combat`, `elite`, `eventcombat`. URL: `?debug=aldric`, `?debug=boss&floor=2`. Options: `hero`, `floor`, `gold`, `souls`, `hp`, `cores` (4 unlocks Aldric's Phase 3), `relics=a,b`, `upgrades=a,b`, and status stacks `weak`/`chill`/`rage`/`poison`/`burn` (enemy) and `vulnerable` (player). It calls the real `newGame()` and fight-start functions, so the resulting fight is an ordinary one — there is no separate "test mode". Inert unless `?debug=` is present or a console global is called; full option list is documented at the top of the file.
+Skip straight to a fight instead of replaying floors. Console: `dbg('aldric')`, `dbg('boss', {floor: 2})`, `dbg('floor', {floor: 3})`, also `bossintro`, `combat`, `elite`. URL: `?debug=aldric`, `?debug=boss&floor=2`. Options: `hero`, `floor`, `gold`, `souls`, `hp`, `cores` (4 unlocks Aldric's Phase 3), `relics=a,b`, `upgrades=a,b`, and status stacks `weak`/`chill`/`rage`/`poison`/`burn` (enemy) and `vulnerable` (player). It calls the real `newGame()` and fight-start functions, so the resulting fight is an ordinary one — there is no separate "test mode". Inert unless `?debug=` is present or a console global is called; full option list is documented at the top of the file.
 
 ### Legacy snapshot
 
