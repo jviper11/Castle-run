@@ -242,7 +242,11 @@ const CARDS = {
   darkascension: { name:'Dark Ascension', emoji:'🌑', type:'Skill',  cost:2, desc:'Lose 15 HP. Gain 20 Block + 5 Regen. Extreme: lose 10 + 28 Block + 7 Regen.', dice:true, affinityBonus:'extreme', effect:(g,r)=>{ const roll=r||g.currentDie||1; const isEx=checkAffinity(g,roll,'extreme'); const loss=isEx?10:15; const block=isEx?28:20; const regen=isEx?7:5; loseHP(g,loss,1); floatDamage('player-combatant',loss,'dmg'); gainBlock(g,'player',block); applyStatus(g,'player','💚Regen',regen); showMsg('🌑 Dark Ascension!'); } },
   soulrend:      { name:'Soul Rend',      emoji:'💀', type:'Attack', cost:2, desc:'Deal 15 dmg. Heal equal to damage dealt. Extreme: deal 22.', dice:true, affinityBonus:'extreme', effect:(g,r)=>{ const roll=r||g.currentDie||1; const isEx=checkAffinity(g,roll,'extreme'); const dmg=isEx?22:15; const prevHp=g.enemy.hp; dealDamage(g,'enemy',dmg); const dealt=Math.max(0,prevHp-g.enemy.hp); if(dealt>0) healPlayer(g,dealt); showMsg('💀 Soul Rend — healed '+dealt+' HP!'); } },
   bloodtide:     { name:'Blood Tide',     emoji:'🌊', type:'Skill',  cost:1, desc:'Exhaust. Double current Regen stacks. Extreme: triple + heal 5 HP.', dice:true, affinityBonus:'extreme', effect:(g,r)=>{ const roll=r||g.currentDie||1; const isEx=checkAffinity(g,roll,'extreme'); const regen=G.statuses.player.find(s=>s.name==='💚Regen'); if(regen){ regen.stacks=Math.floor(regen.stacks*(isEx?3:2)); showMsg('🌊 Blood Tide — Regen '+(isEx?'tripled':'doubled')+'!'); } else { showMsg('Blood Tide — no Regen active.'); } if(isEx) healPlayer(g,5); if(!g.exhaustedPile) g.exhaustedPile=[]; g.exhaustedPile.push('bloodtide'); renderAll(); } },
-  // ── CURSE CARDS — added via events, can be removed at rest/shop ──
+  // ── CURSE CARDS ──
+  // Added via events (The Merchant's Ghost, The Crying Statue, The Bloodied Altar). Removable three
+  // ways, all real: the Rest stop's remove mode and the shop's Remove Card service both accept any
+  // card that is not Strike or Defend and neither excludes Curse type, and The Starving Wolf eats one
+  // at random for free (removeRandomCurseFromDeck() in js/ui.js).
   curse_weakness:  { name:'Curse of Weakness', emoji:'💔', type:'Curse', cost:1, desc:'Does nothing. A dead weight in your deck.', dice:false, effect:(g)=>{ showMsg('💔 Curse of Weakness — wasted energy!'); } },
   curse_debt:      { name:'Curse of Debt',     emoji:'⛓️', type:'Curse', cost:0, desc:'Unplayable. Takes 3 damage at start of combat.', dice:false, effect:(g)=>{ showMsg('⛓️ Curse of Debt — you suffer!'); } },
   curse_confusion: { name:'Curse of Confusion',emoji:'🌀', type:'Curse', cost:0, desc:'Unplayable. A random card in hand costs +2 each turn.', dice:false, effect:(g)=>{ showMsg('🌀 Curse of Confusion!'); } },
@@ -903,6 +907,34 @@ const SLEEPING_SHADE_ENEMY = {
     trigger: 'turn', effect: (g, turn) => { if (turn === 3) { const dmg = enemyAttackDamage(g, false, 15); dealDamage(g, 'player', dmg, 'enemy'); showMsg(`🌑 Night Terror — ${dmg} damage!`); } } },
 };
 
+// ── Event-only enemies for The Trapped Knight / The Starving Wolf / The Locked Chest ──
+//
+// ⚠️ NUMBERS ARE PROPOSED, NOT SIGNED OFF (flagged back to design — see the session report).
+// Each one is anchored to a real row in the rosters above rather than invented, per the brief, and
+// each is a single named constant so re-tuning is a one-line change. None is in any FLOOR_ENEMIES or
+// ELITES pool, so they can only ever appear through their own event.
+//
+// Anchors used, and why:
+//   Jailer      85 / 5 / 13  — The Sleeping Shade's own weight (85/0/13), the existing
+//                              relic-for-a-fight event enemy, since this fight pays the same way.
+//                              Between Blood Cultist (85/0/14) and Cursed Knight (75/8/13); the 5
+//                              Block is the armour a cell guard would wear.
+//   Wolf        55 / 0 / 14  — sized off Cursed Hound (50/0/10), the roster's actual canine, then
+//                              pushed toward "starving": frailer than a healthy guard but hitting
+//                              harder than its HP suggests. Lowest HP of the three by design — the
+//                              fight is the *alternative* to simply feeding it.
+//   Chest trap  60 / 8 / 15  — a mechanism, not a creature: lowest HP of any Floor 3-4-weight
+//                              enemy, the 8 Block of Cursed Knight (75/8/13) for the lid itself, and
+//                              the highest damage of the three because a trap is a burst.
+//
+// Deliberately special-less, unlike The Sleeping Shade. Its turn-3 burst was added because a
+// special-less enemy at Floor 3-4 weight was the only exception in that roster; these three sit
+// below that weight (55-85 HP, two of them with Block instead), where plenty of real rows carry no
+// special either. If design wants a special on any of them, that is a follow-up, not a silent add.
+const TRAPPED_KNIGHT_ENEMY = { name: 'The Jailer', emoji: '🔗', hp: 85, block: 5, damage: 13 };
+const STARVING_WOLF_ENEMY  = { name: 'Starving Wolf', emoji: '🐺', hp: 55, block: 0, damage: 14 };
+const CHEST_TRAP_ENEMY     = { name: 'Chest Mimic', emoji: '🦷', hp: 60, block: 8, damage: 15 };
+
 const EVENTS = [
   {
     icon:'📜', title:'Ancient Tome',
@@ -1223,6 +1255,80 @@ const EVENTS = [
           spendGold(g,20);
           acquireRelic(commonPool[Math.floor(Math.random() * commonPool.length)][0]);
           setTimeout(proceedDoors,900);
+        } },
+    ]
+  },
+
+  // ── The Trapped Knight / The Starving Wolf / The Locked Chest (Aug 19, 2026) ──
+  //
+  // Three GDD-named events (GDD.md lines 663, 667, 668). Two of the six non-combat branches trade a
+  // relic through the shared chooseRelicToSacrifice() picker; one is the game's only free, random
+  // curse removal. Enemy stat blocks are the PROPOSED constants above.
+  //
+  // ⚠️ REWARD TIER IS THE BRIEF'S PLACEHOLDER, NOT A DECISION: all three relic grants below use a
+  // plain giveReward(g,'relic'), which floor-gates through offerableRelics() but does NOT filter by
+  // rarity the way The Sleeping Shade's own win does (rare-preferred) or its offering does
+  // (common-only). Flagged back to design rather than picked here.
+  {
+    icon:'⚔️', title:'The Trapped Knight',
+    desc:'A knight in battered plate, pinned behind a portcullis. Something heavy paces on the far side of it.',
+    choices:[
+      { text:"Help them — fight what's guarding the cell", risk:'Fight', effect:(g)=>{
+          startEventCombat(TRAPPED_KNIGHT_ENEMY, () => giveReward(g,'relic'));
+        } },
+      { text:'Leave', risk:'', effect:(g)=>proceedDoors() },
+      // The picker owns the splice; this callback owns the payoff and the transition.
+      { text:'Give up a relic for what they know', risk:'Cost: a relic', effect:(g)=>{
+          chooseRelicToSacrifice(g,
+            (relicKey) => {
+              const name = (RELICS[relicKey] && RELICS[relicKey].name) || relicKey;
+              showMsg(`⚔️ ${name} changes hands. The knight talks.`);
+              const tip = nextRoomTip(g);
+              showMsg(tip ? `⚔️ "${tip}"` : '⚔️ "...I have been down here too long to be sure of anything."', 5000);
+              setTimeout(proceedDoors, 900);
+            },
+            () => showMsg('You have nothing to offer.'));
+        } },
+    ]
+  },
+  {
+    icon:'🐺', title:'The Starving Wolf',
+    desc:'Ribs showing through matted fur, it blocks the corridor and does not growl. It is past growling.',
+    choices:[
+      // The game's ONLY free, random curse removal. Rest and shop removal both already accept
+      // curses, but both are chosen and one is paid — see removeRandomCurseFromDeck() in js/ui.js.
+      { text:'Feed it a Curse', risk:'', effect:(g)=>{
+          const removed = removeRandomCurseFromDeck(g);
+          if (!removed) { showMsg('It has nothing to eat. Your deck is clean.'); return; }
+          const name = (CARDS[removed] && CARDS[removed].name) || removed;
+          showMsg(`🐺 It swallows ${name} whole and slinks away.`);
+          setTimeout(proceedDoors, 900);
+        } },
+      { text:'Fight it', risk:'Fight', effect:(g)=>{
+          startEventCombat(STARVING_WOLF_ENEMY, () => giveReward(g,'consumable'));
+        } },
+      { text:'Ignore', risk:'', effect:(g)=>proceedDoors() },
+    ]
+  },
+  {
+    icon:'🔒', title:'The Locked Chest',
+    desc:'An iron-bound chest, far too well made for this depth. The lock has no keyhole.',
+    choices:[
+      { text:'Force it open', risk:'Fight a trap', effect:(g)=>{
+          startEventCombat(CHEST_TRAP_ENEMY, () => giveReward(g,'relic'));
+        } },
+      { text:'Leave', risk:'', effect:(g)=>proceedDoors() },
+      // Spends ANY relic, not a specific "key" relic — no key relic exists. (bone_key's text is
+      // about finding hidden chests, not opening them, and it has no room hook either way; see the
+      // session report's note on its paused status.)
+      { text:'Sacrifice a relic to unlock it', risk:'Cost: a relic', effect:(g)=>{
+          chooseRelicToSacrifice(g,
+            (relicKey) => {
+              const name = (RELICS[relicKey] && RELICS[relicKey].name) || relicKey;
+              showMsg(`🔒 ${name} melts into the lock. The lid swings open.`);
+              giveReward(g,'relic'); // owns its own proceedDoors()
+            },
+            () => showMsg('You have nothing to use as a key.'));
         } },
     ]
   },

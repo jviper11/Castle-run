@@ -328,6 +328,20 @@
     </div>
 
     <!-- Card removal modal -->
+    <!-- RELIC SACRIFICE PICKER -->
+    <!-- Opened by chooseRelicToSacrifice() (js/ui.js) for The Trapped Knight and The Locked Chest.
+         Same markup shape and z-index as the shop's card modals below, so it inherits their visual
+         style and its grid can reuse .rest-deck-grid / .rest-deck-card. It lives outside
+         #shop-screen because it is opened from the EVENT screen, not the shop. -->
+    <div id="relic-sacrifice-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:200;overflow-y:auto;padding:1.5rem 1rem;">
+      <div style="max-width:580px;margin:0 auto;">
+        <h3 style="font-family:'Cinzel',serif;color:var(--gold);text-align:center;margin-bottom:0.4rem;">GIVE UP A RELIC</h3>
+        <p id="relic-sacrifice-text" style="color:var(--text2);text-align:center;font-size:0.85rem;margin-bottom:1rem;">Tap a relic to give it up permanently.</p>
+        <div id="relic-sacrifice-grid" class="rest-deck-grid"></div>
+        <button class="btn" onclick="cancelRelicSacrifice()" style="margin-top:1rem;width:100%;">Cancel</button>
+      </div>
+    </div>
+
     <div id="shop-remove-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:200;overflow-y:auto;padding:1.5rem 1rem;">
       <div style="max-width:580px;margin:0 auto;">
         <h3 style="font-family:'Cinzel',serif;color:var(--gold);text-align:center;margin-bottom:0.4rem;">REMOVE A CARD</h3>

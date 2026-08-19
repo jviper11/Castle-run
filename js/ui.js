@@ -1301,6 +1301,99 @@ const EVENT_POTION_POOL = [
     } },
 ];
 
+// ── Relic sacrifice picker ──────────────────────────────────────────────────────────────────
+//
+// Shared by The Trapped Knight and The Locked Chest, following the offerableRelics() convention of
+// one chokepoint rather than a one-off per event.
+//
+// Contract, matching every other grant helper in this file: this function owns the PICKER and the
+// splice, and nothing else. It never calls proceedDoors() and never grants a reward — the caller
+// does both, from onChosen. That is what lets one event trade the relic for a tip and the other
+// trade it for loot without this knowing either.
+//
+//   onChosen(relicKey) — the relic is already out of g.relics by the time this runs.
+//   onNone()           — nothing to give. Deliberately does NOT open an empty picker; the caller
+//                        messages and returns without proceeding, leaving the event screen live so
+//                        the player can pick a different choice (the same UX as an unaffordable
+//                        Gold choice in The Gambler's Dice / The Shrine of Ash).
+//
+// Cancelling closes the picker and does nothing else — no splice, no callback, event still open.
+// Not in the brief, but the modal it is modelled on has a Cancel button and without one a player who
+// opens the picker would be trapped in it unless they gave something up.
+function chooseRelicToSacrifice(g, onChosen, onNone) {
+  const held = (g.relics || []).filter(k => RELICS[k]);
+  if (!held.length) { if (onNone) onNone(); return; }
+
+  const modal = document.getElementById('relic-sacrifice-modal');
+  const grid = document.getElementById('relic-sacrifice-grid');
+  if (!modal || !grid) {
+    // No picker markup (older index.html). Degrade to no-selection rather than silently spending a
+    // relic the player never chose.
+    if (onNone) onNone();
+    return;
+  }
+
+  grid.innerHTML = '';
+  held.forEach(key => {
+    const relic = RELICS[key];
+    const el = document.createElement('div');
+    el.className = 'rest-deck-card';
+    el.style.cursor = 'pointer';
+    el.innerHTML = `
+      <span class="rest-deck-card-emoji">${relic.emoji}</span>
+      <div>
+        <div class="rest-deck-card-name">${relic.name}</div>
+        <div class="rest-deck-card-type">${relic.desc}</div>
+      </div>
+    `;
+    el.onclick = () => {
+      // Re-found by key at click time rather than trusting an index captured at render time: the
+      // grid is built from a filtered copy, so a captured index could point at the wrong entry.
+      const idx = (g.relics || []).indexOf(key);
+      if (idx === -1) return;             // already gone somehow — do nothing rather than mis-splice
+      g.relics.splice(idx, 1);            // same splice pattern as js/combat.js's survive-relic burns
+      closeRelicSacrificeModal();
+      updateHUD();
+      if (typeof renderRelics === 'function') renderRelics();
+      if (onChosen) onChosen(key);
+    };
+    grid.appendChild(el);
+  });
+  modal.style.display = 'block';
+}
+
+function closeRelicSacrificeModal() {
+  const modal = document.getElementById('relic-sacrifice-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+// Cancel — closes the picker, spends nothing, fires no callback. The event stays open.
+function cancelRelicSacrifice() {
+  closeRelicSacrificeModal();
+  showMsg('You keep what you have.');
+}
+
+// ── Curse removal ───────────────────────────────────────────────────────────────────────────
+//
+// Removes one random Curse card from the deck and returns its key, or null when the deck holds none.
+// Mirrors removeCardFromDeck() below, Curse-filtered instead of "anything but Strike/Defend".
+//
+// NOTE ON WHY THIS EXISTS: curses were already removable before this — both the Rest stop's remove
+// mode and the shop's Remove Card service accept any card that is not Strike or Defend, and neither
+// excludes Curse type, so js/data.js's "can be removed at rest/shop" comment is accurate. What did
+// not exist is FREE, RANDOM removal: rest removal costs the rest, shop removal costs shopCost(75),
+// and both let the player choose. The Starving Wolf is neither — it eats a curse of its own
+// choosing, for nothing. That difference is the mechanic; this is not a gap-closing fix.
+function removeRandomCurseFromDeck(g) {
+  const curses = (g.deck || []).filter(k => CARDS[k] && CARDS[k].type === 'Curse');
+  if (!curses.length) return null;
+  const key = curses[Math.floor(Math.random() * curses.length)];
+  const idx = g.deck.indexOf(key);
+  if (idx === -1) return null;
+  g.deck.splice(idx, 1);
+  return key;
+}
+
 // ── Boss-hint + deferred-payout event helpers (batch 4) ─────────────────────────────────────
 //
 // Reads the boss actually assigned to the current floor. Floor bosses are drawn from a SHUFFLED

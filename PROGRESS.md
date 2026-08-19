@@ -74,7 +74,7 @@ See `DESIGN_DISCREPANCIES.md` before changing disputed rules.
 | Shared Card Pool | ✅ Complete | ✅ In prototype |
 | Enemy Roster (all floors) | ✅ Complete | ✅ In prototype. `GDD.md`'s roster tables were re-synced to `js/data.js` on Aug 16, 2026 (stale-doc correction, no code change) and now match exactly — verified by a script that parses the doc back and diffs it against the live data. |
 | Boss Debuff System | ✅ Complete | ✅ In prototype |
-| Events | ⚠️ 18 designed, 13 of 18 named events built | 🟡 18 total entries exist in `js/data.js`, but only 13 match a named GDD event by title — the other 5 (Ancient Tome, The Offering, Hidden Cache, The Gambler's Curse, The Blood Pool) are the original pre-July-25 generic placeholders, still present alongside the newer named batches. 5 named events remain entirely unbuilt: The Trapped Knight, The Starving Wolf, The Locked Chest, The Cracked Mirror, The Soul Market. See Session Log / Events section. |
+| Events | 🟡 18 designed, 16 of 18 named events built | 🟡 21 total entries exist in `js/data.js`, but only 16 match a named GDD event by title — the other 5 (Ancient Tome, The Offering, Hidden Cache, The Gambler's Curse, The Blood Pool) are the original pre-July-25 generic placeholders, still present alongside the newer named batches. 2 named events remain entirely unbuilt: The Cracked Mirror and The Soul Market. See Session Log / Events section. |
 | Economy (Gold/Souls) | ✅ Complete (Gold) / ⚠️ Souls redesigned | ✅ Gold in prototype. Souls redesigned July 25 — see Soul system section below, no longer a permanent currency. |
 | King Aldric Final Boss | ✅ Complete | ✅ In prototype |
 | Floor Boss Hint System | ✅ Complete | ✅ In prototype |
@@ -350,7 +350,7 @@ Full roster across all 4 floors designed. Mix of classic fantasy and corrupted c
 
 ---
 
-## Events — 🟡 18 designed, 13 of 18 named events built (batches 1, 3, 4 and Sleeping Shade landed Aug 18, 2026)
+## Events — 🟡 18 designed, 16 of 18 named events built (batches 1, 3, 4 + Sleeping Shade Aug 18; Knight/Wolf/Chest Aug 19, 2026)
 
 Categories: Gold events, HP-for-Gold trades, Curse card rewards, Risk events, Classic reworked.
 
@@ -359,13 +359,80 @@ directly. `js/data.js` does hold 18 entries as of this session, but title-matchi
 GDD's 18-item event table (§12) shows only **13 actually correspond to a named GDD event** — the
 other 5 (Ancient Tome, The Offering, Hidden Cache, The Gambler's Curse, The Blood Pool) are the
 original pre-July-25 generic placeholders the July 25 correction below already flagged as non-GDD,
-never removed once the named batches started landing alongside them. **5 named GDD events remain
-completely unbuilt**: The Trapped Knight, The Starving Wolf, The Locked Chest, The Cracked Mirror,
-The Soul Market.
+never removed once the named batches started landing alongside them. **2 named GDD events remain
+completely unbuilt** (as of Aug 19, 2026): The Cracked Mirror and The Soul Market. The Trapped Knight,
+The Starving Wolf and The Locked Chest landed Aug 19 — see their section below.
 
 **Correction (July 25, 2026):** this section previously read "✅ Complete (18 events) — all implemented in prototype." That was false — confirmed by direct code inspection: only **5 generic events** existed in `js/data.js`, and none of them matched the 18 named events actually designed in `GDD.md`. This was a design-only gap, not a migration loss — the legacy monolith `castle-run.html` never had the 18 events either.
 
-Building toward all 18 over time is the intent (larger pool keeps outcomes unpredictable; comeback tools should exist by chance, not by the system detecting player struggle). The `bone_key` relic is paused (removed from shop/reward pools, definition preserved) because it depends on "The Locked Chest" event, which doesn't exist yet — see `DESIGN_DISCREPANCIES.md`.
+Building toward all 18 over time is the intent (larger pool keeps outcomes unpredictable; comeback tools should exist by chance, not by the system detecting player struggle).
+
+**`bone_key`'s pause is NOT resolved by The Locked Chest landing (Aug 19, 2026).** This section
+previously said the relic was paused "because it depends on 'The Locked Chest' event, which doesn't
+exist yet". That event now exists, and `bone_key` is still correctly paused: its text is *"Every 4th
+room has a chance to contain a hidden chest"*, which needs a **room-generation hook** that still does
+not exist — it is not about opening the chest in this event. The two are thematically adjacent and
+mechanically unrelated. Whoever signs off on this batch's reward tier should decide whether `bone_key`
+gets a role at The Locked Chest (e.g. unlocking it for free instead of sacrificing a relic), which
+would be a genuine design change rather than the unpause the old wording implied.
+
+### The Trapped Knight / The Starving Wolf / The Locked Chest — ✅ Built Aug 19, 2026
+
+`EVENTS` now holds 21 entries: 16 of the 18 GDD-named events plus the 5 surviving pre-July-25 generic
+placeholders. All 21 titles and all 21 icons are unique (⚔️ / 🐺 / 🔒 added), asserted.
+
+**Infra built first, per the brief's sequencing, because both pickers' events depend on it:**
+
+`chooseRelicToSacrifice(g, onChosen, onNone)` (`js/ui.js`) — one shared picker for The Trapped Knight
+and The Locked Chest, following the `offerableRelics()` chokepoint convention rather than two
+one-offs. It owns the modal and the `g.relics.splice()` and **nothing else**: it never calls
+`proceedDoors()` and never grants a reward, which is what lets one event trade the relic for a tip and
+the other trade it for loot without the picker knowing either. With no relics held it calls `onNone()`
+and deliberately does not open an empty picker, so the caller can message and return without
+proceeding — the same "event stays open" UX as an unaffordable Gold choice. New
+`#relic-sacrifice-modal` in `index.html` mirrors the shop's card modals and reuses
+`.rest-deck-grid`/`.rest-deck-card`.
+
+Two details not in the brief, both deliberate: a **Cancel** button (the modal it is modelled on has
+one, and without it a player who opens the picker would be trapped unless they gave something up —
+cancelling spends nothing and fires no callback), and the selected relic is **re-found by key at click
+time** rather than trusting an index captured at render time, since the grid is built from a filtered
+copy and a stale index could splice the wrong relic.
+
+`removeRandomCurseFromDeck(g)` (`js/ui.js`) — returns the removed Curse key, or `null`. Verified over
+500 removals that it never touches a non-Curse card and that all four curse keys are reachable.
+
+> **The brief's stated rationale for this helper was wrong, and the code comment says so.** It held
+> that curses "can currently be granted but never removed — despite the `js/data.js` comment claiming
+> removal exists 'at rest/shop.' It doesn't." It does. The Rest stop's remove mode
+> (`js/ui.js`, `mode === 'remove'`) splices any selected card with no type filter, and the shop's
+> Remove Card service filters only `k !== 'strike' && k !== 'defend'` — neither excludes Curse type, so
+> a curse has always been removable both ways. The comment was accurate and has been expanded rather
+> than corrected. What genuinely did not exist is **free, random** removal: rest costs the rest, shop
+> costs `shopCost(75)`, and both let the player choose. The Starving Wolf is neither. The helper is
+> still the right thing to build; only the justification changed.
+
+**Reward tiers are the brief's placeholder, flagged not decided.** All three relic grants use plain
+`giveReward(g,'relic')`, which floor-gates via `offerableRelics()` but does **not** rarity-filter the
+way The Sleeping Shade's own win does (rare-preferred with a fallback) or its offering does
+(common-only). Verified that a Floor 1 win therefore yields a common, never a rare or an unimplemented
+relic, and that an all-commons-owned Floor 1 still proceeds without crashing. The Locked Chest's
+key-unlock and fight-win pay identically, per the brief — asserted over 150 runs of each.
+
+**Enemy stat blocks are proposed, not signed off**, marked as such in-source, each a single named
+constant so re-tuning is one line. None is in any `FLOOR_ENEMIES`/`ELITES`/`EASY_ENEMIES` pool, so they
+can only appear through their own event (asserted by slicing the actual roster blocks).
+
+| Constant | hp / block / dmg | Anchored to |
+|---|---|---|
+| `TRAPPED_KNIGHT_ENEMY` "The Jailer" | 85 / 5 / 13 | The Sleeping Shade's own 85/0/13 — the existing relic-for-a-fight event enemy, since this fight pays the same way. Between Blood Cultist (85/0/14) and Cursed Knight (75/8/13). |
+| `STARVING_WOLF_ENEMY` | 55 / 0 / 14 | Cursed Hound (50/0/10), the roster's actual canine, pushed toward "starving": frailest of the three, hitting above its weight. The fight is the *alternative* to feeding it. |
+| `CHEST_TRAP_ENEMY` "Chest Mimic" | 60 / 8 / 15 | A mechanism, not a creature: Cursed Knight's 8 Block for the lid, lowest HP, highest damage of the three because a trap is a burst. |
+
+All three are deliberately **special-less**, unlike The Sleeping Shade. Its turn-3 burst was added
+because a special-less enemy at Floor 3-4 weight was the only exception in that roster; these three sit
+below that weight, where plenty of real rows carry no special either. Adding one is a follow-up, not a
+silent change.
 
 ### Curse cards — ✅ all 4 functional (Aug 18, 2026)
 
@@ -933,7 +1000,7 @@ Cut during design: **True Roll** (min-roll floor — conflicted with Mage's Fros
 | Item | Priority | Notes |
 |---|---|---|
 | Soul in-run stat menu | Done | ✅ Design finalized Aug 15, 2026 and ✅ Implemented the same day — see Soul/Core/Challenge section. |
-| 5 remaining named events (of 18 designed) | Medium | The Trapped Knight, The Starving Wolf, The Locked Chest, The Cracked Mirror, The Soul Market. 13 of 18 named events now built (The Sleeping Shade landed Aug 18, 2026); see Events section's count correction. |
+| 2 remaining named events (of 18 designed) | Medium | The Cracked Mirror and The Soul Market. 16 of 18 named events now built (The Trapped Knight, The Starving Wolf and The Locked Chest landed Aug 19, 2026); see Events section. |
 | Magic Door exclusive event pool | Low | Currently pulls from normal room pool |
 | Card rarity system (Common/Uncommon/Rare reward odds) | Low | Can tune late |
 
