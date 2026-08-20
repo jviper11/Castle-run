@@ -1332,6 +1332,50 @@ const EVENTS = [
         } },
     ]
   },
+
+  // ── The Cracked Mirror (Aug 19, 2026) ──
+  //
+  // GDD-named event (gdd_text.txt line 646-647): "Touch it (enter a 1-round mirror fight) | Leave |
+  // Shatter it (random relic)". "1-round mirror fight" doesn't fit startEventCombat() — there's no
+  // HP bar to track for a mirror — so Touch instead resolves through resolveMirrorEcho() (js/combat.js),
+  // the event-context sibling of Sir Crimson's Echo mechanic: one random card from the player's own
+  // deck, turned back on them via SIR_CRIMSON_ECHO_POOL.
+  //
+  // Reward tiering (Touch rare-preferred, Shatter common-preferred) follows The Sleeping Shade's own
+  // pool-filter pattern above, NOT giveReward(g,'relic',rarity) — that branch (js/ui.js) never reads
+  // its rarity argument, so passing one there would silently do nothing (unlike the Trapped Knight/
+  // Wolf/Chest batch above, which punts on tiering entirely and flags it; this one actually tiers).
+  // Both choices fall back to the untiered pool rather than blocking when the preferred rarity is
+  // empty, since neither choice has a cost to refund — matching Wake It's win path, not the Sleeping
+  // Shade's paid offering (which can legitimately decline and leave the event screen up).
+  //
+  // ⚠️ Reward:risk ratio is a flag-back, not a decision: Touch's downside is one bounded hit floored
+  // at 1 HP, meaningfully safer than a multi-round fight with a real loss condition (Sleeping Shade's
+  // Wake It), so a rare-preferred reward at the same tier may be too generous. Worth a numbers pass
+  // once this is in, not a redesign.
+  {
+    icon:'🪞', title:'The Cracked Mirror',
+    desc:'A cracked mirror leans in the corner. The reflection moves half a second behind you — and it is holding your deck.',
+    choices:[
+      { text:'Touch it', risk:'Risk: a hit from your own deck', effect:(g)=>{
+          resolveMirrorEcho(g);
+          updateHUD();
+          const rarePool = offerableRelics(g).filter(([key, relic]) => relic.rarity === 'rare');
+          const pool = rarePool.length ? rarePool : offerableRelics(g);
+          if (pool.length) acquireRelic(pool[Math.floor(Math.random() * pool.length)][0]);
+          else showMsg('Nothing of value remains here.');
+          setTimeout(proceedDoors, 800);
+        } },
+      { text:'Leave', risk:'', effect:(g)=>proceedDoors() },
+      { text:'Shatter it', risk:'', effect:(g)=>{
+          const commonPool = offerableRelics(g).filter(([key, relic]) => relic.rarity === 'common');
+          const pool = commonPool.length ? commonPool : offerableRelics(g);
+          if (pool.length) acquireRelic(pool[Math.floor(Math.random() * pool.length)][0]);
+          else showMsg('The shards hold nothing of value.');
+          setTimeout(proceedDoors, 800);
+        } },
+    ]
+  },
 ];
 
 // Static shop stock — cards and the die. Consumable stock is NOT listed here: it is generated per

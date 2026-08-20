@@ -2696,6 +2696,29 @@ function resolveSirCrimsonEcho(g) {
   }
 }
 
+// Event-context sibling of resolveSirCrimsonEcho(), for The Cracked Mirror (GDD: "Touch it (enter
+// a 1-round mirror fight)"). Reuses pickSirCrimsonEchoCard()/SIR_CRIMSON_ECHO_POOL as-is — there is
+// no separate mirror pool. Deliberately does NOT reuse resolveSirCrimsonEcho() itself: that function
+// routes damage through resolveEnemyAttack()/enemyAttackDamage() and mutates g.enemy.block, both of
+// which assume a live combat enemy that doesn't exist for a mirror.
+//
+// Only pick.dmg is applied, via loseHP()'s floorAt so a mirror cannot end the run (same convention
+// as every other event that costs HP, e.g. The Shrine of Ash in js/data.js). pick.block/strip/status
+// are silently dropped, and that is correct rather than a gap: G.statuses is wiped fresh by every
+// fight-start function, so a status applied here would be wiped before the next fight could ever
+// read it (see the EVENT HELPERS block comment in js/ui.js), and block/strip both target a live
+// enemy/player combat state that has no meaning between rooms.
+function resolveMirrorEcho(g) {
+  const pick = pickSirCrimsonEchoCard(g);
+  if (!pick) { showMsg('🪞 The mirror shows nothing. It stays silent.'); return; }
+  if (pick.dmg) {
+    showMsg(`🪞 The reflection strikes back with ${pick.name} — ${pick.dmg} dmg!`);
+    loseHP(g, pick.dmg, 1);
+  } else {
+    showMsg(`🪞 The reflection mimics ${pick.name} — and does nothing.`);
+  }
+}
+
 // Peeks past the immediately-next move to find one whose telegraphTurnsEarly demands earlier
 // visibility than the standard one-turn-ahead default every move already gets for free (being
 // moves[_moveIndex] IS the standard next-turn preview). Scans the rest of the rotation exactly
