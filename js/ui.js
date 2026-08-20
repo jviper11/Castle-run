@@ -974,6 +974,22 @@ function removeCardFromDeck(g) {
   setTimeout(proceedDoors, 800);
 }
 
+// Sibling of removeCardFromDeck() above for The Soul Market (js/data.js) — same guards, same
+// random (not player-picked) removal; the shop already established "no card-picker UI, random is
+// fine" for this exact action. Only difference: grants Gold instead of costing it.
+function sellCardFromDeck(g) {
+  if (g.deck.length <= 3) { showMsg('Deck too small to sell cards!'); return; }
+  const sellable = g.deck.filter(k => k !== 'strike' && k !== 'defend');
+  if (sellable.length === 0) { showMsg('Nothing worth selling.'); return; }
+  const toSell = rand(sellable);
+  const idx = g.deck.indexOf(toSell);
+  g.deck.splice(idx, 1);
+  g.gold += 50;
+  showMsg(`Sold ${(CARDS[toSell] && CARDS[toSell].name) || toSell} for 50 gold.`);
+  updateHUD();
+  setTimeout(proceedDoors, 800);
+}
+
 // ═══════════════════════════════════════════════════════════════════
 // REWARD
 // ═══════════════════════════════════════════════════════════════════

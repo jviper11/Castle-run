@@ -98,7 +98,8 @@
       "Bash(powershell -Command \"Stop-Process -Id 55788 -Force\")",
       "Bash(powershell -Command \"Stop-Process -Id 38004 -Force\")",
       "Bash(node --check js/combat.js)",
-      "Bash(node --check js/data.js)"
+      "Bash(node --check js/data.js)",
+      "Bash(node --check js/ui.js)"
     ]
   }
 }

@@ -1376,6 +1376,54 @@ const EVENTS = [
         } },
     ]
   },
+
+  // ── The Soul Market (Aug 20, 2026) ──
+  //
+  // GDD-named event (gdd_text.txt line 650-651): "Buy a soul (permanent +5 max HP, costs 3 Souls) |
+  // Sell a card (50 gold) | Leave". That literal reward is stale — Souls used to be a permanent
+  // between-runs currency; they're now G.souls, an in-run resource spent through the 8-option
+  // SOUL_UPGRADES pool (js/game.js). That pool already has a real screen, showSoulSpend() (js/ui.js,
+  // "SOUL FORGE"), offered automatically after every Floor 1-3 boss via isBossRewardWindow(). The
+  // Market and the Forge are two different TRIGGERS (random door-event vs. guaranteed post-boss)
+  // into the same spend mechanic, not two separate systems — so "Browse the Market" reuses
+  // showSoulSpend() outright rather than re-showing the GDD's dead +5-max-HP reward.
+  //
+  // Non-negotiable: buySoulUpgrade()/soulUpgradeOffer() are the only read/write path to
+  // G.soulUpgrades and G._vitalityBuys. The pre-check below only READS soulUpgradeOffer()/
+  // soulUpgradeCost() to decide whether to open the screen at all (matching every other event's
+  // affordability-refusal convention — a clean refusal message with the event left open, rather
+  // than opening a screen with nothing useful to show) — it does not reimplement the eligibility
+  // filter or spend anything itself.
+  //
+  // The precheck asks soulUpgradeOffer() for the FULL eligible pool (not 3) specifically so its
+  // affordability read matches what "is there anything worth opening the screen for" actually
+  // means: showSoulSpend() draws its own independent random 3-of-N when it opens, so checking
+  // affordability against a separately-drawn 3 here (as opposed to the full eligible set) could
+  // pass an affordable upgrade that the reshuffle then leaves out, or vice versa. Reading the same
+  // soulUpgradeOffer()/soulUpgradeCost() functions either way — just with a larger count — so this
+  // still isn't a local reimplementation of the eligibility filter.
+  //
+  // showSoulSpend()'s purchase/decline handlers both end in proceedOrPath(), which was written for
+  // the post-boss reward chain. Traced rather than assumed: proceedOrPath() branches on
+  // G.needsPathSelect, which is only ever set true in newGame() and right after a floor-boss kill
+  // (js/combat.js) — both already consumed by the time a player is mid-path triggering a random door
+  // event. So for this caller G.needsPathSelect is reliably false, and proceedOrPath() falls straight
+  // through to its `else proceedDoors()` branch. It generalizes correctly as-is; no variant needed.
+  {
+    icon:'💀', title:'The Soul Market',
+    desc:'A hooded trader has set up shop between two collapsed pillars, wares you cannot quite look at directly laid across a black cloth. "Souls spend the same here as anywhere," they say. "So does gold, if that\'s all you\'ve got."',
+    choices:[
+      { text:'Browse the Market', risk:'', effect:(g)=>{
+          const eligible = soulUpgradeOffer(Object.keys(SOUL_UPGRADES).length);
+          if (eligible.length === 0) { showMsg('The market has nothing left to offer you.'); return; }
+          const affordable = eligible.some(k => g.souls >= soulUpgradeCost(k));
+          if (!affordable) { showMsg('Not enough Souls for anything on offer.'); return; }
+          showSoulSpend();
+        } },
+      { text:'Sell a card', risk:'', effect:(g)=>sellCardFromDeck(g) },
+      { text:'Leave', risk:'', effect:(g)=>proceedDoors() },
+    ]
+  },
 ];
 
 // Static shop stock — cards and the die. Consumable stock is NOT listed here: it is generated per
