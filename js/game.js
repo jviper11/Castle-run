@@ -64,6 +64,12 @@ function newGame(charKey) {
     // every combat within a run rather than re-arming after each one.
     _sirCrimsonShadowSeen: false,
     _sirCrimsonFought: false,
+    // Core lore reveal (GDD §1) — same once-per-run-at-most lifecycle, for the same reason: set by
+    // checkCombatEnd() when recordCoreCollected() reports a first-ever collection, consumed by
+    // whichever of proceedOrPath()/launchFinalBoss() runs next. Never reset by a fight start; a
+    // pending reveal has to survive from the boss's death through the whole reward chain.
+    _pendingCoreLore: null,
+    _coreLoreOnDismiss: null,
     // True from the moment the Floor 2/3 interruption is scheduled (inside showReward()) until
     // the smoke wipe reveals the original reward screen again on victory. Guards against
     // re-scheduling the interruption a second time if showReward() is somehow re-entered before

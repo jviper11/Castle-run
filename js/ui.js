@@ -1633,9 +1633,61 @@ function proceedOrPath() {
       showSirCrimsonShadow();
       return;
     }
+    // Core lore reveal (GDD §1), gated here for exactly the reasons spelled out above — by this
+    // point nothing upstream can be reordered, only the final step into path select delayed.
+    //
+    // Traced, not assumed: a Floor-1 boss clear genuinely CAN arrive with both beats pending, since
+    // the first floor boss is itself a corrupted companion. The shadow runs first deliberately — it
+    // is a wordless observation about someone the player hasn't met, so it reads as the smaller of
+    // the two, and dismissSirCrimsonShadow() re-enters proceedOrPath() and lands on this branch
+    // next, ending the sequence on the companion just defeated rather than opening with them.
+    if (G._pendingCoreLore) {
+      const charKey = G._pendingCoreLore;
+      G._pendingCoreLore = null;
+      showCoreLoreReveal(charKey);
+      return;
+    }
     G.needsPathSelect = false; showPathSelect();
   }
   else proceedDoors();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// CORE LORE REVEAL (GDD §1)
+// ═══════════════════════════════════════════════════════════════════
+// "Defeating a corrupted companion for the first time releases their Core... reveals their lore."
+// First time EVER, across all runs — the signal is recordCoreCollected()'s return value, captured
+// in checkCombatEnd() into G._pendingCoreLore. This is only the display half.
+//
+// Not a screen and not a toast: an overlay above whatever the reward chain has already put up, the
+// same relationship Sir Crimson's confrontation has to the reward screen underneath it. The
+// "collected!" toast in checkCombatEnd() stays regardless of whether this fires — that is the
+// mechanical confirmation, this is the story beat layered on top of it.
+//
+// `onDismiss` exists because there are two gates, not one, and they continue differently: the
+// reward-chain gate resumes proceedOrPath(), the Floor-3 gate resumes launchFinalBoss(). It is
+// parked on G rather than closed over because dismissCoreLoreReveal() is reached from an inline
+// onclick with no closure to capture.
+function showCoreLoreReveal(charKey, onDismiss) {
+  const cont = typeof onDismiss === 'function' ? onDismiss : proceedOrPath;
+  const overlay = document.getElementById('core-lore-overlay');
+  const title = document.getElementById('core-lore-title');
+  const line = document.getElementById('core-lore-line');
+  const boss = BOSSES.find(b => b.charKey === charKey);
+  // Markup or lore text missing — continue straight through. A story beat must never hard-block a
+  // run, and the caller has already consumed G._pendingCoreLore, so this cannot loop.
+  if (!overlay || !title || !line || !boss || !boss.lore) { cont(); return; }
+  G._coreLoreOnDismiss = cont;
+  title.textContent = `Core of ${boss.name}`;
+  line.textContent = boss.lore;
+  overlay.classList.add('visible');
+}
+function dismissCoreLoreReveal() {
+  const overlay = document.getElementById('core-lore-overlay');
+  if (overlay) overlay.classList.remove('visible');
+  const cont = G._coreLoreOnDismiss || proceedOrPath;
+  G._coreLoreOnDismiss = null; // cleared BEFORE continuing, so a re-entrant reveal can park its own
+  cont();
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -2101,6 +2153,21 @@ function showBossRelicReward() {
 // ═══════════════════════════════════════════════════════════════════
 
 function launchFinalBoss() {
+  // Second Core-lore gate, and the reason there are two. A Floor-3 boss clear skips the entire
+  // reward chain — checkCombatEnd()'s `G.inBoss && G.currentFloor >= 3` branch returns straight
+  // here — so proceedOrPath() never runs for the last companion of the run, and gating only there
+  // would silently drop one reveal in four, permanently (the META write has already happened, so
+  // no later run would ever offer it again).
+  //
+  // Safe to gate here for the same reason as proceedOrPath(): everything upstream is finished and
+  // Aldric's fight hasn't started, so this only delays the transition. The recursion terminates —
+  // G._pendingCoreLore is consumed before the overlay is shown, so the re-entry falls through.
+  if (G._pendingCoreLore) {
+    const charKey = G._pendingCoreLore;
+    G._pendingCoreLore = null;
+    showCoreLoreReveal(charKey, launchFinalBoss);
+    return;
+  }
   showScreen('combat-screen');
   startAldricFight();
 }

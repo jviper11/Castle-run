@@ -32,7 +32,7 @@ This file records unresolved conflicts between design documents, progress notes,
 - The old permanent cross-run Soul meta-progression tree (Power/Knowledge/Fortune branches) is gone. Souls are now an **in-run** resource — earned per floor, spent at a stat-upgrade screen that appears right after each floor boss's relic-reward pick, resets to 0 at run start, no cross-run banking.
 
 **Implementation TODO:**
-- ✅ RESOLVED (Aug 16, 2026): Core-drop first-time gating. `recordCoreCollected()` in `js/meta.js` writes only on the first-ever defeat of a given companion and returns true only then, backed by `localStorage`. The lore *reveal* UI is still unbuilt — only the unlock state is tracked.
+- ✅ RESOLVED (Aug 16, 2026): Core-drop first-time gating. `recordCoreCollected()` in `js/meta.js` writes only on the first-ever defeat of a given companion and returns true only then, backed by `localStorage`. ✅ FOLLOWED UP (Aug 20, 2026): the lore reveal UI is now built too. All five companions have `lore` text on their `BOSSES` entry and `showCoreLoreReveal()` (`js/ui.js`) reads it out once ever, gated on that return value — which until now was discarded at its only call site, so the "first time only" signal existed but nothing consumed it. See the new open question below about re-viewing.
 - ✅ RESOLVED (Aug 16, 2026): Challenge-mode fight logic. Eligibility (`isChallengeEligible()`), opt-in at the boss intro, per-hero enforcement, and relic earning on a win all exist in `js/combat.js` / `js/ui.js`. Design questions settled with the project owner this session: the attempt is **opt-in** at the boss-intro screen (not automatic); Denial rules are enforced by **suppressing the effect at its choke point** (`drawCards()` / `gainBlock()`) rather than gating the card, so affinity-conditional grants are handled without a per-card list; Gambler's denial disables the **reroll button only**, leaving card-driven rerolls (Risk Taker, Wild Combo) intact since those cost a card and Energy; a lost attempt is an ordinary run loss with nothing tracked; attempts are unlimited, but a Challenge already earned is **never re-offered**.
 - ✅ RESOLVED (Aug 16, 2026): `G.aldricHasRelics` now reads `hasTrueEndingRelics()` (4 of 5 from `META.challengeRelicsEarned`), evaluated once at Aldric fight start exactly as the old check was. It previously read `G.cores.length >= 4`, which was wrong twice over: Cores are a different system, and a per-run count meant beating four floor bosses in one ordinary run unlocked the True Ending — the precise exploit this redesign existed to remove. **The True Ending path is now wired end to end**: Core collected → Challenge unlocked in a later run → Challenge cleared → relic persisted → gate reads it.
 - ✅ RESOLVED (Aug 16, 2026): the four named relics (Crown/Sword/Sigil/Vow) are gone from code. `ALDRIC_RELIC_TRIGGERS` keeps its four Phase 3 HP-threshold beats and Aldric's own dialogue, but they are now **unattributed** — no relic names, icons, or ownership claims — pending the deferred design below. The Sword's `G.enemy.damage` halving was confirmed unreachable (`aldricAttackProfile()` hardcodes base 15 for a gate-passed Phase 3 and never reads `G.enemy.damage`) and was deleted; its 75 HP beat remains, since pausing Aldric's attack was its only real contribution.
@@ -418,6 +418,25 @@ fix already applied to the Cores/True-Ending-gate discrepancy above. The shadow 
 lines remain code-only (`js/ui.js`) — GDD's Story Arc table (`GDD.md:259-264`) describes what
 happens at each beat, not a literal transcript, consistent with how the post-fight line is the
 only one of the three GDD ever specified in full.
+
+---
+
+## ⚠️ OPEN — Is Core lore re-viewable, or a one-time beat?
+
+**Question:** Once a companion's Core lore has been revealed, can the player read it again?
+
+**Why this is a conflict:** the two documents describe different features.
+
+- `GDD.md` §1/§7/§9 only ever say the first defeat "reveals their lore" — a moment, satisfied by a one-shot reveal.
+- `PROGRESS.md`'s Cores bullets go further: lore is revealed *"in the menu/hero-select"*, and Cores are *"a permanent lore/unlock record, **viewable anytime**"*.
+
+**What is built (Aug 20, 2026):** only the moment. `showCoreLoreReveal()` fires once, on the first-ever defeat, as an overlay in the post-boss flow. There is no menu or hero-select surface that displays `BOSSES[].lore`, so in practice each companion's lore is readable exactly **once, ever, per browser profile** — `META.coresCollected` makes sure of it. Nothing is lost data-wise (the text is static in `js/data.js` and the collected set is persisted), so a re-viewer can be added later without a migration.
+
+**Not decided here.** The two candidate readings need an explicit call:
+1. One-time beat is correct — drop "viewable anytime" from `PROGRESS.md` as stale drafting.
+2. The re-viewer is real and still owed — build a lore panel on the character-select or an in-run Cores display, keyed off `hasCoreCollected(charKey)`.
+
+Reading 2 also raises a follow-on: hero-select happens before a run exists, so such a panel must read `META` directly and never `G.cores`, the same distinction that already bit the True Ending gate above.
 
 ---
 

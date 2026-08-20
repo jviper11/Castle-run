@@ -239,6 +239,20 @@
     </div>
   </div>
 
+  <!-- CORE LORE REVEAL (GDD §1) — the same lightweight popup shell as the shadow beat above, and
+       for the same kind of moment: one line of story, fires once ever per companion, layered over
+       whatever screen the reward chain has reached rather than navigating to a screen of its own.
+       Title and line are both filled by showCoreLoreReveal() (js/ui.js) from the BOSSES entry. -->
+  <div id="core-lore-overlay">
+    <div class="path-confirm-box">
+      <div class="path-confirm-title" id="core-lore-title"></div>
+      <div class="path-confirm-desc" id="core-lore-line"></div>
+      <div class="path-confirm-btns">
+        <button class="path-confirm-btn confirm" onclick="dismissCoreLoreReveal()">...</button>
+      </div>
+    </div>
+  </div>
+
   <!-- DOORS -->
   <div id="door-screen" class="screen">
     <h2 class="door-title">CHOOSE YOUR PATH</h2>

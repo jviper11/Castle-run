@@ -348,7 +348,9 @@ All characters share these baseline cards:
 ### Corrupted Companions (Floors 1–3)
 Which companion appears on which floor is random each run. Affinity hints appear in rooms near the boss — environmental particles matching the boss's character (e.g. magic vapor for Mage, blood mist for Vampire).
 
-⚠ TBD: Names, lore, and boss mechanics for the four corrupted companions.
+✅ Resolved (August 20, 2026): Names and lore for all five corrupted companions are written and signed off, and live on the `BOSSES` entries in `js/data.js` (`name`/`title` and the `lore` field). Lore is revealed by a one-shot overlay on the first-ever defeat of each companion — see §1 and §9.
+
+⚠ TBD: Boss mechanics for the four corrupted companions — they currently fight with the generic enemy move set plus their affinity particles, with no per-companion special.
 
 ### King Aldric Ashborne — Final Boss
 
@@ -786,7 +788,7 @@ At each spend window, 3 upgrades are offered at random from the full 8-option po
 ## 16. Open Design Questions
 
 ### Story
-- ⚠ TBD: Names and lore for the four corrupted companions (floor bosses 1–4 random assignment)
+- ✅ Resolved (August 20, 2026): Names and lore for the four corrupted companions (floor bosses 1–4 random assignment). Names were already in `BOSSES`; lore is now written for all five and revealed on first-ever defeat (§7).
 - ⚠ TBD: Sir Crimson's full backstory — who was he before the castle took him?
 
 ### Gameplay

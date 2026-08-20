@@ -858,21 +858,32 @@ const ELITES = [
       trigger:'attack', effect:(g)=>{ if(g.block>0){ const bonus=enemyAttackDamage(g,false,g.block); dealDamage(g,'player',bonus,'enemy',true); showMsg(`🌌 Collapse — ${bonus} bonus damage from your Block!`); } } } },
 ];
 
+// `hint` is the pre-fight room flavour shown on the boss-intro screen. `lore` is the separate
+// post-fight beat (GDD §1 "Defeating a corrupted companion for the first time releases their
+// Core... reveals their lore"): read out once ever per companion by showCoreLoreReveal()
+// (js/ui.js), gated on recordCoreCollected()'s first-time-only return. Written in the companion's
+// own second person — the reveal is the lucid breath after the corruption breaks, not narration
+// about them.
 const BOSSES = [
   { charKey:'barbarian', name:'The Berserker',   title:'Corrupted Barbarian', emoji:'😡', hp:90,  block:0,  damage:18, reward:80, souls:15,
     hint:'The walls crack with each step. Blood smears trail through the corridor. The ground shakes faintly ahead.',
+    lore:"The rage wasn't yours. It was the castle, and for one breath its grip slips. You remember mountain paths. An oath you swore before any of this. You picked up a weapon for a reason once, and it wasn't this.",
     particles:'💢', particleColor:'#c0392b' },
   { charKey:'mage',      name:'The Arcanist',    title:'Corrupted Mage',      emoji:'🌀', hp:80,  block:10, damage:16, reward:80, souls:15,
     hint:'Magic vapor drifts through the air. Arcane symbols flicker across the stone walls. Floating dust particles glow faintly.',
+    lore:"You always waited for the right moment to cast. That discipline is the one thing corruption couldn't burn out of you. For a breath the noise clears, and underneath it you're just a scholar who wanted to understand this place, before it decided to make an example of you instead.",
     particles:'✨', particleColor:'#2980b9' },
   { charKey:'thief',     name:'The Phantom',     title:'Corrupted Thief',     emoji:'🌑', hp:75,  block:5,  damage:14, reward:80, souls:15,
     hint:'Shadows move wrong in the torchlight. Coins glint in dark corners. Something darts past in the background.',
+    lore:"You were always faster than whatever was chasing you. Even now, something in you flinches from the killing blow it wants to land. For a breath you're not a shadow. Just someone who used to steal small, forgivable things, and never meant for any of this.",
     particles:'🌑', particleColor:'#1b5e20' },
   { charKey:'gambler',   name:'The Dealer',      title:'Corrupted Gambler',   emoji:'♠️', hp:85,  block:0,  damage:17, reward:80, souls:15,
     hint:'Playing cards scatter across the floor. Dice roll by themselves in the corner. Gold shimmer drifts through the air.',
+    lore:"You never rolled a one. Not once, until now, on your knees, the castle's hold finally breaking like a bad bet called in. For a breath you remember none of it was really about the game. It was about never having to sit still with anything real.",
     particles:'🃏', particleColor:'#b8860b' },
   { charKey:'vampire',   name:'The Ancient',     title:'Corrupted Vampire',   emoji:'🩸', hp:95,  block:0,  damage:20, reward:80, souls:15,
     hint:'Blood drips down the stone walls. Bats flicker in the torchlight. A deep cold seeps into the room.',
+    lore:"The hunger burned through you the same way it's burned through everyone here. For a breath it quiets, and what's left is tired and a little grateful. Not for the fight. Just for being looked at like something other than a threat.",
     particles:'🩸', particleColor:'#880e4f' },
 ];
 

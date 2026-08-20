@@ -1829,6 +1829,22 @@ body {
 }
 #sir-crimson-shadow-overlay.visible { display: flex; }
 
+/* ── CORE LORE REVEAL (GDD §1) ── */
+/* Fourth member of the same family. Its .path-confirm-* innards are class-based and reused
+   verbatim, but the backdrop shell above is ID-scoped, so the overlay needs its own copy of it —
+   kept as a separate selector to match how the other three are written rather than joined onto
+   one comma list. */
+#core-lore-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  z-index: 500;
+  align-items: center;
+  justify-content: center;
+}
+#core-lore-overlay.visible { display: flex; }
+
 /* ── MIRROR ── */
 .mirror-panel {
   width: min(300px, 88vw);

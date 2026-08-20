@@ -2940,7 +2940,16 @@ function checkCombatEnd() {
       // this branch also runs when he dies — at which point G.currentFloor is still 3 and
       // `boss` is the floor-3 companion, who was already collected. Recording is a no-op
       // in that case, but the guard keeps the intent honest rather than relying on dedupe.
-      if (!G.isFinalBoss) recordCoreCollected(boss.charKey);
+      //
+      // The return value is the ONLY first-time-ever signal in the game (G.cores is rebuilt every
+      // run, so it can't answer it), and GDD §1 spends it on the lore reveal. Stash the companion
+      // rather than revealing here: this whole block runs inside the timing-sensitive post-combat
+      // chain below, so the overlay is gated later, at the two points where the run is already
+      // pausing anyway — proceedOrPath() and launchFinalBoss() (both js/ui.js).
+      if (!G.isFinalBoss) {
+        const isFirstEverCollection = recordCoreCollected(boss.charKey);
+        if (isFirstEverCollection) G._pendingCoreLore = boss.charKey;
+      }
       renderCores();
       showMsg(`Core of ${boss.name} — collected!`);
       // Challenge cleared — winning the fight IS the clear condition. Permanent, first-time

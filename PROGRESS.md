@@ -957,6 +957,25 @@ Cut during design: **True Roll** (min-roll floor — conflicted with Mage's Fros
 - This reveals their lore in the menu/hero-select AND unlocks that hero's Challenge details simultaneously.
 - Cores are not spent or consumed — they're a permanent lore/unlock record, viewable anytime.
 
+**Core lore reveal — ✅ Written and ✅ Implemented August 20, 2026; Verified for the flow paths listed below.**
+
+Lore text for all five companions now lives on the `BOSSES` entries in `js/data.js` as a `lore` field, deliberately separate from the existing pre-fight `hint`. The reveal is a `#core-lore-overlay` popup reusing the `.path-confirm-box` shell (the same shape as Sir Crimson's shadow beat), not a screen and not a toast — the existing "Core of X — collected!" toast is unchanged and still fires regardless.
+
+`recordCoreCollected()`'s first-time-ever return value — previously discarded at its only call site — is now captured in `checkCombatEnd()` into `G._pendingCoreLore`. The overlay is **not** shown there: that block sits inside the timing-sensitive post-combat `setTimeout` chain (Aldric phase guard, the floor≥3 branch, the normal boss → `showReward()` branch). It is gated at **two** later points instead, both in `js/ui.js`:
+
+| Gate | Covers | Continues into |
+|---|---|---|
+| `proceedOrPath()` | Floor 0/1/2 boss clears — everything upstream in the reward chain has already had its turn, so this only delays the final step | `showPathSelect()` |
+| `launchFinalBoss()` | The Floor-3 boss clear, which returns straight out of `checkCombatEnd()` and **never reaches `proceedOrPath()` at all** | `showScreen('combat-screen')` + `startAldricFight()` |
+
+The second gate is the non-obvious half. Without it exactly one reveal in four would be dropped silently and **permanently** — the `META` write has already happened by then, so `recordCoreCollected()` returns `false` in every later run and the lore could never be offered again.
+
+On a Floor-1 clear both the Sir Crimson shadow beat and a Core reveal can be pending at once (the first floor boss is itself a corrupted companion — traced, not assumed). The shadow shows first and `dismissSirCrimsonShadow()` re-enters `proceedOrPath()`, which then lands on the Core gate, so the sequence ends on the companion just defeated rather than opening with them. Missing markup or missing lore text falls straight through to the continuation — a story beat never hard-blocks a run.
+
+**Verified** (39 assertions, traced against the real `js/*.js` files with a stubbed DOM rather than read statically): lore present/distinct/non-`hint` on all 5 entries; first-ever collection stashes, a later run's repeat collection does not; the Floor-1 both-pending ordering and its hand-off; correct title and lore text on the overlay; the Floor-3 gate delays Aldric and its self-recursion terminates; both degraded-markup fall-throughs; and the `!G.isFinalBoss` guard blocking any second stash on Aldric's death.
+
+⚠ Still open: PROGRESS's own bullet above (and `GDD.md` §9) also calls the lore "viewable anytime" from the menu/hero-select. Only the first-defeat reveal moment is built — there is no re-viewer, so the lore is currently readable exactly once, ever, per companion. See `DESIGN_DISCREPANCIES.md`.
+
 **Challenges (new system):**
 - See the Challenge Relics table above for all 5 designed challenges.
 - A Challenge is only attemptable once its Core has been collected (i.e., you've beaten that hero once as a corrupted boss).
