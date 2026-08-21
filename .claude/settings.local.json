@@ -104,7 +104,26 @@
       "Bash(git diff *)",
       "Bash(node compact.js before.json)",
       "Bash(node compact.js after.json)",
-      "Bash(node diff.js)"
+      "Bash(node diff.js)",
+      "Bash(npx --no-install playwright --version)",
+      "Bash(node -e \"try{require.resolve\\('puppeteer'\\);console.log\\('puppeteer yes'\\)}catch\\(e\\){console.log\\('puppeteer no'\\)}\")",
+      "Bash(npm init *)",
+      "Bash(npx --yes playwright@1.62.1 install chromium)",
+      "Bash(npm i *)",
+      "Bash(npx playwright *)",
+      "Bash(node measure.js)",
+      "Bash(sed -i \"s/\\\\['poisonvial', 'fireflask', 'fireflask'\\\\]/['poison_vial', 'fire_flask', 'fire_flask']/\" measure.js)",
+      "Bash(node probe.js)",
+      "Bash(awk 'NR>=3690 && NR<=3720' css/styles.css)",
+      "Bash(awk 'NR<=3717 && /@media/ {ln=NR; q=$0} END{}' css/styles.css)",
+      "Bash(awk -F: '$1<3717')",
+      "Bash(awk 'NR>=3690 && NR<=3720 {print NR\": \"$0}' css/styles.css)",
+      "Bash(node shot.js before)",
+      "Bash(node shot.js after)",
+      "Bash(node verify.js)",
+      "Bash(node shot.js final)",
+      "Bash(node soulcheck.js)",
+      "Bash(node soulcheck2.js)"
     ]
   }
 }

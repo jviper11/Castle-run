@@ -413,8 +413,15 @@ function renderConsumableSlots() {
     if (!item) return;
     const btn = document.createElement('button');
     btn.className = 'btn soul-die-btn consumable-slot';
-    btn.textContent = `${item.emoji} ${item.name}`;
-    btn.title = item.desc;
+    // Emoji only, deliberately. This row is laid out horizontally so its height cannot grow with
+    // inventory size (see the #consumable-slots rule in css/styles.css); full names would make 3
+    // slots ~290px wide and push it across the player's sprite and HP bar instead — trading a
+    // vertical overlap for a horizontal one. All 10 CONSUMABLES have distinct emoji, the name and
+    // description stay reachable here, and renderFieldInventory() still labels them in full
+    // out of combat.
+    btn.textContent = item.emoji;
+    btn.title = `${item.name} — ${item.desc}`;
+    btn.setAttribute('aria-label', `Use ${item.name}: ${item.desc}`);
     btn.onclick = () => useConsumable(idx);
     el.appendChild(btn);
   });

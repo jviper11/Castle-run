@@ -767,10 +767,40 @@ rather than silently fixed since making it binding would change three events' pa
 persists across every combat within a run exactly like `G.relics`. `CONSUMABLES` (js/ui.js) holds
 the item data; `grantConsumable()`/`useConsumable()`/`renderConsumableSlots()` implement
 grant/use/render. A new in-combat slot row (`#consumable-slots`, floated above `.dice-panel`,
-opposite side from `#soul-die-controls`) shows each held item's icon/name; click-to-use, no
+opposite side from `#soul-die-controls`) shows each held item; click-to-use, no
 Energy cost, single-use (spliced out of the array on use). Items are obtainable from the shop,
 elite rewards and events (see "Acquisition and availability" below), plus `js/debug.js`'s
 `consumables=` option for testing.
+
+**In-combat row overlap — ✅ Fixed and Verified August 21, 2026.** The row was a
+`flex-direction: column` growing upward from the dice panel with no cap, so its height scaled with
+inventory size. Measured in a real browser rather than read: each row is **42px** tall on any
+viewport ≤1100px wide — `.btn { min-height: 42px }` (the tap-target rule inside
+`@media (max-width: 1100px)`) beats `.soul-die-btn`'s `height: 15px`, being a later rule of equal
+specificity — so a full 3/3 inventory stood **136.5px** tall on a landscape phone and climbed out of
+the dice panel into the character/HP band. Desktop was 64.7px and reached into the arena at 2 items.
+
+Fixed by making the footprint bounded by the layout instead of by inventory: `flex-direction: row`
+with `flex-wrap: nowrap`, so height is exactly one button at 1, 2, or 3 items (19.8px desktop /
+44.1px landscape) and the empty state still has zero footprint. The buttons became **emoji-only** to
+keep the row narrow — full names would make 3 slots ~290px wide and push it across the player's
+sprite and HP bar, trading a vertical overlap for a horizontal one. The name and description moved
+to `title` plus a new `aria-label`; `renderFieldInventory()` still labels items in full out of
+combat. Verified at 0/1/2/3 items across 6 viewports (1280×800 down to 568×320), plus a functional
+check that the *n*th cell still uses the *n*th held item and fires its effect.
+
+⚠️ **Known issue, pre-existing and NOT introduced by the above:** `#soul-die-controls` is still an
+uncapped upward column with the identical problem, and the original CSS comment's claim that the two
+rows "can never collide even when both are populated" is false at **every** size — the dice panel is
+only 76px wide (58.8px on mobile), so two content-sized stacks anchored to its left and right edges
+always overlap. Measured on landscape 740×360: the soul stack is 44.1px tall at 1 row, 90.3px at 2
+(Second Die + Gambler's Edge), 136.5px at 3 (+ Ley Line Crystal on a Mage), reaching into the arena
+from 1 row up, and overlapping the consumable row in all three cases. The consumable fix *shrinks*
+that overlap (the shared band went from ~56×90px to ~56×44px) but cannot remove it. Separately,
+`#aldric-curse-indicator` uses the byte-identical `left: 0; bottom: calc(100% + 0.2rem)` anchor as
+`#consumable-slots` and so draws directly on top of it during Aldric Phase 2+ — confirmed by
+measurement on both the original and fixed code, so also pre-existing. Both need the same
+bounded-footprint treatment plus a call on which element yields.
 
 Nine of the ten items' `effect` reuses an existing combat function verbatim
 (`healPlayer`/`gainBlock`/`applyStatus`/`drawCards`) — there is no per-item plumbing. Batch 2
