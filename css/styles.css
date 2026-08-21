@@ -2404,6 +2404,20 @@ body {
 .boss-challenge-reward { font-size: 0.72rem; color: var(--text3); font-style: italic; line-height: 1.4; }
 .boss-challenge-toggle { font-size: 0.72rem; padding: 0.35rem 0.9rem; }
 .boss-challenge-toggle.accepted { border-color: var(--gold); color: var(--gold); }
+/* Keep the label gold on hover instead of inverting to var(--bg).
+   .btn's shared hover is an invert: a gold ::before sweeps in (z-index:-1) while the text turns
+   near-black, so it reads against the new gold fill. That relies on the sweep being visible, and
+   here it is not. .btn is position:relative with z-index:auto, so it does NOT create a stacking
+   context — the sweep resolves against the nearest one, #boss-intro-screen (.screen is
+   position:absolute + z-index). Inside that context negative-z-index descendants paint BEFORE
+   in-flow blocks, so .boss-challenge's opaque `background: var(--panel)` covers the sweep while
+   the near-black text still applies. Dark on dark.
+   Scoped deliberately: the shared .btn invert is correct everywhere it isn't nested inside an
+   opaque in-flow panel (FACE THEM, directly below this, is a child of the screen and works fine).
+   The .accepted variant already won on source order (equal specificity to .btn:hover, declared
+   later) — stated explicitly here so it is not left working by cascade-order coincidence. */
+.boss-challenge-toggle:hover { color: var(--gold); }
+.boss-challenge-toggle.accepted:hover { color: var(--gold); }
 
 /* ── GAME OVER ── */
 #gameover-screen {
