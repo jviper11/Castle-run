@@ -3332,9 +3332,37 @@ function showGameOver() {
 // ms lets a caller hold an important confirmation on screen longer than the 2.5s default —
 // used for grants that change a persistent stat and are otherwise easy to miss during a
 // screen transition (see giveReward's die swap).
+// Separator between messages that were fired together. Two spaces either side so it reads as a
+// break even when both halves end in punctuation or an emoji.
+const MSG_JOIN = '  •  ';
+
+// Single-slot toast, but calls made in the SAME synchronous execution now COMBINE instead of the
+// later one silently overwriting the earlier.
+//
+// The bug this fixes: a card effect and a chokepoint it triggers both call showMsg() in one tick.
+// Pick Pocket is the reported case — `drawCards(g,2)` hits the Mage Challenge's denial
+// ("🚫 Challenge — no extra cards this fight.") and then the Odd branch immediately fires
+// "💰 Pick Pocket — 5 Gold!". The second assignment replaced el.textContent before the browser
+// painted once, so the denial genuinely fired and was genuinely never seen. Not card-specific: any
+// Denial Challenge (mage/thief/gambler) paired with any card that also messages does this.
+//
+// The batch is closed by a MICROTASK, which is what scopes this to "the same synchronous run":
+// microtasks drain after the current call stack unwinds but before the next render, so everything
+// one player action produced is shown together and the next action starts clean.
+//
+// Deliberately narrower than "append while the toast is still visible". That wider window would
+// also join messages up to `ms` (2500ms) apart — two unrelated cards played a second apart would
+// run together, which is a new visible problem rather than a fix. To adopt the wider behaviour
+// anyway, swap the `!!el._batch` test below for `el.classList.contains('visible')`.
 function showMsg(txt, ms = 2500) {
   const el = document.getElementById('message-log');
-  el.textContent = txt;
+  el.textContent = el._batch ? el.textContent + MSG_JOIN + txt : txt;
+  if (!el._batch) {
+    el._batch = true;
+    // Note el._t cannot serve as this marker: it is set but never cleared back to null, so it is
+    // permanently truthy after the first message the game ever shows.
+    Promise.resolve().then(() => { el._batch = false; });
+  }
   el.classList.add('visible');
   clearTimeout(el._t);
   el._t = setTimeout(() => el.classList.remove('visible'), ms);
