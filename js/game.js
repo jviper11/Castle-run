@@ -328,7 +328,15 @@ function showDoors(nextIsBoss) {
       const canAfford = G.gold >= mirrorCost;
 
       const affordColor = canAfford ? 'var(--gold)' : 'var(--red3)';
-      const useMirrorCall = 'useMirror(' + JSON.stringify(targetPath) + ',' + mirrorCost + ',' + JSON.stringify(mirrorUsedKey) + ',' + targetHalfway + ')';
+      // The double quotes JSON.stringify() emits collide with the onclick="..." delimiter below:
+      // the HTML parser ended the attribute at the first one, storing only `useMirror(` and
+      // scattering the rest as junk attributes on the tag. Clicking then compiled that truncated
+      // fragment — "SyntaxError: Unexpected end of input" — which js/data.js's window.onerror turns
+      // into the full-page "Failed to load" screen, so the Mirror was unusable on every path.
+      // &quot; is decoded back to a real " before the attribute value reaches the JS engine, so the
+      // string literals still parse at call time; only the HTML-level collision is removed.
+      const useMirrorCall = ('useMirror(' + JSON.stringify(targetPath) + ',' + mirrorCost + ',' + JSON.stringify(mirrorUsedKey) + ',' + targetHalfway + ')')
+        .replace(/"/g, '&quot;');
       mirrorDiv.innerHTML = [
         '<div class="mirror-frame">',
           '<div class="mirror-reflection">',

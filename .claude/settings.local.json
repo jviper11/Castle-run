@@ -131,7 +131,8 @@
       "Bash(node energy.js)",
       "Bash(node playable.js)",
       "Bash(python -c ' *)",
-      "Bash(node fieldinv.js re)"
+      "Bash(node fieldinv.js re)",
+      "Bash(node mirror.js)"
     ]
   }
 }
