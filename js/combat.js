@@ -1811,8 +1811,17 @@ function getCardEnergyCost(g, cardKey, options = {}) {
   // Curse of Confusion — this turn's single taxed card. Turn-scoped, re-picked by startTurn().
   if (g._confusedCardKey && g._confusedCardKey === baseKey) cost += CURSE_CONFUSION_TAX;
 
+  // ── Self-exclusions below all test `baseKey`, never the raw cardKey ──
+  //
+  // Upgrades are registered as `CARDS[key + '+']` (js/data.js), so a raw `cardKey !== 'manasurge'`
+  // test does not match 'manasurge+' and the upgraded card consumes its own buff the moment it is
+  // played. Cursed Veins already avoided this by spelling out both keys; Mana Surge and Disappear
+  // did not, and both were self-discounting in their '+' form. baseKey — stripped just above for
+  // the curse surcharges — is the same normalization CARD_PLAY_CONDITIONS uses, so one test covers
+  // both spellings and any future upgrade automatically.
+
   // Mana Surge — the next card played after it costs 1 less
-  if (g._manaSurge && cardKey !== 'manasurge') {
+  if (g._manaSurge && baseKey !== 'manasurge') {
     cost = Math.max(0, cost - 1);
     if (consume) g._manaSurge = false;
   }
@@ -1829,11 +1838,31 @@ function getCardEnergyCost(g, cardKey, options = {}) {
     if (consume) g._houseAlwaysWinsFreeCard = false;
   }
   // Shadow Artist (base, stacks 1) — the 2nd and 4th card played each turn cost 0.
-  // (The + version uses the _shadowArtistDiscount counter instead — see playCard below.)
+  // (The + version uses the _shadowArtistDiscount counter — immediately below.)
   const shadowArtistBase = g.statuses.player.find(s => s.name === '🎭ShadowArtist' && s.stacks === 1);
   if (shadowArtistBase) {
     const cardNumber = (g._cardsPlayedThisTurn || 0) + 1;
     if (cardNumber === 2 || cardNumber === 4) cost = 0;
+  }
+  // Shadow Artist+ — the per-card counter version of the same idea as the base stacks-1 check
+  // above, but a -1 discount rather than a hard override: the card text is "cost 1 less", not
+  // "costs 0". Same shape as Mana Surge.
+  if (g._shadowArtistDiscount > 0) {
+    cost = Math.max(0, cost - 1);
+    if (consume) g._shadowArtistDiscount--;
+  }
+  // Disappear — next card (or next 2 on an odd roll) costs 0. Also written by Cursed Veins'
+  // non-extreme branch, which shares this flag rather than having its own. Self-excluded via
+  // baseKey so Disappear+ is covered too (see the note above the Mana Surge block).
+  if (g._disappearCount > 0 && baseKey !== 'disappear') {
+    cost = 0;
+    if (consume) g._disappearCount--;
+  }
+  // Cursed Veins (extreme roll) — next Skill card free. This was the one effect that already
+  // handled the '+' key, by listing both spellings; baseKey expresses the same thing once.
+  if (g._freeSkillCount > 0 && card.type === 'Skill' && baseKey !== 'cursedveins') {
+    cost = 0;
+    if (consume) g._freeSkillCount--;
   }
   return cost;
 }
@@ -1902,17 +1931,10 @@ if (G._shadowMark > 0 && card.type === 'Attack') {
   floatDamage('enemy-combatant', G._shadowMark, 'dmg');
   G._shadowMark = 0;
 }
-if (G._shadowArtistDiscount > 0) { actualCost = Math.max(0, actualCost - 1); G._shadowArtistDiscount--; }
-// Disappear free card
-if (G._disappearCount > 0 && cardKey !== 'disappear') {
-  G.energy += actualCost;
-  G._disappearCount--;
-}
-// Cursed Veins — next Skill card free
-if (G._freeSkillCount > 0 && card.type === 'Skill' && cardKey !== 'cursedveins' && cardKey !== 'cursedveins+') {
-  G.energy += actualCost;
-  G._freeSkillCount--;
-}
+  // Shadow Artist+, Disappear and Cursed Veins' free-Skill used to be applied HERE, as post-payment
+  // refunds. They now live in getCardEnergyCost() with the other four "next card free/cheaper"
+  // effects, so actualCost above already reflects them and `G.energy -= actualCost` pays the
+  // discounted price directly. Do not reintroduce a refund here — see that function.
 
   if (card.type === 'Skill' || card.type === 'Power') G._spellsThisTurn = (G._spellsThisTurn || 0) + 1;
 if (G._arcaneMomentum && G._momentumCap > 0 && (card.type === 'Skill' || card.type === 'Power')) {

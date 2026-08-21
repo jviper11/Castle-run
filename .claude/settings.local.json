@@ -127,7 +127,11 @@
       "Bash(awk -F: '{print $1\": \"$2}')",
       "Bash(node fieldinv.js after)",
       "Bash(node why.js)",
-      "Bash(node fieldinv.js final)"
+      "Bash(node fieldinv.js final)",
+      "Bash(node energy.js)",
+      "Bash(node playable.js)",
+      "Bash(python -c ' *)",
+      "Bash(node fieldinv.js re)"
     ]
   }
 }
