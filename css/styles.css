@@ -814,6 +814,33 @@ body {
   .field-inv-label { font-size: 0.42rem; }
 }
 
+/* Desktop scale-up. Added alongside the mobile rule above rather than replacing the base sizing,
+   which stays mobile-first — the base is shared with the in-combat dice panel's cramped 0.45rem/15px
+   world and must keep serving it.
+   Scoped to `.field-inv-slots .consumable-slot`, never the bare `.consumable-slot`/`.soul-die-btn`
+   classes: those are shared with #consumable-slots and #soul-die-controls in the dice panel, whose
+   whole job is to stay small and bounded. Widening the shared class would undo that.
+   901px sits just above the mobile rule's 820px ceiling. Note it deliberately does NOT clear
+   `@media (max-width: 1100px)`'s `.btn { min-height: 42px }` touch-target rule, which still applies
+   to the populated slots from 901–1100px — see the .field-inv-empty note below. */
+@media (min-width: 901px) {
+  #field-inventory { padding: 0.5rem 0.6rem; max-width: 280px; }
+  .field-inv-label { font-size: 0.68rem; }
+  .field-inv-slots .consumable-slot { font-size: 0.58rem; height: 22px; }
+  /* Placeholder rows are plain divs, so nothing forces them to the 42px tap target that the .btn
+     rule imposes on real slots below 1101px. Matching that height keeps a partly-filled box's rows
+     aligned in the 901–1100px band; above it, both settle at 22px. */
+  .field-inv-empty { font-size: 0.58rem; height: 22px; line-height: 22px; }
+  /* Scaled to hold the base's proportion rather than to a fresh guess: 0.4/0.45 made the sublabel
+     89% of the item text, and 0.52/0.58 makes it 90%. Left at 0.4rem it drops to 69% and reads as a
+     smudge beside the bigger name; pushed to 0.58rem it matches the name and the hierarchy between
+     item and reason collapses. */
+  .field-inv-why { font-size: 0.52rem; }
+}
+@media (min-width: 901px) and (max-width: 1100px) {
+  .field-inv-empty { height: 42px; line-height: 42px; }
+}
+
 /* The House Always Wins (Gambler character relic) streak tracker — same dim/lit visual
    language as .core-icon, sized to sit in the same compact row as the soul-die buttons. */
 #house-streak-tracker { display: flex; gap: 0.15rem; align-items: center; justify-content: center; height: 15px; }

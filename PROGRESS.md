@@ -789,6 +789,33 @@ to `title` plus a new `aria-label`; `renderFieldInventory()` still labels items 
 combat. Verified at 0/1/2/3 items across 6 viewports (1280×800 down to 568×320), plus a functional
 check that the *n*th cell still uses the *n*th held item and fires its effect.
 
+**Out-of-combat box desktop sizing — ✅ Added and Verified August 21, 2026.** `#field-inventory` had
+one fixed size for every viewport, and the only breakpoint touching it made it *smaller* for mobile —
+so on a wide desktop window it rendered at phone size while `.door-title`/`.door-content` around it
+scaled up. Added a `@media (min-width: 901px)` block (901px sits just above the mobile rule's 820px
+ceiling): label `0.5rem → 0.68rem`, slot and placeholder text `0.45rem → 0.58rem`, rows `15px → 22px`,
+padding `0.3/0.4rem → 0.5/0.6rem`, and `max-width: min(320px, 46vw) → a flat 280px` so the box does
+not stretch on ultrawide monitors.
+
+Deliberately scoped to `.field-inv-slots .consumable-slot`, never the bare
+`.consumable-slot`/`.soul-die-btn` classes — those are shared with the in-combat `#consumable-slots`
+and `#soul-die-controls`, whose sizing pass above exists to keep them small. Both suites were re-run
+together to prove the in-combat row is byte-identical after this change.
+
+Two things the sizing table alone would have missed, found by measuring instead:
+- **`.btn { min-height: 42px }` still applies from 901–1100px** (it lives in `@media (max-width: 1100px)`),
+  so populated slots are 42px there, not the declared 22px, while `.field-inv-empty` — a plain div —
+  would have stayed 22px and left a partly-filled box with mismatched rows. A paired
+  `@media (min-width: 901px) and (max-width: 1100px)` rule holds the placeholders at 42px to match.
+  Above 1100px both settle at 22px.
+- **`.field-inv-why` did need the bump** (the deferred judgment call). Left at `0.4rem` it fell to 69%
+  of the new slot text and read as a smudge; at `0.58rem` it matched the item name and the hierarchy
+  collapsed. Set to `0.52rem`, which reproduces the base design's own 89% ratio at 90%. Judged from
+  rendered 3× screenshots of all four candidates, not from arithmetic.
+
+Verified at 8 viewports (780×400 → 2560×1080) including every breakpoint boundary (860/901/1000/1100/1101),
+at 0/1/2/3 items, asserting row-height agreement between filled and empty slots at each.
+
 ⚠️ **Known issue, pre-existing and NOT introduced by the above:** `#soul-die-controls` is still an
 uncapped upward column with the identical problem, and the original CSS comment's claim that the two
 rows "can never collide even when both are populated" is false at **every** size — the dice panel is
