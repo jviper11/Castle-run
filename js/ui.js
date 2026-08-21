@@ -2304,6 +2304,17 @@ function formatCompactClause(clause, options = {}) {
   match = clean.match(/^Drain (\d+) HP$/i);
   if (match) return `+${match[1]} heal`;
 
+  match = clean.match(/^Heal (\d+) HP$/i);
+  if (match) return `+${match[1]} heal`;
+
+  // Kept as "HP", NOT rewritten to "heal": these clauses are a cost the player pays. The generic
+  // fallback below used to end with a blind .replace(/HP/ig, 'heal'), which turned every one of
+  // these into "Lose 5 heal" — backwards, since it read as losing a benefit rather than paying a
+  // price. That replace is gone; "heal" is now only ever produced by a case that has actually
+  // confirmed the clause is a gain (Drain/Heal above, and the Deal+heal combo further up).
+  match = clean.match(/^Lose (\d+) HP$/i);
+  if (match) return `-${match[1]} HP`;
+
   match = clean.match(/^Drain (\d+) Block$/i);
   if (match) return `+${match[1]} Block`;
 
@@ -2319,10 +2330,15 @@ function formatCompactClause(clause, options = {}) {
   match = clean.match(/^Roll 4-6: deal (\d+)\. Roll 2-3: deal (\d+)$/i);
   if (match) return `${formatCompactDamage(match[2], applyDamagePreview)}-${formatCompactDamage(match[1], applyDamagePreview)} gamble`;
 
+  // Generic fallback for any phrasing without a case of its own. Deliberately does NOT touch "HP":
+  // a blind substitution cannot know whether the clause is a gain or a cost, and every phrasing
+  // where "heal" is the right short word has its own case above. Combo clauses that mix an HP cost
+  // with something else in one sentence ("Lose 4 HP, gain 8 Block", "Convert 10 HP into 10 Block",
+  // "Spend 5 HP") land here and render verbatim — correct, just not shortened further. That is the
+  // accepted trade-off: hand-rolling a regex per cost verb buys very little extra compactness.
   return clean
     .replace(/damage/ig, 'dmg')
-    .replace(/cards?/ig, 'Draw')
-    .replace(/HP/ig, 'heal');
+    .replace(/cards?/ig, 'Draw');
 }
 
 function getCompactCardSummary(card) {

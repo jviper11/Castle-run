@@ -101,7 +101,10 @@
       "Bash(node --check js/data.js)",
       "Bash(node --check js/ui.js)",
       "Bash(node trace.js)",
-      "Bash(git diff *)"
+      "Bash(git diff *)",
+      "Bash(node compact.js before.json)",
+      "Bash(node compact.js after.json)",
+      "Bash(node diff.js)"
     ]
   }
 }
