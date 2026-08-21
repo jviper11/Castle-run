@@ -2953,6 +2953,19 @@ function checkCombatEnd() {
     spawnDeathBurstVFX(enemySprite);
     enemySprite.classList.add('dying');
 
+    // Notices fired SYNCHRONOUSLY in the boss-clear block below are replaced, not joined, by
+    // whichever message the setTimeout further down shows 700ms later. showMsg()'s same-tick
+    // batching cannot help: a setTimeout callback is a separate task, and the microtask that closes
+    // the batch has long since run by then — deliberately, since widening that window would glue
+    // together genuinely unrelated messages seconds apart.
+    //
+    // So the notices are collected here and spliced into that later message instead of relying on
+    // a toast surviving across the gap. A plain local is enough — unlike G._pendingCoreLore's
+    // genuine cross-screen handoff, this only has to reach the closure below, in this one call.
+    const bossClearNotices = [];
+    const withNotices = (txt) =>
+      bossClearNotices.length ? txt + MSG_JOIN + bossClearNotices.join(MSG_JOIN) : txt;
+
     if (G.inBoss) {
       const boss = G.map[G.currentFloor].boss;
       G.cores.push(boss.charKey);
@@ -2973,16 +2986,31 @@ function checkCombatEnd() {
         if (isFirstEverCollection) G._pendingCoreLore = boss.charKey;
       }
       renderCores();
+      // Kept as an immediate toast AND carried forward. The immediate call is load-bearing for the
+      // Aldric path, whose setTimeout branch shows no message of its own, so removing it would lose
+      // this outright there. On the floor-clear paths it is briefly shown, then re-shown inside the
+      // combined message — mild repetition, in exchange for no path ever dropping it.
       showMsg(`Core of ${boss.name} — collected!`);
+      // Same overwrite as the Challenge line below. Worth carrying in its own right: the lore-reveal
+      // screen only fires on a FIRST-EVER collection, so on a repeat run this toast is the only
+      // acknowledgement the Core was taken at all. Drop this one line to scope the fix to the
+      // Challenge message alone.
+      bossClearNotices.push(`Core of ${boss.name} — collected!`);
       // Challenge cleared — winning the fight IS the clear condition. Permanent, first-time
       // only (recordChallengeRelicEarned mirrors recordCoreCollected). Losing simply never
       // reaches here, which is the whole of "a failed attempt costs nothing".
       if (!G.isFinalBoss && challengeActive(G) && G._challenge === boss.charKey) {
         const earned = recordChallengeRelicEarned(G._challenge);
         const heroName = (CHARACTERS[G._challenge] && CHARACTERS[G._challenge].name) || G._challenge;
-        showMsg(earned
+        // Built once, then both shown now and carried into the downstream message. This is the
+        // reported bug: the relic is genuinely earned, but the confirmation was the only feedback
+        // the player ever gets for it — there is no Challenge equivalent of the Core lore screen —
+        // and it was being replaced 700ms later by "Floor cleared!".
+        const challengeMsg = earned
           ? `🏆 Challenge complete — ${heroName}'s Challenge relic earned!`
-          : `🏆 Challenge complete — ${heroName}'s relic was already earned.`);
+          : `🏆 Challenge complete — ${heroName}'s relic was already earned.`;
+        showMsg(challengeMsg);
+        bossClearNotices.push(challengeMsg);
         G._challenge = null;
       }
     }
@@ -3006,7 +3034,7 @@ function checkCombatEnd() {
       if (G.inBoss && G.currentFloor >= 3) {
         // Last floor boss defeated — now face Aldric
         setTimeout(() => launchFinalBoss(), 1500);
-        showMsg('The floor falls. One final door remains…');
+        showMsg(withNotices('The floor falls. One final door remains…'));
         return;
       }
       if (G.inBoss) {
@@ -3014,7 +3042,7 @@ function checkCombatEnd() {
         const bossGold = G.map[G.currentFloor].boss.reward || 80;
         G.gold += bossGold;
         G.hp = G.maxHp; // full heal between floors
-        showMsg('Floor cleared! +' + bossGold + ' Gold! HP fully restored.');
+        showMsg(withNotices('Floor cleared! +' + bossGold + ' Gold! HP fully restored.'));
         G.map[G.currentFloor].cleared = true;
         G.currentFloor++;
         G.map[G.currentFloor].currentPath = 'A';
