@@ -62,7 +62,7 @@ export const THIEF_CARDS = {
     upgrade: { params: { dmg: 7 }, onAffinity: { weak: 3 } },
   },
   coinflick: {
-    name: 'Coin Flick', emoji: '🪙', type: 'skill', cost: 1, affinity: 'odd',
+    name: 'Coin Flick', emoji: '🟡', type: 'skill', cost: 1, affinity: 'odd',
     params: { gold: 4, draw: 0 }, onAffinity: { draw: 1 },
     ops: [{ op: 'gainGold', amount: 'gold' }, { op: 'draw', n: 'draw' }],
     text: 'Gain {gold} Gold.', affinityText: 'Also draw {draw|card}.',

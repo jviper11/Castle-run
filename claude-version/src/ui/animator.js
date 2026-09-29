@@ -107,7 +107,7 @@ export async function play(c, events, view) {
         break;
       }
       case 'absorb':
-        float(ev.side, `🪨 -${ev.amount}`, 'blocked');
+        float(ev.side, `🗿 -${ev.amount}`, 'blocked');
         toast(`⚡ ${ev.name}`);
         await pause(260);
         break;
@@ -146,7 +146,7 @@ export async function play(c, events, view) {
         $('hud-gold').textContent = ev.gold;
         break;
       case 'coin':
-        toast(ev.won ? '🪙 The coin favours you' : '🪙 The coin turns against you', ev.won ? '' : 'warn');
+        toast(ev.won ? '🟡 The coin favours you' : '🟡 The coin turns against you', ev.won ? '' : 'warn');
         await pause(350);
         break;
       case 'souls':

@@ -233,7 +233,11 @@ export const ABILITIES = {
   },
   boneWall: {
     name: 'Bone Wall', trigger: 'onPlayerCard', resetsBlock: true,
-    text: (p) => `Gains ${p.block} Block the first time you play a Skill each turn. Its Block resets each turn.`,
+    // V2 design decision (COMPARISON §H7): the reference's version never fired and the GDD does not
+    // define it. Once per player turn, and reset on its own turn, because per-Skill with no reset
+    // made it unkillable. The limit is stated in the text, not left for the player to discover.
+    text: (p) => `The first Skill you play on each of your turns gives it ${p.block} Block. ` +
+      'Later Skills that turn give it nothing. Its Block resets at the start of its turn.',
     run: (c, p, turn, def) => {
       if (def.type !== 'skill' || c.turnState.boneWall) return false;
       c.turnState.boneWall = true;

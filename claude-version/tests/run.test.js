@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRun, choosePath, chooseDoor, useMirror, leaveRoom, leaveDieCache, finishCombat, takeCardReward,
   skipCardReward, doorOptions, currentFloor, currentPath, restOptions, restHeal, restUpgrade, restRemove, shopLeave,
-  soulLeave } from '../src/engine/run.js';
+  soulLeave, faceBoss, leaveFloorClear } from '../src/engine/run.js';
 import { generateMap, mirrorIndex } from '../src/engine/map.js';
 import { createRng } from '../src/engine/rng.js';
 import { PATH_TEMPLATES, MAGIC_DOOR, MIRROR_COST, FLOOR_COUNT } from '../src/content/map.js';
@@ -55,6 +55,8 @@ function step(run) {
     case 'reward': return skipCardReward(run);
     case 'room': return leaveRoom(run);
     case 'dieCache': return leaveDieCache(run);
+    case 'bossIntro': return faceBoss(run);
+    case 'floorClear': return leaveFloorClear(run);
     case 'rest': return restOptions(run).canHeal ? restHeal(run) : restRemove(run, run.deck[0].uid);
     case 'shop': return shopLeave(run);
     case 'soulForge': return soulLeave(run);
@@ -182,6 +184,11 @@ test('the boss door follows the last room; a floor boss pays 80 Gold, heals full
   while (!(run.state.screen === 'doors' && doorOptions(run).options[0].id === 'boss')) step(run);
   assert.equal(run.index, currentPath(run).length);
   chooseDoor(run, 'boss');
+  // The boss door opens onto an introduction, naming who waits; the fight starts from there.
+  assert.deepEqual(run.state, { screen: 'bossIntro', boss: currentFloor(run).boss });
+  assert.equal(run.combat, null, 'no fight has started yet');
+  assert.equal(chooseDoor(run, 'boss'), false, 'the doors are behind you');
+  assert.ok(faceBoss(run));
   assert.equal(run.state.kind, 'boss');
   assert.equal(run.combat.enemy.id, currentFloor(run).boss);
   run.combat.player.hp = 10;
@@ -191,6 +198,15 @@ test('the boss door follows the last room; a floor boss pays 80 Gold, heals full
   assert.equal(run.gold, gold + 80);
   assert.equal(run.state.reward.souls, 3);
   skipCardReward(run);
+  // Then the floor-cleared summary, before the Soul Forge.
+  assert.equal(run.state.screen, 'floorClear');
+  const rec = run.state.record;
+  assert.deepEqual([rec.floor, rec.boss, rec.path, rec.paths], [0, currentFloor(run).boss, 'A', ['A']]);
+  assert.equal(rec.rooms, currentPath(run).length, 'every room on the path, once');
+  assert.ok(rec.fights >= 1 && rec.elites <= rec.fights);
+  assert.deepEqual(run.cleared, [rec]);
+  assert.equal(soulLeave(run), false, 'the forge is not open yet');
+  assert.ok(leaveFloorClear(run));
   assert.equal(run.state.screen, 'soulForge');
   assert.equal(run.state.offers.length, 3);
   soulLeave(run);
@@ -216,4 +232,20 @@ test('quiet rooms (event placeholders) are passed through and keep their pacing 
   leaveRoom(run);
   assert.equal(run.index, idx + 1);
   assert.equal(run.state.screen, 'doors');
+});
+
+test('the last floor ends the run from its floor-cleared screen, never at the Soul Forge', () => {
+  const run = createRun({ seed: 5 });
+  run.hp = run.maxHp = 5000;
+  for (let guard = 0; guard < 5000 && run.state.screen !== 'end'; guard++) {
+    if (run.state.screen === 'floorClear' && run.floor === FLOOR_COUNT - 1) {
+      assert.ok(leaveFloorClear(run));
+      assert.deepEqual([run.state.screen, run.state.result], ['end', 'victory']);
+      break;
+    }
+    step(run);
+  }
+  assert.equal(run.state.screen, 'end');
+  assert.equal(run.cleared.length, FLOOR_COUNT, 'one record per floor');
+  assert.deepEqual(run.cleared.map((r) => r.floor), [0, 1, 2, 3]);
 });

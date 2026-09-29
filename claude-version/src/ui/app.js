@@ -8,10 +8,11 @@ import { playCard, endTurn, reroll, resolveChoice, useSecondDie, useGamblersEdge
 import {
   createRun, addCard, choosePath, chooseDoor, useMirror, leaveRoom, finishCombat, takeCardReward, skipCardReward,
   restHeal, restUpgrade, restRemove, restLeave, shopBuy, shopRemove, shopUpgrade, shopLeave, soulBuy, soulLeave,
-  equipDie, takeDie, leaveDieCache,
+  equipDie, takeDie, leaveDieCache, faceBoss, leaveFloorClear,
 } from '../engine/run.js';
 import {
   renderRunStatus, renderPathSelect, renderDoors, renderRoom, renderRest, renderShop, renderSoulForge, renderDieCache,
+  renderBossIntro, renderFloorClear, renderMap, renderEndFloors,
 } from './runView.js';
 import { canShopRemove, canUpgrade } from '../engine/shop.js';
 import { applySoulUpgrade } from '../engine/soul.js';
@@ -19,6 +20,7 @@ import { randomSeed } from '../engine/rng.js';
 import { HEROES, FLOOR_BACKGROUNDS } from '../content/heroes.js';
 import { REWARD_ODDS } from '../content/rewards.js';
 import { DICE, STARTING_DIE } from '../content/dice.js';
+import { ENEMIES } from '../content/enemies.js';
 
 // App controller: screen flow and input. Game rules live in the engine; drawing lives in the
 // views. This file only connects them.
@@ -30,7 +32,7 @@ import { DICE, STARTING_DIE } from '../content/dice.js';
 //   ?gold=300       starting Gold      ?souls=20   starting Souls (to try the shop and Soul Forge)
 //   ?soul=secondDie,gamblersEdge   start with these Soul Forge upgrades (ids in content/rooms.js)
 //   ?die=d20        start with that die equipped (ids in content/dice.js)
-//   ?fast=1         near-instant animations
+//   ?fast=1         near-instant animations (?fast=max: none, for tools/smoke.js)
 //   ?deck=a,b+,c    replace the starting deck (card keys; + for upgraded)
 
 const params = new URLSearchParams(location.search);
@@ -40,8 +42,10 @@ const ui = { run: null, c: null, busy: false, selected: null, justDrawn: null, p
 
 function showScreen(id) {
   hideTooltip();
-  // A deck picker belongs to the screen that opened it; never let it outlive a screen change.
+  // A deck picker or the map belongs to the screen that opened it; never let one outlive a
+  // screen change.
   $('deck-overlay').hidden = true;
+  $('map-overlay').hidden = true;
   for (const s of document.querySelectorAll('.screen')) s.classList.toggle('active', s.id === `screen-${id}`);
 }
 
@@ -105,6 +109,14 @@ function show() {
       renderRunStatus(run);
       renderDieCache(run, { onTake: (id) => runAction(() => takeDie(run, id)) });
       return showScreen('dieCache');
+    case 'bossIntro':
+      renderRunStatus(run);
+      renderBossIntro(run);
+      return showScreen('bossIntro');
+    case 'floorClear':
+      renderRunStatus(run);
+      renderFloorClear(run);
+      return showScreen('floorClear');
     case 'rest':
       renderRunStatus(run);
       renderRest(run, {
@@ -303,10 +315,13 @@ function combatOver() {
   show();
 }
 
+const currentBoss = (run) => run.map.floors[run.floor].boss;
+
 function showReward() {
   const run = ui.run;
   const { reward } = run.state;
-  $('reward-title').textContent = reward.boss ? `Floor ${run.floor + 1} cleared` : 'Victory';
+  // A boss's reward names the boss; the floor itself is summed up on the next screen.
+  $('reward-title').textContent = reward.boss ? `${ENEMIES[currentBoss(run)].name} defeated` : 'Victory';
   const loot = [`+${reward.gold} Gold`, `+${reward.souls} Soul${reward.souls > 1 ? 's' : ''}`];
   if (reward.boss) loot.push(`fully healed (+${reward.healed} HP)`);
   loot.push(`HP ${run.hp}/${run.maxHp}`);
@@ -325,6 +340,7 @@ function showReward() {
 
 function showEnd() {
   const run = ui.run;
+  renderEndFloors(run);
   const summary = `HP ${run.hp}/${run.maxHp} · ${run.deck.length} cards · ${run.gold} Gold · ${run.souls} Souls · Seed ${run.seed}.`;
   if (run.state.result === 'victory') {
     $('end-title').textContent = 'Floor 4 cleared';
@@ -352,6 +368,15 @@ function showPile(name) {
   $('pile-overlay').hidden = false;
 }
 
+// ── Map overlay ──
+
+function openMap() {
+  if (!ui.run) return;
+  hideTooltip();
+  renderMap(ui.run);
+  $('map-overlay').hidden = false;
+}
+
 // ── Wiring ──
 
 function drawnUids(events) {
@@ -364,6 +389,10 @@ const ACTIONS = {
   'skip-reward': () => runAction(() => skipCardReward(ui.run)),
   'leave-room': () => runAction(() => leaveRoom(ui.run)),
   'leave-die-cache': () => runAction(() => leaveDieCache(ui.run)),
+  'face-boss': () => runAction(() => faceBoss(ui.run)),
+  'leave-floor-clear': () => runAction(() => leaveFloorClear(ui.run)),
+  'open-map': openMap,
+  'close-map': () => { $('map-overlay').hidden = true; },
   'leave-shop': () => runAction(() => shopLeave(ui.run)),
   'leave-forge': () => runAction(() => soulLeave(ui.run)),
   'close-deck': () => { $('deck-overlay').hidden = true; },
@@ -403,11 +432,20 @@ function wire() {
   $('pile-overlay').addEventListener('click', (e) => {
     if (e.target.id === 'pile-overlay') $('pile-overlay').hidden = true;
   });
+  $('map-overlay').addEventListener('click', (e) => {
+    if (e.target.id === 'map-overlay') $('map-overlay').hidden = true;
+  });
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       $('pile-overlay').hidden = true;
+      $('map-overlay').hidden = true;
       hideTooltip();
+      return;
+    }
+    // M toggles the map anywhere in a run, except while a choice is waiting to be made.
+    if ((e.key === 'm' || e.key === 'M') && ui.run && !ui.c?.pending && $('choice-overlay').hidden) {
+      if ($('map-overlay').hidden) openMap(); else $('map-overlay').hidden = true;
       return;
     }
     if (!$('screen-combat').classList.contains('active') || !$('pile-overlay').hidden || ui.c?.pending) return;
@@ -424,7 +462,10 @@ function wire() {
 }
 
 function init() {
+  // ?fast=1 keeps a hint of every animation; ?fast=max removes them, for the smoke check. Neither
+  // changes a rule: the engine is synchronous and the UI only replays its log.
   if (params.get('fast') === '1') setSpeed(0.05);
+  else if (params.get('fast') === 'max') setSpeed(0);
   initTooltips();
   wire();
   if (params.has('hero') && HEROES[params.get('hero')]?.available) newRun(params.get('hero'));

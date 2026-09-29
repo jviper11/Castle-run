@@ -30,7 +30,7 @@ export const STATUSES = {
     desc: (n) => `Attacks deal 25% less damage. ${turns(n)}.`,
   },
   vulnerable: {
-    name: 'Vulnerable', emoji: '🫗', kind: 'debuff',
+    name: 'Vulnerable', emoji: '💔', kind: 'debuff',
     tick: { player: 'Ticks down after the enemy acts.', enemy: 'Ticks down at the end of your turn.' },
     desc: (n) => `Takes 50% more attack damage. ${turns(n)}.`,
   },

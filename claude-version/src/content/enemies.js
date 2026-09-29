@@ -100,7 +100,7 @@ export const ENEMIES = {
     abilities: [{ id: 'burst', every: 3, damage: 25, label: 'Arcane Overload' }],
   },
   voidWraith: {
-    name: 'Void Wraith', emoji: '🫥', hp: 88, block: 0, damage: 15, gold: 35,
+    name: 'Void Wraith', emoji: '🌫️', hp: 88, block: 0, damage: 15, gold: 35,
     abilities: [{ id: 'onHitBlock', amount: 2, drain: true, label: 'Void Drain' }],
   },
   cursedKnightPlus: {
@@ -169,18 +169,27 @@ export const FLOOR_NAMES = { 1: 'Castle Entrance', 2: 'Catacombs', 3: 'Inner San
 // One per floor, drawn from the four heroes you are not playing. Reference stats, which do not
 // scale with floor (PHASE3_PLAN.md §5). Generic attack/defend AI, as in the reference;
 // Challenges, Cores and lore arrive in Phase 5. Boss Gold is paid by the run (80), not the enemy.
+//
+// `hint` is the reference's pre-fight room text, shown on the boss introduction (step 3e). It is
+// not the companion's `lore`, which the reference reveals only after the fight, once ever per
+// companion, with their Core — that belongs to Phase 5 and is deliberately not carried here.
 const ASSETS = '../assets/';
 Object.assign(ENEMIES, {
   bossBarbarian: { name: 'The Berserker', title: 'Corrupted Barbarian', emoji: '😡', hp: 90, block: 0, damage: 18, gold: 0,
-    boss: true, portrait: ASSETS + 'barb_boss_original.jpg' },
+    boss: true, hint: 'The walls crack with each step. Blood smears trail through the corridor. The ground shakes faintly ahead.',
+    portrait: ASSETS + 'barb_boss_original.jpg' },
   bossMage: { name: 'The Arcanist', title: 'Corrupted Mage', emoji: '🌀', hp: 80, block: 10, damage: 16, gold: 0,
-    boss: true, portrait: ASSETS + 'mage_boss_original.png' },
+    boss: true, hint: 'Magic vapor drifts through the air. Arcane symbols flicker across the stone walls. Floating dust particles glow faintly.',
+    portrait: ASSETS + 'mage_boss_original.png' },
   bossThief: { name: 'The Phantom', title: 'Corrupted Thief', emoji: '🌑', hp: 75, block: 5, damage: 14, gold: 0,
-    boss: true, portrait: ASSETS + 'thief_boss_original.jpg' },
+    boss: true, hint: 'Shadows move wrong in the torchlight. Coins glint in dark corners. Something darts past in the background.',
+    portrait: ASSETS + 'thief_boss_original.jpg' },
   bossGambler: { name: 'The Dealer', title: 'Corrupted Gambler', emoji: '♠️', hp: 85, block: 0, damage: 17, gold: 0,
-    boss: true, portrait: ASSETS + 'gambler_boss_original.jpg' },
+    boss: true, hint: 'Playing cards scatter across the floor. Dice roll by themselves in the corner. Gold shimmer drifts through the air.',
+    portrait: ASSETS + 'gambler_boss_original.jpg' },
   bossVampire: { name: 'The Ancient', title: 'Corrupted Vampire', emoji: '🩸', hp: 95, block: 0, damage: 20, gold: 0,
-    boss: true, portrait: ASSETS + 'vampire_boss_original.jpg' },
+    boss: true, hint: 'Blood drips down the stone walls. Bats flicker in the torchlight. A deep cold seeps into the room.',
+    portrait: ASSETS + 'vampire_boss_original.jpg' },
 });
 
 export const COMPANION_BOSSES = {

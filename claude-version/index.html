@@ -94,11 +94,38 @@
     <button class="btn btn-primary" data-action="leave-room">Continue</button>
   </section>
 
+  <!-- Boss introduction (the boss door opens onto this) -->
+  <section class="screen run-screen" id="screen-bossIntro">
+    <div class="run-status" data-run-status></div>
+    <div class="boss-intro">
+      <div class="boss-portrait"><img id="boss-portrait" alt=""></div>
+      <div class="boss-copy">
+        <div class="boss-eyebrow" id="boss-eyebrow"></div>
+        <h2 class="screen-title" id="boss-name"></h2>
+        <div class="boss-title" id="boss-title"></div>
+        <p class="boss-hint" id="boss-hint"></p>
+        <div class="boss-stats" id="boss-stats"></div>
+        <button class="btn btn-primary" data-action="face-boss" id="face-boss-btn">Face them</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Floor cleared (after the boss's card reward) -->
+  <section class="screen run-screen" id="screen-floorClear">
+    <div class="run-status" data-run-status></div>
+    <div class="room-icon">👑</div>
+    <h2 class="screen-title" id="clear-title"></h2>
+    <p class="screen-sub" id="clear-sub"></p>
+    <div class="clear-stats" id="clear-stats"></div>
+    <button class="btn btn-primary" data-action="leave-floor-clear" id="clear-next"></button>
+  </section>
+
   <!-- Combat -->
   <section class="screen" id="screen-combat">
     <div class="floor-bg"></div>
     <header class="topbar">
       <div class="topbar-group">
+        <button class="chip chip-btn" data-action="open-map" type="button" title="Map of this floor">🗺</button>
         <span class="chip" id="hud-progress"></span>
       </div>
       <div class="topbar-group">
@@ -172,9 +199,10 @@
   </section>
 
   <!-- Run end -->
-  <section class="screen" id="screen-end">
+  <section class="screen run-screen" id="screen-end">
     <h2 class="screen-title" id="end-title"></h2>
     <p class="screen-sub" id="end-text"></p>
+    <div class="end-floors" id="end-floors"></div>
     <button class="btn btn-primary" data-action="new-run">New Run</button>
   </section>
 
@@ -195,6 +223,13 @@
     <div class="overlay-panel">
       <div class="overlay-head"><h3 id="deck-title"></h3><button class="btn btn-small" data-action="close-deck">Cancel</button></div>
       <div class="pile-grid" id="deck-grid"></div>
+    </div>
+  </div>
+  <div class="overlay" id="map-overlay" hidden>
+    <div class="overlay-panel map-panel">
+      <div class="overlay-head"><h3 id="map-title"></h3><button class="btn btn-small" data-action="close-map" type="button">Close</button></div>
+      <div class="map-body" id="map-body"></div>
+      <div class="map-legend" id="map-legend"></div>
     </div>
   </div>
   <div class="tooltip" id="tooltip" hidden></div>

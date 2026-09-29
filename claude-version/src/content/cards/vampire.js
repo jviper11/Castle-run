@@ -52,7 +52,7 @@ export const VAMPIRE_CARDS = {
     upgrade: { params: { regen: 3 }, onAffinity: { regen: 5 } },
   },
   draintouch: {
-    name: 'Drain Touch', emoji: '🫳', type: 'attack', cost: 1, affinity: 'extreme',
+    name: 'Drain Touch', emoji: '🤚', type: 'attack', cost: 1, affinity: 'extreme',
     params: { dmg: 5, heal: 0 }, onAffinity: { heal: 5 },
     ops: [{ op: 'damage', amount: 'dmg' }, { op: 'heal', amount: 'heal' }],
     text: 'Deal {dmg} damage.', affinityText: 'Also heal {heal} HP.',

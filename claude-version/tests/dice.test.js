@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { makeCombat, combatRolling, setRoll, giveHand, eventsOf } from './helpers.js';
 import { createRun, choosePath, chooseDoor, doorOptions, currentPath, equipDie, dieOffers, takeDie, leaveDieCache,
   leaveRoom, finishCombat, skipCardReward, restOptions, restHeal, restRemove, shopBuy, shopLeave,
-  soulLeave } from '../src/engine/run.js';
+  soulLeave, faceBoss, leaveFloorClear } from '../src/engine/run.js';
 import { createCombat, playCard, useSecondDie, useGamblersEdge } from '../src/engine/combat.js';
 import { createShopStock, itemAvailable } from '../src/engine/shop.js';
 import { playerAttackDamage } from '../src/engine/damage.js';
@@ -27,6 +27,8 @@ function step(run) {
     case 'reward': return skipCardReward(run);
     case 'room': return leaveRoom(run);
     case 'dieCache': return leaveDieCache(run);
+    case 'bossIntro': return faceBoss(run);
+    case 'floorClear': return leaveFloorClear(run);
     case 'rest': return restOptions(run).canHeal ? restHeal(run) : restRemove(run, run.deck[0].uid);
     case 'shop': return shopLeave(run);
     case 'soulForge': return soulLeave(run);

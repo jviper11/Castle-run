@@ -7,7 +7,8 @@
   - Step 3b (rest sites, shops, Soul Forge) is done and reviewed.
   - Step 3c (die types) is done and reviewed, including the affinity rescale (COMPARISON §H6),
     approved as the current V2 rule. G4 stays open for a later manual balance review.
-  - Step 3d (Floors 2–4 enemies) is done and awaiting review. 3e has not been started.
+  - Step 3d (Floors 2–4 enemies) is done and reviewed.
+  - Step 3e (run UI) is done and awaiting review. 3f (final Phase 3 validation) has not been started.
 
 A from-scratch implementation of Castle Run that lives beside the reference build. The reference
 (`../index.html`, `../js/`, `../css/`) is not modified. Images are loaded from `../assets/` by path.
@@ -102,13 +103,75 @@ The full list, with a reason for each entry, is in `COMPARISON.md`. In summary:
   - the damage an intent predicts equals the damage its action resolves
   - HP and Block are never negative
   - no card is duplicated or lost across the piles
-- **Browser check:** headless Chrome screenshots at 1280×720, 844×390 and 667×375 (phone
-  landscape), driven through the real UI.
+- **Browser smoke (`npm run smoke`) — required, alongside the engine suite.** Owner decision after
+  step 3d, where a bad edit deleted two render functions and all 176 engine tests stayed green:
+  they never import the UI. `tools/smoke.js` drives the real page in headless Chrome or Edge,
+  walking seeded runs at 1280×720, 844×390 and 667×375 (touch emulated at the phone sizes).
+  It fails on:
+  - a page error, console error, or failed load of the game's own files
+  - a screen, or door-screen variant (Mirror, boss door, Magic Door, hidden door), not reached
+  - a visible, enabled button outside the viewport, or horizontal page overflow
+  - `undefined` / `null` / `NaN` / `[object …]` in a screen's text
+  - an emoji anywhere in the UI source that draws as a missing-glyph box
+  A step is not done, and does not stop for review, until **both** `npm test` and `npm run smoke`
+  pass (`npm run check` runs both). The browser it finds decides the glyph result, so it checks
+  what a player on that machine sees.
 - **Manual playtest** at the end of each phase, recorded below.
 
 ## Validation log
 
-### Phase 3d — Floors 2–4 enemies, elites, intent lists: automated validation passed; owner review pending
+### Phase 3e — run UI: engine suite and browser smoke passed; owner review pending
+
+**New screens and surfaces:**
+- **Boss introduction** (`bossIntro` state). The boss door opens onto it; the fight starts from
+  "Face them", and there is no way back. Portrait, name, title, the reference's pre-fight hint
+  text, and the boss's numbers (HP, attack, defend, starting Block) — a companion boss has the
+  plain attack/defend AI, so those numbers are the whole story.
+- **Floor cleared** (`floorClear` state), between the boss's card reward and the Soul Forge: the
+  path or paths walked, rooms, fights and elites, HP. Each floor's record is kept in `run.cleared`.
+- **Map overlay**, from a 🗺 Map button on every run screen and in the combat top bar, or `M`.
+  Every floor's three paths, the current floor marked, your path and room ringed, played rooms
+  dimmed, the Mirror's slot on your path, cleared floors ticked with their boss named.
+- **Run end** now lists each floor cleared: its boss, the path taken, the fights.
+
+**Fixed on existing screens:**
+- **The Soul Forge's "Keep my Souls" was off-screen at 844×390** — missed by step 3b's validation,
+  found by the new smoke check on its first run. The phone-height rules had been added one screen at
+  a time (die cache, then shop); they are now one rule for every run screen, which also covers the
+  new ones.
+- **Six glyphs drew as missing-glyph boxes** on this machine's Chrome, several of them always on
+  screen: 🫗 was the Vulnerable status icon, 🫥 the Void Wraith's sprite, 🪙 three cards and the coin
+  toast, 🪞 the Mirror panel, 🫳 a Vampire card (Drain Touch), and 🪨 Stone Skin's float (added in 3d). Most come
+  from the reference, which draws the same boxes here. Each is replaced by an older glyph that
+  renders (COMPARISON §H8).
+- A boss's reward screen names the boss; "Floor N cleared" moved to the new summary screen.
+
+**Engine:** two run states and two actions (`faceBoss`, `leaveFloorClear`), with the per-floor
+record built from the run's own visit history. No combat code changed.
+
+**Tests:** 177/177 engine (1 new, plus the boss-flow test extended through both new states). The
+run-flow fuzz walks both states and asserts one record per floor cleared.
+
+**Browser smoke:** 7/7 — the glyph check, three full or two-floor runs (desktop and both phone sizes,
+touch emulated, one with the map opened on every screen), the Floor 4 intent list, a phased turn,
+and a map scenario. Each long run is required to see the Mirror, boss, Magic Door and hidden-door
+variants of the door screen, and is layout-checked on each.
+
+**The smoke tool was mutation-tested before it was trusted.** Each check was shown to fail on a
+deliberately introduced defect, then the defect was reverted:
+- the 3d breakage (the `renderDie` export removed) → fails in 9 s, "the page never showed a screen"
+- an undefined value printed on the floor-cleared screen → fails on "undefined"
+- the old Vulnerable glyph restored → fails, naming `src/engine/statuses.js:33`
+
+Along the way the tool itself had three bugs, all fixed: its walker spun forever on a one-card
+choice that was already made; a failed boot waited out the full step budget instead of failing in
+seconds; and its name filter ignored the first argument.
+
+**Found by looking at the screenshots rather than by a check:** the boss introduction printed a
+literal "null" after its stat chips (the DOM's own `append()` stringifies a missing child). Fixed,
+and the text-hole check above was added so it cannot recur silently.
+
+### Phase 3d — Floors 2–4 enemies, elites, intent lists: automated validation passed; reviewed
 
 **New content:** 15 standard enemies (5 per floor) and 6 elites (2 per floor), with the
 reference's stats and pools. Every floor now fights its own enemies; the Floor 1 stand-in and its
@@ -155,8 +218,10 @@ and 844×390. The two-action intent renders as two chips (Throne Guard: "💢 +2
 - **Fly was double-counted** for bursts and mirrors, which took the raw number from the plan and
   were then halved again on impact. Fly is now walked across the whole action list.
 
-**Flagged for the owner:** COMPARISON §H7 — the Bone Wall bound is the one number in this step
-that is neither the reference's nor the GDD's.
+**Owner review of 3d:** approved. The Bone Wall bound is kept and logged as a V2 design decision
+(COMPARISON §H7), with the first-Skill-per-turn limit stated in its text. Browser smoke
+validation is now a **required** check alongside the engine suite, because this step showed the
+unit tests cannot see UI breakage (see *Testing strategy*).
 
 ### Phase 3c‑a — High scales with the die: automated validation passed; reviewed
 

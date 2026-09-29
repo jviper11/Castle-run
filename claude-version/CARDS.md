@@ -96,7 +96,7 @@ Starter deck: Strike, Strike, Defend, Defend, Quick Strike, Quick Strike, Shadow
 | 👊 **Swift Jab** `swiftjab` | 0 | Attack | common | Deal 3 damage. Odd: Deal 5 instead. | Deal 4 damage. Odd: Deal 7 instead. |
 | 🏃 **Slip Away** `slipaway` | 0 | Skill | common | Draw 1 card. Odd: Also gain 2 Block. | Draw 2 cards. Odd: Also gain 3 Block. |
 | 🥊 **Cheap Shot** `cheapshot` | 1 | Attack | common | Deal 5 damage. Apply 1 Weak. Odd: Apply 2 Weak instead. | Deal 7 damage. Apply 1 Weak. Odd: Apply 3 Weak instead. |
-| 🪙 **Coin Flick** `coinflick` | 1 | Skill | common | Gain 4 Gold. Odd: Also draw 1 card. | **0** Gain 6 Gold. Odd: Also draw 1 card. |
+| 🟡 **Coin Flick** `coinflick` | 1 | Skill | common | Gain 4 Gold. Odd: Also draw 1 card. | **0** Gain 6 Gold. Odd: Also draw 1 card. |
 | 🦶 **Nimble Pace** `nimblepace` | 1 | Skill | common | Draw 2 cards, then discard 1 card of your choice. Odd: Draw 3 instead. | Draw 3 cards, then discard 1 card of your choice. Odd: Draw 4 instead. |
 | 🗡️ **Envenom** `envenomdagger` | 1 | Attack | uncommon | Deal 4 damage. Apply 2 Poison. Odd: Apply 4 Poison instead. | Deal 6 damage. Apply 3 Poison. Odd: Apply 6 Poison instead. |
 | 🔪 **Backstab** `backstab` | 1 | Attack | uncommon | Only as your first card this turn. Deal 10 damage. Odd: Deal 14 instead. | Only as your first card this turn. Deal 13 damage. Odd: Deal 18 instead. |
@@ -131,7 +131,7 @@ Starter deck: Strike, Strike, Defend, Defend, Blood Drain, Blood Drain, Night Sh
 | 🧛 **Crimson Bite** `crimsonbite` | 1 | Attack | starter, common | Deal 5 damage. Extreme: Also apply 2 Poison. | Deal 7 damage. Extreme: Also apply 3 Poison. |
 | 🖤 **Dark Embrace** `darkembrace` | 1 | Skill | starter, common | Lose 4 HP. Gain 8 Block. | Lose 3 HP. Gain 12 Block. |
 | 💓 **Blood Pulse** `bloodpulse` | 1 | Skill | common | Gain 2 Regen. Extreme: Gain 4 instead. | Gain 3 Regen. Extreme: Gain 5 instead. |
-| 🫳 **Drain Touch** `draintouch` | 1 | Attack | common | Deal 5 damage. Extreme: Also heal 5 HP. | Deal 7 damage. Extreme: Also heal 8 HP. |
+| 🤚 **Drain Touch** `draintouch` | 1 | Attack | common | Deal 5 damage. Extreme: Also heal 5 HP. | Deal 7 damage. Extreme: Also heal 8 HP. |
 | 🌙 **Night Veil** `nightveil` | 1 | Skill | common | Gain 6 Block. Extreme: Also gain 2 Regen. | Gain 9 Block. Extreme: Also gain 3 Regen. |
 | 🩸 **Dark Blood** `darkblood` | 0 | Skill | common | Lose 3 HP. Draw 2 cards. | Lose 2 HP. Draw 3 cards. |
 | 🦇 **Swoop Down** `swoopdown` | 1 | Skill | common | Gain Fly: the next hit you take is halved. Extreme: Also gain 4 Block. | Gain Fly: the next hit you take is halved. Gain 6 Block. Extreme: Also draw 1 card. |
@@ -171,11 +171,11 @@ Starter deck: Strike, Strike, Defend, Defend, High or Low, High or Low, Double D
 | 🔒 **Safe Pull** `safepull` | 1 | Skill | common | Gain 4 Block. Set the die to 4 (if not already set this turn). Max: Gain 6 Block and set it to 5 instead. | Gain 6 Block. Set the die to 5 (if not already set this turn). Max: Gain 8 Block and set it to the die's max instead. |
 | 🎲 **Risk Taker** `risktaker` | 0 | Skill | common | Reroll the die. Draw 1 card. If the new roll is Max: draw 1 more and gain 3 Block. | Reroll the die. Draw 2 cards. If the new roll is Max: gain 5 Block. |
 | 📊 **Odds Check** `oddscheck` | 1 | Skill | common | Draw 2 cards. If the die shows 4+: draw 3 instead. Max: Draw 3 and gain 5 Gold. | **0** Draw 2 cards. If the die shows 4+: draw 3 instead. Max: Draw 3 and gain 8 Gold. |
-| 🪙 **Chips In** `chipsin` | 1 | Skill | common | Gain 5 Gold. Max: Also draw 1 card. | **0** Gain 8 Gold. Max: Also draw 1 card. |
+| 🟡 **Chips In** `chipsin` | 1 | Skill | common | Gain 5 Gold. Max: Also draw 1 card. | **0** Gain 8 Gold. Max: Also draw 1 card. |
 | 💸 **All In** `allin` | 2 | Attack | uncommon | Deal damage equal to 4× your roll. Max: Use 5× your roll instead. | Deal damage equal to 5× your roll. Max: Use 7× your roll instead. |
 | 🎲 **Loaded Die** `loadeddie` | 1 | Skill | uncommon | Set the die to any value from 3 to 5. Max: Up to the die's max instead. | Set the die to any value from 4 to 6. Max: Up to the die's max instead. |
 | 🂡 **Pocket Aces** `pocketaces` | 1 | Skill | uncommon | Your next damaging Attack this turn deals extra damage equal to your roll. Max: Extra damage equal to 2× your roll instead. | Your next damaging Attack this turn deals extra damage equal to 2× your roll. Max: Extra damage equal to 3× your roll instead. |
-| 🪙 **Double or Nothing** `doubleornothing` | 1 | Attack | uncommon | Deal 6 damage. Flip a coin: deal 8 more, or lose 6 HP. Max: 14 more, or lose 3 HP instead. | Deal 8 damage. Flip a coin: deal 10 more, or lose 4 HP. Max: 16 more, or lose 2 HP instead. |
+| 🟡 **Double or Nothing** `doubleornothing` | 1 | Attack | uncommon | Deal 6 damage. Flip a coin: deal 8 more, or lose 6 HP. Max: 14 more, or lose 3 HP instead. | Deal 8 damage. Flip a coin: deal 10 more, or lose 4 HP. Max: 16 more, or lose 2 HP instead. |
 | 🧮 **Count the Odds** `counttheodds` | 0 | Skill | uncommon | Look at the top 2 cards of your draw pile. Keep 1; discard the rest. Max: Look at 3, keep 2 instead. | Look at the top 3 cards of your draw pile. Keep 2; discard the rest. Max: Look at 4, keep 3 instead. |
 | 💰 **High Stakes** `highstakes` | 1 | Skill | uncommon | Gain Gold equal to 3× your roll. Max: Use 5× your roll instead. | Gain Gold equal to 4× your roll. Max: Use 7× your roll instead. |
 | 🎭 **Bluff** `bluff` | 1 | Skill | uncommon | Apply 2 Weak. Max: Also apply 1 Vulnerable. | Apply 2 Weak and 1 Vulnerable. Max: Apply 3 Weak and 2 Vulnerable instead. |

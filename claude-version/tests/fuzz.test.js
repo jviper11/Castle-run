@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRun, choosePath, chooseDoor, useMirror, leaveRoom, finishCombat, takeCardReward, skipCardReward, doorOptions,
   restOptions, restHeal, restUpgrade, restRemove, restLeave, shopBuy, shopRemove, shopUpgrade, shopLeave, soulBuy, soulLeave,
-  takeDie, leaveDieCache } from '../src/engine/run.js';
+  takeDie, leaveDieCache, faceBoss, leaveFloorClear } from '../src/engine/run.js';
 import { soulCost } from '../src/engine/soul.js';
 import { createCombat, playCard, endTurn, reroll, playability, resolveChoice } from '../src/engine/combat.js';
 import { previewIntent } from '../src/engine/enemies.js';
@@ -164,6 +164,15 @@ function playRun(run, agent) {
         break;
       case 'room':
         assert.ok(leaveRoom(run));
+        break;
+      case 'bossIntro':
+        assert.equal(run.combat, null, 'the intro comes before the fight');
+        assert.ok(faceBoss(run));
+        break;
+      case 'floorClear':
+        assert.equal(run.state.record, run.cleared.at(-1));
+        assert.equal(run.cleared.length, run.floor + 1, 'one record per floor cleared');
+        assert.ok(leaveFloorClear(run));
         break;
       case 'dieCache': {
         // Take an offered die, or leave it. Either way the room the door guarded is still ahead.

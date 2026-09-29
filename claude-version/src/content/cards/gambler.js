@@ -90,7 +90,7 @@ export const GAMBLER_CARDS = {
     upgrade: { cost: 0, onAffinity: { gold: 8 } },
   },
   chipsin: {
-    name: 'Chips In', emoji: '🪙', type: 'skill', cost: 1, affinity: 'max',
+    name: 'Chips In', emoji: '🟡', type: 'skill', cost: 1, affinity: 'max',
     params: { gold: 5, draw: 0 }, onAffinity: { draw: 1 },
     ops: [{ op: 'gainGold', amount: 'gold' }, { op: 'draw', n: 'draw' }],
     text: 'Gain {gold} Gold.', affinityText: 'Also draw {draw|card}.',
@@ -121,7 +121,7 @@ export const GAMBLER_CARDS = {
     upgrade: { params: { bonus: roll(2) }, onAffinity: { bonus: roll(3) } },
   },
   doubleornothing: {
-    name: 'Double or Nothing', emoji: '🪙', type: 'attack', cost: 1, affinity: 'max',
+    name: 'Double or Nothing', emoji: '🟡', type: 'attack', cost: 1, affinity: 'max',
     params: { dmg: 6, bonus: 8, hpCost: 6 }, onAffinity: { bonus: 14, hpCost: 3 },
     ops: [
       { op: 'damage', amount: 'dmg' },

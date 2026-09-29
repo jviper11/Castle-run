@@ -8,10 +8,13 @@ import { cardView } from './cardView.js';
 import { mirrorIndex } from '../engine/map.js';
 import { ROOMS, PATH_NAMES, MAGIC_HINTS, PLACEHOLDERS, FLOOR_COUNT } from '../content/map.js';
 import { HEROES } from '../content/heroes.js';
+import { ENEMIES, FLOOR_NAMES } from '../content/enemies.js';
+import { DEFEND_BLOCK } from '../engine/enemies.js';
 
-// Out-of-combat run screens: path select, doors (with the Mirror), rest, shop, Soul Forge,
-// placeholder rooms and the status bar they share. Each function renders the run's current state
-// and wires buttons to the handlers it is given; none of them changes the run itself.
+// Out-of-combat run screens: path select, doors (with the Mirror), rest, shop, Soul Forge, the
+// boss introduction, floor cleared, the map overlay, placeholder rooms and the status bar they
+// share. Each function renders the run's current state and wires buttons to the handlers it is
+// given; none of them changes the run itself.
 
 /** The HP / Gold / Souls / deck / die bar shown on every run screen. */
 export function renderRunStatus(run) {
@@ -25,6 +28,7 @@ export function renderRunStatus(run) {
       h('span', { class: 'chip' }, '🂠 ', h('b', {}, `${run.deck.length} cards`)),
       dieChip(run),
       h('span', { class: 'chip' }, `Floor ${run.floor + 1}/${FLOOR_COUNT}`),
+      h('button', { class: 'chip chip-btn', type: 'button', dataset: { action: 'open-map' }, title: 'Map of this floor (M)' }, '🗺 Map'),
     );
   }
 }
@@ -90,7 +94,9 @@ export function renderDoors(run, { onDoor, onMirror }) {
   if (doors.mirror) {
     const m = doors.mirror;
     clear(panel).append(
-      h('div', { class: 'mirror-head' }, '🪞 ', h('b', {}, 'A mirror'), ` reflects Path ${m.target} · ${PATH_NAMES[m.target]}`),
+      // No glyph: 🪞 (Unicode 13) renders as a tofu box in the Windows emoji font, and the
+      // panel's own frame already sets it apart.
+      h('div', { class: 'mirror-head' }, h('b', {}, 'A mirror'), ` reflects Path ${m.target} · ${PATH_NAMES[m.target]}`),
       h('div', { class: 'path-rooms' }, m.preview.map((t) => roomIcon(t)), h('span', { class: 'room-dot room-boss' }, '👑')),
       h('p', { class: 'mirror-note' }, `Step through to continue on Path ${m.target} from this same room. Once per floor.`),
       h('button', { class: 'btn', type: 'button', disabled: !m.affordable, onclick: onMirror },
@@ -222,4 +228,118 @@ export function renderSoulForge(run, { onBuy }) {
     }));
   }
   $('forge-leave').textContent = `Keep my Souls (${run.souls})`;
+}
+
+// ── Boss introduction and floor cleared ──
+
+export function renderBossIntro(run) {
+  const boss = ENEMIES[run.state.boss];
+  $('boss-portrait').src = boss.portrait;
+  $('boss-portrait').alt = boss.name;
+  $('boss-eyebrow').textContent = `Floor ${run.floor + 1} · ${FLOOR_NAMES[run.floor + 1]} · Boss`;
+  $('boss-name').textContent = boss.name;
+  $('boss-title').textContent = boss.title;
+  $('boss-hint').textContent = boss.hint;
+  // A companion boss has the plain attack/defend AI (PHASE3_PLAN D4), so its numbers are the whole
+  // story; they are stated rather than left for the first turn to reveal.
+  // Built with h(), which skips a missing child: the DOM's own append() would print "null".
+  $('boss-stats').replaceWith(h('div', { class: 'boss-stats', id: 'boss-stats' },
+    h('span', { class: 'chip' }, '❤️ ', h('b', {}, boss.hp), ' HP'),
+    h('span', { class: 'chip' }, '⚔️ attacks for ', h('b', {}, boss.damage)),
+    h('span', { class: 'chip' }, '🛡 defends for ', h('b', {}, DEFEND_BLOCK)),
+    boss.block ? h('span', { class: 'chip' }, 'starts with ', h('b', {}, boss.block), ' Block') : null,
+  ));
+}
+
+export function renderFloorClear(run) {
+  const r = run.state.record;
+  const last = r.floor === FLOOR_COUNT - 1;
+  $('clear-title').textContent = `${FLOOR_NAMES[r.floor + 1]} cleared`;
+  $('clear-sub').textContent = `${ENEMIES[r.boss].name}, the ${ENEMIES[r.boss].title}, has fallen.`;
+  const walked = r.paths.length > 1 ? `Paths ${r.paths.join(' → ')} (Mirror)` : `Path ${r.path} · ${PATH_NAMES[r.path]}`;
+  clear($('clear-stats')).append(
+    stat('🧭', walked),
+    stat('🚪', `${r.rooms} rooms`),
+    stat('⚔️', `${r.fights} fights${r.elites ? `, ${r.elites} elite${r.elites > 1 ? 's' : ''}` : ''}`),
+    stat('❤️', `${r.hp}/${r.maxHp} HP`),
+  );
+  $('clear-next').textContent = last ? 'Onward' : 'To the Soul Forge';
+}
+
+const stat = (icon, text) => h('div', { class: 'clear-stat' }, h('span', { class: 'clear-icon' }, icon), text);
+
+/** The run-end screen's list of floors cleared, one line each. */
+export function renderEndFloors(run) {
+  const box = clear($('end-floors'));
+  for (const r of run.cleared) {
+    box.append(h('div', { class: 'end-floor' },
+      h('b', {}, `${r.floor + 1} · ${FLOOR_NAMES[r.floor + 1]}`),
+      h('span', {}, `${ENEMIES[r.boss].name} · Path ${r.paths.join('→')} · ${r.fights} fights`),
+    ));
+  }
+  box.hidden = !run.cleared.length;
+}
+
+// ── Map overlay ──
+// Every floor, as the reference's map shows it: all three paths of each, the current floor marked
+// with where you are, cleared floors ticked. The GDD does not define the map's scope, so the
+// reference's is kept (COMPARISON §H8) — including future floors' room types.
+//
+// It never shows more than path select already does: room types, and that a Magic Door exists.
+// A Magic Door's contents are revealed only on the door screen (and hidden there on Floors 3–4),
+// and a boss's identity only once it has been beaten, as in the reference.
+
+export function renderMap(run) {
+  $('map-title').textContent = `The castle · Floor ${run.floor + 1} of ${FLOOR_COUNT}`;
+  const body = clear($('map-body'));
+  run.map.floors.forEach((floor, f) => body.append(mapFloor(run, floor, f)));
+  const legend = [['⚔️', 'Battle'], ['☠️', 'Elite'], ['🔥', 'Rest'], ['💰', 'Shop'],
+    ['❔', ROOMS.event.label], ['✨', 'Magic Door'], ['👑', 'Boss']];
+  clear($('map-legend')).append(
+    ...legend.map(([i, t]) => h('span', {}, i, ' ', t)),
+    h('span', {}, 'dashed: Mirror'),
+    h('span', {}, 'dim: played'),
+    h('span', {}, 'ring: you are here'),
+  );
+  // Open on the floor you are on.
+  requestAnimationFrame(() => body.querySelector('.map-floor.current')?.scrollIntoView({ block: 'nearest' }));
+}
+
+function mapFloor(run, floor, f) {
+  const current = f === run.floor;
+  const record = run.cleared.find((r) => r.floor === f);
+  const state = record ? '✓ cleared' : current ? 'you are here' : f > run.floor ? 'ahead' : '';
+  const el = h('div', { class: 'map-floor' + (current ? ' current' : '') + (record ? ' cleared' : '') },
+    h('div', { class: 'map-floor-name' }, h('b', {}, `Floor ${f + 1} · ${FLOOR_NAMES[f + 1]}`), state && ` · ${state}`));
+
+  const played = new Set(run.visits.filter((v) => v.floor === f && v.type !== 'die').map((v) => `${v.path}:${v.index}`));
+  // The Mirror is offered on the path you are walking, at its halfway room, once per floor; before
+  // a path is chosen it could be on any of them.
+  const mirrorAt = floor.mirrorUsed || !current ? -1 : mirrorIndex(floor);
+  const mirrorOn = (key) => i => i === mirrorAt && (!run.path || key === run.path);
+  const screen = run.state.screen;
+  for (const [key, rooms] of Object.entries(floor.paths)) {
+    const mine = current && key === run.path;
+    const row = h('div', { class: 'map-path' + (mine ? ' mine' : '') },
+      h('div', { class: 'map-path-name' }, h('b', {}, `Path ${key}`), ` · ${PATH_NAMES[key]}`, mine ? h('span', { class: 'map-you' }, ' · your path') : null));
+    const strip = h('div', { class: 'path-rooms' });
+    rooms.forEach((room, i) => {
+      const at = mine && i === run.index && screen !== 'pathSelect';
+      // The room you are standing in has been entered, but it is not behind you yet.
+      const done = played.has(`${key}:${i}`) && !(at && screen !== 'doors');
+      const el = roomIcon(room.type, !!room.magic && !done);
+      if (done) el.classList.add('done');
+      if (at) el.classList.add(screen === 'doors' ? 'next' : 'here');
+      if (mirrorOn(key)(i)) el.classList.add('mirror-slot');
+      strip.append(el);
+    });
+    const atBoss = mine && run.index >= rooms.length;
+    const bossName = record ? ENEMIES[record.boss].name : null;
+    strip.append(h('span', { class: `room-dot room-boss${atBoss ? ' next' : ''}`, title: bossName ? `Boss: ${bossName}` : 'Floor boss — identity unknown' }, '👑'));
+    row.append(strip);
+    el.append(row);
+  }
+  if (record) el.append(h('div', { class: 'map-boss-note' }, `Boss: ${ENEMIES[record.boss].name}`));
+  if (current && !run.path) el.append(h('p', { class: 'screen-sub' }, 'Choose a path to start this floor.'));
+  return el;
 }

@@ -14,8 +14,8 @@ import { STARTING_DIE, DICE, DIE_CACHE_OFFERS } from '../content/dice.js';
 // The run: everything that persists between fights, and the flow between rooms.
 //
 // The run is a small state machine. `run.state.screen` is always exactly one of:
-//   pathSelect → doors → (combat → reward | rest | shop | dieCache | room) → doors … → boss
-//   → reward → soulForge → pathSelect (next floor) … → end
+//   pathSelect → doors → (combat → reward | rest | shop | dieCache | room) → doors …
+//   → bossIntro → combat → reward → floorClear → soulForge → pathSelect (next floor) … → end
 // ('room' is a placeholder for rooms whose content arrives later: events.)
 // Every player action below checks the current screen and returns false if it is not legal
 // there, so the UI cannot drive the run into a state the rules don't allow. The UI only renders
@@ -58,6 +58,7 @@ export function createRun({ heroKey = 'barbarian', seed = randomSeed() } = {}) {
     combat: null,
     state: { screen: 'pathSelect' },
     visits: [], // every room entered: { floor, path, index, type } — used by tests and the map view
+    cleared: [], // one record per floor boss defeated, for the floor-cleared and run-end screens
   };
   hero.starterDeck.forEach((key) => addCard(run, key));
   return run;
@@ -112,7 +113,8 @@ export function chooseDoor(run, id) {
   const path = currentPath(run);
   if (id === 'boss') {
     if (run.index < path.length) return false;
-    startFight(run, 'boss', floor.boss);
+    // The boss door opens onto an introduction first; the fight starts from there.
+    run.state = { screen: 'bossIntro', boss: floor.boss };
     return true;
   }
   const room = path[run.index];
@@ -172,6 +174,13 @@ function enterRoom(run, room) {
 function roomDone(run) {
   run.index += 1;
   run.state = { screen: 'doors' };
+  return true;
+}
+
+/** From the boss introduction into the fight. There is no way back: the doors are behind you. */
+export function faceBoss(run) {
+  if (!at(run, 'bossIntro')) return false;
+  startFight(run, 'boss', run.state.boss);
   return true;
 }
 
@@ -349,7 +358,33 @@ export function skipCardReward(run) {
 
 function afterReward(run) {
   if (!run.state.reward.boss) return roomDone(run);
-  // Floor cleared. The last floor's boss ends this build's run (Aldric arrives in Phase 5).
+  run.cleared.push(floorRecord(run));
+  run.state = { screen: 'floorClear', record: run.cleared.at(-1) };
+  return true;
+}
+
+/** What happened on the floor just cleared, from the run's own history. */
+function floorRecord(run) {
+  const here = run.visits.filter((v) => v.floor === run.floor);
+  const count = (...types) => here.filter((v) => types.includes(v.type)).length;
+  return {
+    floor: run.floor,
+    boss: currentFloor(run).boss,
+    // The last path you walked, and every path you set foot on (the Mirror can add a second).
+    path: run.path,
+    paths: [...new Set(here.map((v) => v.path))],
+    rooms: here.filter((v) => v.type !== 'die').length,
+    fights: count('battle', 'elite') + 1, // + the boss
+    elites: count('elite'),
+    hp: run.hp,
+    maxHp: run.maxHp,
+  };
+}
+
+/** Leaves the floor-cleared screen: to the Soul Forge, or, after the last floor, to the end. */
+export function leaveFloorClear(run) {
+  if (!at(run, 'floorClear')) return false;
+  // The last floor's boss ends this build's run (Aldric arrives in Phase 5).
   if (run.floor === FLOOR_COUNT - 1) run.state = { screen: 'end', result: 'victory' };
   else run.state = { screen: 'soulForge', offers: soulOffers(run) };
   return true;

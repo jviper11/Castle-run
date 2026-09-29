@@ -489,12 +489,36 @@ come from the reference's own section comments.
 | Topic | Reference | Here |
 |---|---|---|
 | **Intent** | One move: an attack, or a defend | A **list of actions** resolved in order (R5). `previewIntent()` resolves every number and `resolveIntent()` executes exactly the plan it returns, so a displayed number and a landed number cannot diverge. An ability that changes the same turn's attack damage is an action *in* the list — Throne Guard's Loyal is shown as "+2 Strength, then 18", never as 16 followed by an 18 |
-| **Bone Wall** | Never fired | +8 Block on the **first Skill each turn**, and its Block **resets each of its turns** — not +8 per Skill. Per Skill with no reset is an unbounded ratchet: the fuzz agent made it unkillable in 23 of 200 runs. Since the reference's version never ran, there is no behaviour being changed here, but the bound is a design choice and is flagged |
+| **Bone Wall** — **V2 design, approved** | Never fired: its `skill` trigger was never dispatched | +8 Block on the **first Skill of each player turn**, and its Block **resets at the start of its turn** — not +8 per Skill. Per Skill with no reset is an unbounded ratchet: the fuzz agent made it unkillable in 23 of 200 runs. The reference behaviour was nonfunctional and the GDD does not define it, so this is new design rather than a fix. The player-facing text states the limit outright |
 | **Phase timing** | `_phased` was set on even *enemy* turns | Even **player** turns, because that is when the immunity applies and when it has to be legible |
 | **Spell Steal's copy** | — | Snapshotted as the card is cast, not looked up at resolution. A card whose damage reads live state (Combustion reads the enemy's Burn, which step 1 ticks down) would otherwise show one number and land another. The enemy's own modifiers still apply live |
 | **Card mirroring** | — | Damage hits you, Block and healing go to the enemy, a debuff meant for it lands on you and a buff meant for you goes to it. Powers and everything else (draw, Energy, the die, choices) do not mirror; a card with nothing to mirror is skipped and the enemy attacks normally instead |
 | **Player Poison and Burn** (D2) | Applied but never ticked | Burn ticks at the end of your turn, Poison after the enemy acts, both ignoring Block and losing a stack — mirroring the enemy's timing. They route through the normal HP-loss path, so Berserker's Oath sees them, as its text promises |
 
-**Still open:** the Bone Wall bound above is the one number in this step that is neither the
-reference's nor the GDD's. If you would rather it scaled with Skills, it needs a different cap
-(a per-turn maximum, or Block that decays) — not no cap.
+**Owner review of 3d:** approved. The Bone Wall bound is kept as implemented and logged as a V2
+design decision: the first Skill each player turn grants 8 Block, and the Block resets on its
+turn. Its text reads: "The first Skill you play on each of your turns gives it 8 Block. Later
+Skills that turn give it nothing. Its Block resets at the start of its turn."
+
+### H8. Step 3e — run UI
+
+**Same as the reference:**
+- **Boss introduction:** the boss door opens onto it; it names the boss, their title and the
+  reference's pre-fight hint text, and has a single "Face them" with no way back.
+- **Map:** every floor, not only the current one. The GDD does not define the map's scope, so the
+  reference's is kept — including the room types of floors you have not reached, which path select
+  does not show. Each path's room types and Magic Door markers; the current floor, your path and
+  your room marked; a boss is "identity unknown" until beaten, then named.
+
+**Fixed / different:**
+
+| Topic | Reference | Here |
+|---|---|---|
+| Boss introduction | The boss's emoji, and no numbers | The boss's portrait, and its HP, attack, defend and starting Block. A companion boss has the plain attack/defend AI, so these are the whole of what it does |
+| Challenge offer on the boss introduction | Present | Phase 5, with Challenges |
+| Floor cleared | The boss's reward screen is titled "Floor N cleared", then the Soul Forge | The reward names the boss; a floor-cleared summary follows it (paths walked, rooms, fights, elites, HP), then the Soul Forge. On the last floor it leads to the run end |
+| Run end | A summary line | Plus one line per floor cleared: its boss, the path, the fights |
+| Map: Magic Door contents | Not shown | Not shown either — only that a door exists, as on path select |
+| Map: the Mirror | Not marked | Its slot is marked on your path while it is unused this floor |
+| Map: where it opens | On the whole map | Scrolled to the floor you are on |
+| **Missing glyphs** | On this machine's Chrome (Windows 10), four icons the reference uses draw as missing-glyph boxes: 🫗 Vulnerable, 🫥 the Void Wraith, 🪙 the coin cards and coin toast, 🪞 the Mirror | Replaced by glyphs that render: 💔 Vulnerable, 🌫️ the Void Wraith, 🟡 the coin, and the Mirror panel uses no glyph. Two of claude-version's own had the same problem and were replaced too: 🫳 Drain Touch → 🤚, 🪨 Stone Skin → 🗿. Structural: the same things, drawn so they can be seen. The smoke check now fails on any glyph that does not render in the browser running it |
