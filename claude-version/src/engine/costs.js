@@ -7,7 +7,10 @@ import { stacks } from './statuses.js';
 // Modifiers run in the reference build's order (../js/combat.js getCardEnergyCost). One-shot
 // discounts are charges in c.turnState. A charge is spent only if it actually lowered the cost
 // (decision D3), so an already-free card never wastes a Mana Surge.
-// Curse surcharges will sit in front of this list in Phase 4.
+// The Void Stalker's Curse is a surcharge, so it is applied to the base cost **before** the
+// discount list below, never after: the discounts include hard overrides to 0, and taxing after
+// one of those would resurrect a card the game had just shown as free.
+// Player-side Curse cards will join it there in Phase 4.
 
 const MODIFIERS = [
   { // Mana Surge / Mana Weave: next N cards cost 1 less.
@@ -36,7 +39,7 @@ const MODIFIERS = [
 export function cardCost(c, card, { consume = false } = {}) {
   const def = getCard(card.key);
   const position = c.turnState.cardsPlayed + 1;
-  let cost = def.cost;
+  let cost = def.cost + (c.turnState.cursedUid === card.uid ? c.turnState.cursedAmount : 0);
   for (const m of MODIFIERS) {
     if (m.charge && !(c.turnState[m.charge] > 0)) continue;
     if (m.applies && !m.applies(c, def, position)) continue;

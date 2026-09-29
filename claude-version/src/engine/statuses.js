@@ -41,7 +41,7 @@ export const STATUSES = {
   },
   poison: {
     name: 'Poison', emoji: '☠️', kind: 'debuff',
-    tick: 'Ticks after the enemy acts.',
+    tick: 'Ticks after the enemy acts.', // the same on both sides, now that you can carry it too
     desc: (n) => `Takes ${n} damage after acting, ignoring Block. Then loses 1 stack.`,
   },
   chill: {
@@ -156,6 +156,12 @@ export function addStatus(c, side, id, n, data = null) {
   const def = STATUSES[id];
   if (!def) throw new Error(`Unknown status: ${id}`);
   const unit = c[side];
+  // King's Champion's Unbreakable. Nothing lands at all, and the card that tried says so — the
+  // reference wiped statuses at its turn start instead, leaving them working for a full turn.
+  if (unit.statusImmune) {
+    emit(c, 'immune', { side, id });
+    return;
+  }
   const before = stacks(unit, id);
   let after;
   if (!before || !def.stack || def.stack === 'add') after = before + n;

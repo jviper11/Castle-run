@@ -132,8 +132,19 @@ test('reward pools and starter decks reference real cards', () => {
 });
 
 test('enemies: pools reference real enemies; patterns and abilities exist and describe themselves', () => {
+  // Only Floor 1 has an easy pool; every floor has a standard pool and two elites.
+  for (const [n, floor] of Object.entries(FLOOR_POOLS)) {
+    assert.equal(floor.standard.length, 5, `floor ${n} standard pool`);
+    assert.equal(floor.elite.length, 2, `floor ${n} elites`);
+    for (const id of [...(floor.easy || []), ...floor.standard, ...floor.elite]) assert.ok(ENEMIES[id], id);
+  }
+  // No enemy appears on two floors, so each floor's pool reads as its own place.
+  const seen = new Set();
   for (const floor of Object.values(FLOOR_POOLS)) {
-    for (const id of [...floor.easy, ...floor.standard, ...floor.elite]) assert.ok(ENEMIES[id], id);
+    for (const id of [...floor.standard, ...floor.elite]) {
+      assert.ok(!seen.has(id), `${id} is in two floor pools`);
+      seen.add(id);
+    }
   }
   for (const id of Object.keys(ENEMIES)) {
     const e = createEnemy(id);

@@ -30,9 +30,12 @@ function dieAttackBonus(c) {
 /**
  * Enemy attack before the player's defences: base → +Rage → Weak ×0.75 → Chill (×0.75, or less
  * with Cold Mastery).
+ *
+ * `extraRage` is Strength the enemy is about to gain earlier in the same intent (Loyal). Counting
+ * it here is what lets the intent show the number the attack behind the buff will really land.
  */
-export function enemyAttackDamage(c, base) {
-  let amount = base + stacks(c.enemy, 'rage');
+export function enemyAttackDamage(c, base, extraRage = 0) {
+  let amount = base + stacks(c.enemy, 'rage') + extraRage;
   if (stacks(c.enemy, 'weak')) amount = Math.floor(amount * 0.75);
   if (stacks(c.enemy, 'chill')) {
     amount = Math.floor((amount * (100 - chillReductionPct(stacks(c.player, 'coldMastery')))) / 100);
@@ -61,25 +64,56 @@ export function predictEnemyHit(c, base) {
   return incomingToPlayer(c, enemyAttackDamage(c, base));
 }
 
+/**
+ * Damage interception installed by the enemy's abilities (Phase, Stone Skin). The guards live on
+ * the enemy object, so this file needs no import from engine/enemies.js.
+ */
+function guardIncoming(c, amount, source) {
+  for (const g of c.enemy.guards) amount = g.def.guard(c, amount, source, g.params);
+  return Math.max(0, amount);
+}
+
+/**
+ * A revive (Undying) after the enemy's HP reaches 0. A lethal Burn or Poison tick is final
+ * (GDD §4), which is why this keys on the damage source rather than on which function ran.
+ */
+const FINAL_SOURCES = new Set(['burn', 'poison']);
+function tryRevive(c, source) {
+  if (c.enemy.hp > 0 || FINAL_SOURCES.has(source)) return;
+  for (const r of c.enemy.revives) if (r.def.onDeath(c, r.params)) return;
+}
+
 /** Applies an already-computed hit to the enemy: Block first, then HP. Returns HP lost. */
 export function hitEnemy(c, amount, source) {
   const e = c.enemy;
+  amount = guardIncoming(c, amount, source);
   const blocked = Math.min(e.block, amount);
   e.block -= blocked;
   const lost = Math.min(e.hp, amount - blocked);
   e.hp -= lost;
   emit(c, 'damage', { side: 'enemy', amount, blocked, lost, hp: e.hp, block: e.block, source });
+  tryRevive(c, source);
   return lost;
 }
 
-/** Burn and Poison: straight to HP, ignoring Block. */
+/** Burn, Poison and the Powers that ignore Block: straight to HP. */
 export function damageEnemyDirect(c, amount, source) {
   const e = c.enemy;
+  amount = guardIncoming(c, amount, source);
   const lost = Math.min(e.hp, amount);
   e.hp -= lost;
   emit(c, 'damage', { side: 'enemy', amount, blocked: 0, lost, hp: e.hp, block: e.block, source });
+  tryRevive(c, source);
   return lost;
 }
+
+// ── Player damage over time (decision D2) ──
+// Your Burn ticks at the end of your turn and your Poison after the enemy acts, mirroring the
+// enemy's timing. Both ignore Block and lose a stack per tick. They route through loseHp(), so
+// Berserker's Oath sees the HP loss exactly as its text promises.
+
+export const playerBurnTick = (c) => stacks(c.player, 'burn');
+export const playerPoisonTick = (c) => stacks(c.player, 'poison');
 
 /**
  * Applies an incoming hit to the player: Fly halves it (and is used up), then Block, then HP.

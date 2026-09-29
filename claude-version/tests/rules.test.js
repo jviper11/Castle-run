@@ -1,7 +1,7 @@
 // Rules tests: damage pipelines, status timing (GDD §4) and the combat loop.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { makeCombat, giveHand, setRoll, eventsOf } from './helpers.js';
+import { makeCombat, giveHand, setRoll, eventsOf, forceIntent } from './helpers.js';
 import { playCard, endTurn, reroll } from '../src/engine/combat.js';
 import { playerAttackDamage, predictEnemyHit } from '../src/engine/damage.js';
 import { drain } from '../src/engine/log.js';
@@ -29,7 +29,7 @@ test('player Block absorbs before HP; enemy attack resolves the shown intent exa
   c.player.block = 4;
   giveHand(c, []);
   const hpBefore = c.player.hp;
-  assert.deepEqual(c.enemy.intent, { kind: 'attack', base: 6, hits: 1 });
+  assert.deepEqual(c.enemy.intent.actions, [{ kind: 'attack', base: 6, hits: 1 }]);
   endTurn(c);
   assert.equal(c.player.hp, hpBefore - 2);
 });
@@ -93,10 +93,10 @@ test('a killing card blow does not revive the Skeleton', () => {
 test('Chill is used up only when the enemy attacks, not when it defends', () => {
   const c = makeCombat();
   c.enemy.statuses = { chill: 2 };
-  c.enemy.intent = { kind: 'defend', block: 8 };
+  forceIntent(c, { kind: 'defend', block: 8 });
   endTurn(c);
   assert.equal(c.enemy.statuses.chill, 2);
-  c.enemy.intent = { kind: 'attack', base: 6, hits: 1 };
+  forceIntent(c, { kind: 'attack', base: 6, hits: 1 });
   endTurn(c);
   assert.equal(c.enemy.statuses.chill, 1);
 });
@@ -115,7 +115,7 @@ test('enemy Weak applied this turn still weakens the attack it was aimed at', ()
 test('player Weak lasts through the next player turn, then ticks down at its end', () => {
   const c = makeCombat({ enemy: 'dungeonWarden' });
   c.enemy.turn = 2; // its next turn is the 3rd: Lockdown fires
-  c.enemy.intent = { kind: 'defend', block: 8 };
+  forceIntent(c, { kind: 'defend', block: 8 });
   endTurn(c);
   assert.equal(c.player.statuses.weak, 1);
   assert.equal(playerAttackDamage(c, 8), 6);
@@ -127,7 +127,7 @@ test("Rabid's Vulnerable survives to amplify the next attack", () => {
   const c = makeCombat({ enemy: 'cursedHound' });
   endTurn(c);
   assert.equal(c.player.statuses.vulnerable, 1);
-  c.enemy.intent = { kind: 'attack', base: 10, hits: 1 };
+  forceIntent(c, { kind: 'attack', base: 10, hits: 1 });
   const hp = c.player.hp;
   endTurn(c);
   assert.equal(c.player.hp, hp - 15);
@@ -145,14 +145,14 @@ test('Regen is capped at 10 stacks', async () => {
 
 test('Block resets at turn start, except once after Entrench', () => {
   const c = makeCombat();
-  c.enemy.intent = { kind: 'defend', block: 8 };
+  forceIntent(c, { kind: 'defend', block: 8 });
   const [ent] = giveHand(c, ['entrench']);
   setRoll(c, 1);
   playCard(c, ent);
   assert.equal(c.player.block, 8);
   endTurn(c);
   assert.equal(c.player.block, 8, 'carried over once');
-  c.enemy.intent = { kind: 'defend', block: 8 };
+  forceIntent(c, { kind: 'defend', block: 8 });
   endTurn(c);
   assert.equal(c.player.block, 0);
 });
@@ -172,7 +172,7 @@ test('turn start draws 5; draw effects stop at the hand limit of 8', () => {
 test('the discard pile is reshuffled into the draw pile when it runs out', () => {
   const c = makeCombat({ deck: Array(7).fill('strike') });
   // 5 drawn, 2 left. End turn: 5 discarded, the next turn draws 2, then reshuffles.
-  c.enemy.intent = { kind: 'defend', block: 8 };
+  forceIntent(c, { kind: 'defend', block: 8 });
   endTurn(c);
   assert.equal(c.piles.hand.length, 5);
   assert.equal(c.piles.draw.length + c.piles.discard.length, 2);
@@ -234,7 +234,7 @@ test('reroll: one per turn, refilled next turn', () => {
   const c = makeCombat();
   assert.ok(reroll(c));
   assert.equal(reroll(c), false);
-  c.enemy.intent = { kind: 'defend', block: 8 };
+  forceIntent(c, { kind: 'defend', block: 8 });
   endTurn(c);
   assert.ok(reroll(c));
 });
@@ -254,7 +254,7 @@ test('the player dying ends combat as a loss, even if Poison would also kill the
   const c = makeCombat({ hp: 1 });
   c.enemy.hp = 1;
   c.enemy.statuses = { poison: 5 };
-  c.enemy.intent = { kind: 'attack', base: 6, hits: 1 };
+  forceIntent(c, { kind: 'attack', base: 6, hits: 1 });
   endTurn(c);
   assert.equal(c.phase, 'lost');
 });

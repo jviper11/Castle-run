@@ -1,6 +1,7 @@
 // Phase 3b: rest sites, shops and the Soul Forge.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { forceIntent } from './helpers.js';
 import { createRun, addCard, restOptions, restHeal, restUpgrade, restRemove, restLeave, shopBuy, shopRemove, shopUpgrade,
   shopLeave, soulBuy, soulLeave } from '../src/engine/run.js';
 import { createCombat, reroll, useSecondDie, useGamblersEdge, endTurn } from '../src/engine/combat.js';
@@ -154,7 +155,7 @@ test('Grit: +5 Block on turn 1 only; Momentum / Reckless Surge: +1 Energy each; 
   assert.equal(c.player.energy, 5);
   assert.equal(c.piles.hand.length, 6);
   assert.equal(c.run.maxHp, 85, 'Reckless Surge: −5 Max HP');
-  c.enemy.intent = { kind: 'defend', block: 8 };
+  forceIntent(c, { kind: 'defend', block: 8 });
   endTurn(c);
   assert.equal(c.player.block, 0, 'Grit is not repeated on turn 2');
 });
@@ -164,7 +165,7 @@ test('Steady Hand: one extra reroll per combat, used after the turn\'s own', () 
   assert.ok(reroll(c));
   assert.ok(reroll(c));
   assert.equal(reroll(c), false);
-  c.enemy.intent = { kind: 'defend', block: 8 };
+  forceIntent(c, { kind: 'defend', block: 8 });
   endTurn(c);
   assert.ok(reroll(c));
   assert.equal(reroll(c), false, 'the bonus charge does not refresh');
@@ -183,11 +184,11 @@ test("Gambler's Edge: once per combat, uses the once-per-turn set", () => {
   const c = fight(['gamblersEdge']);
   setDie(c, 3);
   assert.equal(useGamblersEdge(c, 6), false, 'the die was already set this turn');
-  c.enemy.intent = { kind: 'defend', block: 8 };
+  forceIntent(c, { kind: 'defend', block: 8 });
   endTurn(c);
   assert.ok(useGamblersEdge(c, 4));
   assert.equal(c.die.value, 4);
-  c.enemy.intent = { kind: 'defend', block: 8 };
+  forceIntent(c, { kind: 'defend', block: 8 });
   endTurn(c);
   assert.equal(useGamblersEdge(c, 4), false, 'once per combat');
 });

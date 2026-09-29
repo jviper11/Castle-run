@@ -5,7 +5,7 @@ import { AFFINITIES, canReroll, rerollsAvailable, dieText, affinityLine } from '
 import { previewIntent, describeAbilities, DEFEND_BLOCK } from '../engine/enemies.js';
 import { playability } from '../engine/combat.js';
 import { currentPath } from '../engine/run.js';
-import { PLACEHOLDER_POOL_FLOORS } from '../content/enemies.js';
+import { FLOOR_NAMES } from '../content/enemies.js';
 import { HEROES } from '../content/heroes.js';
 
 // Renders combat state. Pure with respect to the engine: it only reads.
@@ -32,8 +32,7 @@ export function renderHud(c) {
   const run = c.run;
   const len = currentPath(run).length;
   const where = c.kind === 'boss' ? 'Boss' : `Room ${run.index + 1}/${len} · ${KIND_LABEL[c.kind]}`;
-  const stand = PLACEHOLDER_POOL_FLOORS.includes(run.floor + 1) && c.kind !== 'boss' ? ' · Floor 1 enemies (placeholder until 3d)' : '';
-  $('hud-progress').textContent = `Floor ${run.floor + 1} · ${where}${stand}`;
+  $('hud-progress').textContent = `Floor ${run.floor + 1} · ${FLOOR_NAMES[run.floor + 1]} · ${where}`;
   $('hud-gold').textContent = run.gold;
   $('hud-souls').textContent = run.souls;
   $('pile-draw').textContent = c.piles.draw.length;
@@ -88,6 +87,11 @@ function renderEnemyStatic(c) {
   name.classList.toggle('has-abilities', abilities.length > 0);
 }
 
+/**
+ * An intent is a list of actions (engine/enemies.js), so this renders one chip per action, in the
+ * order they will resolve. Every number comes from the plan, which is the same plan the engine
+ * executes — so the widget cannot show a number the fight does not deal.
+ */
 export function renderIntent(c) {
   const el = $('enemy-intent');
   el.replaceChildren();
@@ -96,26 +100,60 @@ export function renderIntent(c) {
     return;
   }
   el.hidden = false;
-  const i = previewIntent(c);
-  el.className = `intent intent-${i.kind}`;
-  if (i.kind === 'attack') {
-    // firstHit includes Fly, which halves only the first hit.
-    const changed = i.firstHit !== i.base;
-    el.append(h('span', { class: 'intent-icon' }, '⚔️'), h('b', {}, i.firstHit));
-    if (i.hits > 1) el.append(`×${i.hits}`);
-    if (changed) el.append(h('s', {}, i.base));
-    el.dataset.tipTitle = 'Intends to attack';
-    el.dataset.tip = `Deals ${i.firstHit} damage${i.hits > 1 ? `, then ${i.perHit} × ${i.hits - 1}` : ''} before your Block.` +
-      (changed ? `\nBase ${i.base}, changed by statuses${i.firstHit !== i.perHit ? ' and Fly' : ''}.` : '');
-  } else if (i.kind === 'defend') {
-    el.append(h('span', { class: 'intent-icon' }, '🛡'), h('b', {}, i.block));
-    el.dataset.tipTitle = 'Intends to defend';
-    el.dataset.tip = `Gains ${i.block} Block.`;
-  } else if (i.kind === 'aim') {
-    el.append(h('span', { class: 'intent-icon' }, '🎯'), h('b', {}, 'Aiming'));
-    el.dataset.tipTitle = 'Aiming';
-    el.dataset.tip = `Does nothing this turn. Its next attack deals ${c.enemy.pattern.multiplier}× damage.`;
+  const plan = previewIntent(c);
+  const tips = [];
+  el.className = 'intent' + (plan.phased ? ' intent-phased' : '');
+  if (plan.phased) {
+    el.append(h('span', { class: 'intent-part intent-ghost' }, '👻'));
+    tips.push('Phased: nothing you do this turn can damage it.');
   }
+  for (const a of plan.actions) el.append(...intentPart(c, a, tips));
+  el.dataset.tipTitle = plan.phased ? 'Untouchable this turn' : 'What it will do next';
+  el.dataset.tip = tips.join('\n');
+}
+
+function intentPart(c, a, tips) {
+  const part = (cls, ...kids) => [h('span', { class: `intent-part ${cls}` }, ...kids)];
+  if (a.kind === 'attack') {
+    const changed = a.firstHit !== a.base;
+    const out = [h('span', { class: 'intent-icon' }, '⚔️'), h('b', {}, a.firstHit)];
+    if (a.hits > 1) out.push(`×${a.hits}`);
+    if (changed) out.push(h('s', {}, a.base));
+    tips.push(`Attacks for ${a.landed.join(' + ')} before your Block.` +
+      (changed ? ` Base ${a.base}, changed by statuses${a.firstHit !== a.perHit ? ' and Fly' : ''}.` : ''));
+    if (a.doubled) tips.push('Holy Wrath: doubled while you hold that much Block.');
+    if (a.strip) tips.push(`${a.strip.label}: strips ${a.strip.taken} of your Block as it hits.`);
+    if (a.onHit) tips.push(`Each hit applies ${a.onHit.stacks} ${STATUSES[a.onHit.status].name}.`);
+    if (a.collapse) tips.push(`Collapse: ${a.collapse} more, ignoring Block.`);
+    return part('intent-attack', ...out);
+  }
+  if (a.kind === 'defend') {
+    tips.push(`Gains ${a.block} Block.`);
+    return part('intent-defend', h('span', { class: 'intent-icon' }, '🛡'), h('b', {}, a.block));
+  }
+  if (a.kind === 'aim') {
+    tips.push(`Does nothing this turn. Its next attack deals ${c.enemy.pattern.multiplier}× damage.`);
+    return part('intent-aim', h('span', { class: 'intent-icon' }, '🎯'), h('b', {}, 'Aiming'));
+  }
+  if (a.kind === 'buff') {
+    tips.push(a.blocked ? 'It cannot be buffed.' : `Gains ${a.n} ${STATUSES[a.status].name} first.`);
+    return part('intent-buff', h('span', { class: 'intent-icon' }, STATUSES[a.status].emoji), h('b', {}, `+${a.n}`));
+  }
+  if (a.kind === 'burst') {
+    tips.push(`${a.label}: ${a.landed[0]} extra damage.`);
+    return part('intent-burst', h('span', { class: 'intent-icon' }, '💥'), h('b', {}, a.landed[0]));
+  }
+  if (a.kind === 'mirror') {
+    const bits = [`Spell Steal: it casts your ${a.name} back at you.`];
+    if (a.damage) bits.push(`${a.landed[0]} damage to you.`);
+    if (a.block) bits.push(`${a.block} Block for it.`);
+    if (a.heal) bits.push(`Heals ${a.heal}.`);
+    for (const st of a.statuses) bits.push(`${st.n} ${STATUSES[st.id].name} on ${st.side === 'player' ? 'you' : 'it'}.`);
+    tips.push(bits.join(' '));
+    return part('intent-mirror', h('span', { class: 'intent-icon' }, '🌀'),
+      h('b', {}, a.damage ? a.landed[0] : a.name));
+  }
+  return [];
 }
 
 export function renderEnergy(energy, max) {

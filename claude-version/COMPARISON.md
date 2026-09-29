@@ -406,7 +406,7 @@ reference build's invention, carried over so the run plays the same. Flagged for
 
 ### H6. High scales with the die — **V2 design decision**
 
-**Status: deliberate V2 design, not a reproduction of the reference and not a GDD rule.**
+**Status: deliberate V2 design, approved. Not a reproduction of the reference, not a GDD rule.**
 
 The GDD fixes the Mage's affinity at "High rolls (6+)" (§3) and never revisits it, because v0.10
 only ever describes a d6 — there is no die-type table in the document at all, so **the GDD does
@@ -457,3 +457,44 @@ never something the player has to infer.
 above the midpoint (d6 → 4+) or a fixed quarter (d6 → 5+, d20 → 16+) are others, and each moves
 the Mage again. The threshold is one exported function, `highThreshold()` in `engine/dice.js`, so
 changing it is a one-line change plus regenerating CARDS.md.
+
+### H7. Step 3d — Floors 2–4 enemies, elites and the intent list
+
+**Same as the reference:** every stat. 15 new standard enemies (5 per floor), 6 new elites
+(2 per floor), with the reference's HP, Block, damage and Gold, and its floor pools. Floor names
+come from the reference's own section comments.
+
+#### Dead or self-contradicting abilities, now working (PHASE3_PLAN §3)
+
+| Enemy | Reference | Here |
+|---|---|---|
+| **Phase** (Shadow Wraith) | Sets `_phased`, which nothing reads | Untouchable on alternate **player** turns — keyed to the turn the immunity is felt, so it can be seen and planned around. Blocks every damage source, that turn's Burn tick included (D7). Turn 1 is always solid, so a fight never opens untouchable |
+| **Phase+** (Shadow Wraith+) | Phase dead; "attacks twice" never implemented | Phase as above, and two hits on the turns it is solid |
+| **Poison Arrow** (Bone Archer) | Applied player Poison, which never ticked | Applies it, and player Poison now ticks (D2) |
+| **Acid Touch / Drain / Void Drain** | Stripped your Block **after** the hit, when it was spent and about to reset — so it did nothing | Part of the attack, landing before the damage, and shown on the intent |
+| **Undying / Undying+** | An `hp` trigger that also ran after ordinary hits | A death hook. A lethal Burn or Poison tick is final (GDD §4) |
+| **Arcane Burn** (Dark Sorcerer) | Applied player Burn, which never ticked | Applies it, and player Burn now ticks (D2) |
+| **Stone Skin** (Gargoyle) | Sets `_stoneShield`; nothing reads it | Absorbs the first 5 damage of each of your turns |
+| **Curse** (Void Stalker) | A message only | One random card in hand costs +2 that turn, through the one cost pipeline, so the card shows the raised number |
+| **Soul Drain** (Death Knight) | Took 1 Energy at the enemy's turn 1; the next turn start refilled it, so it cost nothing | Your first turn starts with 1 less Energy |
+| **Bone Wall** (Bone Golem) | Its `skill` trigger was never dispatched | Gains Block when you play a Skill — see the balance note below |
+| **Holy Wrath** (Sanctum Guardian) | `damage *= 2` permanently, compounding every turn the condition held | Doubles **that attack only**, while you hold 15+ Block. The intent shows the doubled number while it holds |
+| **Spell Steal** (Dark Arcanist) | A message only | Casts the last card you played that turn back at you (D6, and R7's mirroring) |
+| **Unbreakable** (King's Champion) | Wiped statuses at its turn start, so a Burn or Vulnerable still worked for a full turn | Nothing can be applied to it at all, and the attempt is reported so a card can say "immune" |
+| **Collapse** (Void Colossus) | Read your Block *after* step 6 had already spent it | Extra damage equal to your Block as the attack lands, bypassing Block, and shown on the intent |
+| **Ritual / Arcane Overload** | Worked | Kept, now as their own action in the intent list |
+
+#### Fixed / different beyond the reference
+
+| Topic | Reference | Here |
+|---|---|---|
+| **Intent** | One move: an attack, or a defend | A **list of actions** resolved in order (R5). `previewIntent()` resolves every number and `resolveIntent()` executes exactly the plan it returns, so a displayed number and a landed number cannot diverge. An ability that changes the same turn's attack damage is an action *in* the list — Throne Guard's Loyal is shown as "+2 Strength, then 18", never as 16 followed by an 18 |
+| **Bone Wall** | Never fired | +8 Block on the **first Skill each turn**, and its Block **resets each of its turns** — not +8 per Skill. Per Skill with no reset is an unbounded ratchet: the fuzz agent made it unkillable in 23 of 200 runs. Since the reference's version never ran, there is no behaviour being changed here, but the bound is a design choice and is flagged |
+| **Phase timing** | `_phased` was set on even *enemy* turns | Even **player** turns, because that is when the immunity applies and when it has to be legible |
+| **Spell Steal's copy** | — | Snapshotted as the card is cast, not looked up at resolution. A card whose damage reads live state (Combustion reads the enemy's Burn, which step 1 ticks down) would otherwise show one number and land another. The enemy's own modifiers still apply live |
+| **Card mirroring** | — | Damage hits you, Block and healing go to the enemy, a debuff meant for it lands on you and a buff meant for you goes to it. Powers and everything else (draw, Energy, the die, choices) do not mirror; a card with nothing to mirror is skipped and the enemy attacks normally instead |
+| **Player Poison and Burn** (D2) | Applied but never ticked | Burn ticks at the end of your turn, Poison after the enemy acts, both ignoring Block and losing a stack — mirroring the enemy's timing. They route through the normal HP-loss path, so Berserker's Oath sees them, as its text promises |
+
+**Still open:** the Bone Wall bound above is the one number in this step that is neither the
+reference's nor the GDD's. If you would rather it scaled with Skills, it needs a different cap
+(a per-turn maximum, or Block that decays) — not no cap.

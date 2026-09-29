@@ -71,22 +71,28 @@ function playOut(c, agent) {
       assert.equal(paid.cost, shownCost, `${card.key}: displayed cost ${shownCost}, paid ${paid.cost}`);
       continue;
     }
-    // Intent is the move: the shown per-hit damage must be exactly what lands.
+    // Intent is the move: the plan shown before the turn ends must be the plan that resolves,
+    // and every number in it must be the number that lands. An intent is a list, so this walks
+    // the whole list — Loyal's Strength, a Ritual burst and a Spell Steal are all covered.
     const shown = previewIntent(c);
     drain(c);
     endTurn(c);
     const events = drain(c);
     const act = events.find((e) => e.type === 'enemyAct');
     if (act) {
-      const { perHit, firstHit, ...planned } = shown;
-      assert.deepEqual(act.intent, planned, `turn ${c.turn}: resolved a different move than was shown`);
-    }
-    if (act && shown.kind === 'attack') {
-      const hits = events.filter((e) => e.type === 'damage' && e.side === 'player' && e.source === 'enemy');
-      hits.forEach((h, i) => {
-        const expected = i === 0 ? shown.firstHit : shown.perHit;
-        assert.equal(h.amount, expected, `turn ${c.turn}: intent showed ${expected}, hit ${i + 1} landed for ${h.amount}`);
-      });
+      assert.deepEqual(act.intent, shown, `turn ${c.turn}: resolved a different move than was shown`);
+      // Every damaging action carries `landed`: the exact amounts, in order, already accounting
+      // for Fly wherever in the list the turn's first hit falls.
+      const expected = shown.actions.flatMap((a) => a.landed || []);
+      const landed = events
+        .filter((e) => e.type === 'damage' && e.side === 'player' && e.source === 'enemy')
+        .map((e) => e.amount);
+      // The list is truncated when the player dies part-way through it.
+      assert.deepEqual(landed, expected.slice(0, landed.length),
+        `turn ${c.turn}: intent showed ${expected}, hits landed for ${landed}`);
+      if (c.player.hp > 0) {
+        assert.equal(landed.length, expected.length, `turn ${c.turn}: ${expected.length} hits shown, ${landed.length} landed`);
+      }
     }
   }
   check('end');

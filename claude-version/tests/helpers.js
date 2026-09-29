@@ -52,3 +52,16 @@ export function setRoll(c, value) {
 export function eventsOf(c, type) {
   return drain(c).filter((e) => !type || e.type === type);
 }
+
+/**
+ * Forces the enemy's next move. An intent is a list of actions (engine/enemies.js), so a test
+ * that wants one specific move says so through this rather than hand-building the wrapper.
+ */
+export function forceIntent(c, ...actions) {
+  c.enemy.intent = { actions };
+}
+
+/** The first action of a given kind in a plan from previewIntent(). */
+export function actionOf(plan, kind = 'attack') {
+  return plan.actions.find((a) => a.kind === kind);
+}

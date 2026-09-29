@@ -3,8 +3,10 @@ import { int } from './rng.js';
 import { createDieFor, dieType, rollDie, reroll as rerollDie, changeDie, setDie } from './dice.js';
 import { createPiles, drawCards, discardHand, takeFromHand } from './piles.js';
 import { stacks, reduceStatus, clearStatus } from './statuses.js';
-import { damageEnemyDirect, heal, burnTick, poisonTick, gainBlock } from './damage.js';
-import { createEnemy, planIntent, enemyTurnStart, resolveIntent, afterEnemyAction } from './enemies.js';
+import { damageEnemyDirect, heal, burnTick, poisonTick, gainBlock, loseHp, playerBurnTick,
+  playerPoisonTick } from './damage.js';
+import { createEnemy, planIntent, enemyTurnStart, resolveIntent, afterEnemyAction, enemyPlayerTurnStart,
+  onPlayerCard } from './enemies.js';
 import { getCard, resolveParams, gateReason } from './cards.js';
 import { cardCost } from './costs.js';
 import { runOps, finishCards, checkAnswer } from './ops.js';
@@ -32,6 +34,10 @@ function newTurnState() {
     momentumUsed: 0,
     maxRollRerollUsed: false,
     hungerDamage: 0, // Eternal Hunger's per-turn cap
+    // The Void Stalker's Curse: one card in hand costs more, for this turn only.
+    cursedUid: null,
+    cursedAmount: 0,
+    boneWall: false, // the Bone Golem's Block is once per turn, not once per Skill
     // One-shot charges, spent by the next qualifying card (engine/costs.js, engine/ops.js).
     discountNext: 0,
     freeNext: 0,
@@ -101,6 +107,9 @@ export function startTurn(c) {
   rollDie(c, 'turn');
   if (checkEnd(c)) return; // Lucky Streak can finish the enemy on the opening roll
   drawCards(c, c.drawPerTurn + turnStartDieBonus(c));
+  // After the hand is dealt: Soul Drain, Stone Skin's refill, and the Curse, which has to pick
+  // from the hand the player is about to look at.
+  enemyPlayerTurnStart(c);
 }
 
 /**
@@ -158,6 +167,7 @@ export function playCard(c, uid) {
   if (isSpell) applyMomentum(c);
 
   beforeCardEffect(c);
+  onPlayerCard(c, def, card); // Bone Wall reacts to a Skill; Spell Steal remembers the card
   const ctx = { c, def, card, params, playRoll: c.die.value, damageDealt: 0, markApplied: false, stage: 'main' };
   if (check.warning) {
     // Reference behaviour (COMPARISON C2): an unmet condition refunds the Energy; the card is spent.
@@ -265,10 +275,14 @@ export function endTurn(c) {
   emit(c, 'endTurn', { turn: c.turn });
   const e = c.enemy;
 
-  // 1. Burn ticks before the enemy acts (+ Burning Soul).
+  // 1. Burn ticks before the enemy acts (+ Burning Soul), on both sides (decision D2).
   if (stacks(e, 'burn')) {
     damageEnemyDirect(c, burnTick(c), 'burn');
     reduceStatus(c, 'enemy', 'burn');
+  }
+  if (stacks(c.player, 'burn')) {
+    loseHp(c, playerBurnTick(c), { source: 'burn' });
+    reduceStatus(c, 'player', 'burn');
   }
   // 2. Enemy Vulnerable ticks down (it amplified the player's attacks this turn).
   reduceStatus(c, 'enemy', 'vulnerable');
@@ -281,7 +295,8 @@ export function endTurn(c) {
     afterRegenTick(c, regen);
     reduceStatus(c, 'player', 'regen');
   }
-  // 4. A lethal Burn tick ends combat here, before any HP-threshold ability can fire.
+  // 4. A lethal Burn tick ends combat here, before any HP-threshold ability can fire — and
+  //    before a revive, which a Burn or Poison kill never gets (GDD §4).
   if (checkEnd(c)) return true;
 
   // 5. The enemy's turn begins: turn-start abilities.
@@ -296,10 +311,14 @@ export function endTurn(c) {
   reduceStatus(c, 'enemy', 'weak');
   reduceStatus(c, 'player', 'vulnerable');
 
-  // 7. Poison ticks after the enemy acts (+ Poison Master).
+  // 7. Poison ticks after the enemy acts (+ Poison Master), on both sides (decision D2).
   if (stacks(e, 'poison')) {
     damageEnemyDirect(c, poisonTick(c), 'poison');
     reduceStatus(c, 'enemy', 'poison');
+  }
+  if (stacks(c.player, 'poison')) {
+    loseHp(c, playerPoisonTick(c), { source: 'poison' });
+    reduceStatus(c, 'player', 'poison');
   }
   // 8. A lethal Poison tick ends combat before step 9's HP-threshold abilities.
   if (checkEnd(c)) return true;

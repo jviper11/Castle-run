@@ -205,17 +205,29 @@ button:disabled { cursor: default; }
 .status-power { border-color: var(--purple); }
 .ability-chip { color: #c9a0e0; border-color: #4a2a5a; }
 
+/* An intent is a list of actions, so the widget is a row of chips — one per action, in the order
+   they resolve. The row itself is transparent; each chip carries its own colour. */
 .intent {
+  display: inline-flex; align-items: center; gap: 0.25em; flex-wrap: wrap; justify-content: flex-end;
+  background: none; border: none; padding: 0;
+  font-size: clamp(0.8rem, 2.8dvh, 1.1rem); cursor: help;
+}
+.intent-part {
   display: inline-flex; align-items: baseline; gap: 0.3em;
   padding: 0.2em 0.75em; border-radius: 999px;
   background: rgba(20, 12, 14, 0.9); border: 1px solid var(--border2);
-  font-size: clamp(0.8rem, 2.8dvh, 1.1rem); cursor: help;
 }
 .intent b { font-size: 1.15em; }
 .intent s { color: var(--text3); font-size: 0.8em; }
 .intent-attack { border-color: var(--red); box-shadow: 0 0 12px rgba(192, 57, 43, 0.35); animation: intentPulse 1.6s infinite; }
 .intent-defend { border-color: var(--blue); }
 .intent-aim { border-color: var(--gold); color: var(--gold2); }
+.intent-buff { border-color: var(--red); color: #e79a8a; }
+.intent-burst { border-color: #b8860b; color: var(--gold2); box-shadow: 0 0 12px rgba(184, 134, 11, 0.4); }
+.intent-mirror { border-color: var(--purple); color: #c9a0e0; }
+.intent-ghost { border-color: #8fa8c8; color: #cfe0f5; }
+/* Phased: the enemy cannot be hurt this turn, so the whole row reads as inert. */
+.intent-phased .intent-attack { animation: none; box-shadow: none; opacity: 0.75; }
 
 .banner {
   font-family: var(--font-display); letter-spacing: 0.2em; text-transform: uppercase;

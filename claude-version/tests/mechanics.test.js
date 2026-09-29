@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { CARDS } from '../src/content/cards.js';
-import { makeCombat, giveHand, setRoll, eventsOf } from './helpers.js';
+import { makeCombat, giveHand, setRoll, eventsOf, forceIntent } from './helpers.js';
 import { playCard, endTurn, reroll, resolveChoice, playability, createCombat } from '../src/engine/combat.js';
 import { cardCost } from '../src/engine/costs.js';
 import { rollDie } from '../src/engine/dice.js';
@@ -93,7 +93,7 @@ test('F3: Shadow Artist+ discounts the first 3 cards on every turn, not just the
       playCard(c, card.uid);
     }
     assert.deepEqual(costs, [0, 0, 0, 1], `turn ${turn + 1}`);
-    c.enemy.intent = { kind: 'defend', block: 8 };
+    forceIntent(c, { kind: 'defend', block: 8 });
     endTurn(c);
   }
 });
@@ -283,7 +283,7 @@ test('Eternal Hunger: base is a flat 2 per tick; the upgrade is 2 per stack, max
     addStatus(c, 'player', 'eternalHunger', 1, data);
     addStatus(c, 'player', 'regen', 10);
     const hp = c.enemy.hp;
-    c.enemy.intent = { kind: 'defend', block: 8 };
+    forceIntent(c, { kind: 'defend', block: 8 });
     endTurn(c);
     return hp - c.enemy.hp;
   };

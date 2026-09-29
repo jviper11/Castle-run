@@ -1,7 +1,7 @@
 // Hero-specific card rules: the cards whose behaviour is more than a number.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { makeCombat, giveHand, setRoll } from './helpers.js';
+import { makeCombat, giveHand, setRoll, forceIntent, actionOf } from './helpers.js';
 import { playCard, resolveChoice } from '../src/engine/combat.js';
 import { cardCost } from '../src/engine/costs.js';
 
@@ -153,7 +153,7 @@ test('Swoop Down: Fly halves the next hit, and the intent shows the halved numbe
   const [s] = giveHand(c, ['swoopdown']);
   setRoll(c, 3);
   playCard(c, s);
-  assert.equal(previewIntent(c).firstHit, 5);
+  assert.equal(actionOf(previewIntent(c)).firstHit, 5);
   const hp = c.player.hp;
   endTurn(c);
   assert.equal(hp - c.player.hp, 5);
@@ -182,7 +182,7 @@ test('Eternal Hunger: base + upgrade stack as flat 2 plus 2 per Regen stack (max
   playCard(c, up);
   assert.equal(c.player.statuses.eternalHunger, 2);
   c.player.statuses.regen = 10;
-  c.enemy.intent = { kind: 'defend', block: 8 };
+  forceIntent(c, { kind: 'defend', block: 8 });
   const hp = c.enemy.hp;
   endTurn(c);
   assert.equal(hp - c.enemy.hp, 2 + 15);

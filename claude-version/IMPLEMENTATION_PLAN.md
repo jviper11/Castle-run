@@ -5,8 +5,9 @@
 - Phase 3 is in progress (`PHASE3_PLAN.md`).
   - Step 3a (run skeleton) is done and reviewed.
   - Step 3b (rest sites, shops, Soul Forge) is done and reviewed.
-  - Step 3c (die types) is done and reviewed; the follow-up affinity rescale (COMPARISON §H6) is
-    done and awaiting review. G4 stays open — see the 3c‑a entry.
+  - Step 3c (die types) is done and reviewed, including the affinity rescale (COMPARISON §H6),
+    approved as the current V2 rule. G4 stays open for a later manual balance review.
+  - Step 3d (Floors 2–4 enemies) is done and awaiting review. 3e has not been started.
 
 A from-scratch implementation of Castle Run that lives beside the reference build. The reference
 (`../index.html`, `../js/`, `../css/`) is not modified. Images are loaded from `../assets/` by path.
@@ -107,13 +108,66 @@ The full list, with a reason for each entry, is in `COMPARISON.md`. In summary:
 
 ## Validation log
 
-### Phase 3c‑a — High scales with the die: automated validation passed; owner review pending
+### Phase 3d — Floors 2–4 enemies, elites, intent lists: automated validation passed; owner review pending
+
+**New content:** 15 standard enemies (5 per floor) and 6 elites (2 per floor), with the
+reference's stats and pools. Every floor now fights its own enemies; the Floor 1 stand-in and its
+HUD label are gone, replaced by the floor's name.
+
+**Architecture (PHASE3_PLAN R5–R7), extensions only:**
+- **R5 — the intent is a list.** `previewIntent()` resolves every number in the list against
+  current state and `resolveIntent()` executes exactly the plan it returns, so the display and
+  the resolution are one walk of one list. An ability that changes the damage of the same turn's
+  attack is an action *in* the list rather than a turnStart hook — Throne Guard's Loyal reads
+  "+2 Strength, then 18", never 16 followed by an 18 landing.
+- **R6 — new hook points**, all of them dispatched: `playerTurnStart`, `onPlayerCard`, a damage
+  `guard`, an `onDeath` revive and `statusImmune`. The last three are installed onto the enemy
+  object, so `engine/damage.js` uses them without importing `engine/enemies.js`.
+- **R7 — `engine/mirror.js`**, card mirroring for Spell Steal, built once here for Sir Crimson's
+  Echo to reuse in Phase 5.
+- **D2 — player-side Poison and Burn**, mirroring the enemy's timing.
+
+**Tests:** 176/176 (29 new, `tests/enemies.test.js`).
+- One rule test per fix in PHASE3_PLAN §3, including the negatives: Undying does **not** revive
+  from a Burn tick, Bone Wall ignores Attacks, Collapse adds nothing at 0 Block, Holy Wrath does
+  not compound, Spell Steal forgets a card from last turn.
+- Two content lints: every Floor 2–4 ability describes itself with no hole in the text, and every
+  declared ability is wired to something that can actually dispatch it.
+- The intent-equals-action fuzz now walks the whole action list. Every damaging action carries
+  `landed` — the exact amounts, in order, with Fly accounted for wherever the turn's first hit
+  falls — and the suite asserts those are the amounts that land.
+- The combat fuzz covers all 36 enemies × 5 heroes × 150 seeds.
+
+**Browser:** a full four-floor run with no page errors; Floor 4 and Floor 3 combats at 1280×720
+and 844×390. The two-action intent renders as two chips (Throne Guard: "💢 +2" then
+"⚔ 18 ~~16~~"), and a phased turn shows a 👻 chip with the attack chip dimmed.
+
+**Found and fixed during validation:**
+- **The Bone Golem was unkillable.** +8 Block per Skill with no reset is an unbounded ratchet;
+  the fuzz agent stalemated 23 of 200 runs, all of them against it. Bounded to the first Skill
+  each turn, with its Block resetting each of its turns like every other Block ability. The
+  stalemate rate went to 0 of 200. The reference's version never fired at all, so nothing is
+  being changed away from — but the bound is a design choice, flagged in COMPARISON §H7.
+- **Spell Steal's number drifted.** A stolen card whose damage reads live state (Combustion reads
+  the enemy's Burn, which step 1 ticks down before the enemy acts) showed one number on the
+  intent and landed another. The card is now snapshotted as it is cast; the enemy's own
+  modifiers still apply live.
+- **Fly was double-counted** for bursts and mirrors, which took the raw number from the plan and
+  were then halved again on impact. Fly is now walked across the whole action list.
+
+**Flagged for the owner:** COMPARISON §H7 — the Bone Wall bound is the one number in this step
+that is neither the reference's nor the GDD's.
+
+### Phase 3c‑a — High scales with the die: automated validation passed; reviewed
 
 Owner decision, applied: High is the die's **upper third**, `floor(sides × 2/3) + 1`; Max,
 Extreme, Odd and Even unchanged; no die withheld from a hero; the active rule and face count
 still shown wherever a die is previewed or equipped. Recorded as a V2 design decision in
 COMPARISON.md §H6, because the GDD defines no multi-die affinity scaling. No Mage compensation
 applied elsewhere, and **G4 is left open** (§G4).
+
+**Owner review of 3c‑a:** `floor+1` approved as the current V2 rule. G4 deliberately left open
+for a later manual balance review, not resolved by this change.
 
 `floor+1` rather than `ceil`: where 3 divides the die, `ceil` returns the boundary face and puts
 it inside High, making a d6 4+ — a half, not an upper third. The two formulas agree on the d4,

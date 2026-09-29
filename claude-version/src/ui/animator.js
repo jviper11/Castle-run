@@ -97,10 +97,30 @@ export async function play(c, events, view) {
         banner('Enemy turn');
         await pause(350);
         break;
-      case 'enemyAct':
-        flash($('enemy-sprite'), ev.intent.kind === 'attack' ? 'lunge' : 'brace');
-        if (ev.intent.kind === 'aim') toast('🎯 Taking aim…');
-        await pause(ev.intent.kind === 'attack' ? 180 : 320);
+      case 'enemyAct': {
+        // The intent is a list of actions; it lunges if any of them deals damage.
+        const kinds = ev.intent.actions.map((a) => a.kind);
+        const hits = kinds.some((k) => k === 'attack' || k === 'burst' || k === 'mirror');
+        flash($('enemy-sprite'), hits ? 'lunge' : 'brace');
+        if (kinds.includes('aim')) toast('🎯 Taking aim…');
+        await pause(hits ? 180 : 320);
+        break;
+      }
+      case 'absorb':
+        float(ev.side, `🪨 -${ev.amount}`, 'blocked');
+        toast(`⚡ ${ev.name}`);
+        await pause(260);
+        break;
+      case 'revive':
+        Object.assign(unit ?? view.enemy, { hp: ev.hp });
+        renderFighter('enemy', view.enemy);
+        float('enemy', `+${ev.hp}`, 'heal');
+        toast(ev.of > 1 ? `⚔️ It rises again (${ev.n}/${ev.of})` : '⚔️ It rises again');
+        await pause(600);
+        break;
+      case 'immune':
+        float(ev.side, 'immune', 'blocked');
+        await pause(200);
         break;
       case 'ability':
         toast(`⚡ ${ev.name}`);
