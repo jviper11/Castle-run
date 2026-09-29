@@ -4,6 +4,7 @@
 //
 //   node tools/smoke.js              all scenarios
 //   node tools/smoke.js phone        only scenarios whose name contains "phone"
+//   node tools/smoke.js --all-heroes one full four-floor run per hero instead (end of a phase)
 //   node tools/smoke.js --shots DIR  also save a screenshot of every screen, the first time each
 //                                    scenario reaches it (and of the map when it is open), into DIR
 //
@@ -79,11 +80,25 @@ const SCENARIOS = [
     stopAt: 'screen-combat', afterTurns: 1, expectText: ['\u{1F47B}'],
   },
   {
+    // Starts on Floor 2 so the map is opened with two floors locked, then one, then none.
     name: 'desktop map overlay opens on every run screen',
-    url: '?hero=thief&hp=3000&gold=600&fast=max&floor=4&seed=5', size: [1280, 720],
-    openMap: true, expect: [...FULL_RUN.filter((x) => x !== 'screen-soulForge'), 'screen-combat'],
+    url: '?hero=thief&hp=3000&gold=3000&souls=20&fast=max&floor=2&seed=5', size: [1280, 720],
+    openMap: true, expect: FULL_RUN,
   },
 ];
+
+// `--all-heroes`: one complete four-floor run per hero, at the end of a phase (PHASE3_PLAN 3f).
+// Not in the required set, which already walks every hero through at least two floors; this adds
+// Floor 1 to the end for all five, across all three sizes.
+const SIZES = [[1280, 720, false], [844, 390, true], [667, 375, true]];
+const ALL_HEROES = ['barbarian', 'mage', 'thief', 'vampire', 'gambler'].map((hero, i) => {
+  const [w, h, touch] = SIZES[i % SIZES.length];
+  return {
+    name: `full run: ${hero} at ${w}x${h}${touch ? ', touch' : ''}`,
+    url: `?hero=${hero}&hp=3000&gold=3000&fast=max&seed=${21 + i}`, size: [w, h], touch,
+    expect: FULL_RUN, expectVariants: [...DOOR_VARIANTS, '+magic'],
+  };
+});
 
 // ── The walk, run inside the page ──
 // One evaluate call per scenario: the loop runs in the page, so there is no DevTools round trip
@@ -164,6 +179,18 @@ const WALK = (opts) => `(${async function walk(o) {
           if (!overlay || overlay.hidden) mapIssues.push(`${id}: the map did not open`);
           else if (!overlay.querySelector('.map-path')) mapIssues.push(`${id}: the map opened empty`);
           else if (!inView(overlay.querySelector('[data-action="close-map"]'))) mapIssues.push(`${id}: the map's close button is off-screen`);
+          // Floors not yet reached are locked: no rooms at all. Floors before the current one are
+          // never locked, and the current floor shows all three of its paths.
+          const floors = [...overlay.querySelectorAll('.map-floor')];
+          const at = floors.findIndex((f) => f.classList.contains('current'));
+          if (at < 0) mapIssues.push(`${id}: the map marks no current floor`);
+          floors.forEach((f, i) => {
+            const future = f.classList.contains('future');
+            if (i > at && !future) mapIssues.push(`${id}: floor ${i + 1} is not reached yet but is not locked`);
+            if (i <= at && future) mapIssues.push(`${id}: floor ${i + 1} has been reached but is shown locked`);
+            if (future && f.querySelector('.room-dot, .map-path')) mapIssues.push(`${id}: floor ${i + 1} is locked but shows its rooms`);
+          });
+          if (at >= 0 && floors[at].querySelectorAll('.map-path').length !== 3) mapIssues.push(`${id}: the current floor does not show its three paths`);
           await shot(`${id}-map`);
           document.querySelector('[data-action="close-map"]')?.click();
           await sleep(60);
@@ -427,7 +454,8 @@ const server = await startServer(PORT);
 const browser = await openBrowser(executable);
 // Interrupted (Ctrl+C, a killed CI job): never leave a headless browser holding the debug port.
 for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => { browser.close(); server.close(); process.exit(130); });
-const chosen = SCENARIOS.filter((s) => !filter || s.name.includes(filter));
+const pool = args.includes('--all-heroes') ? ALL_HEROES : SCENARIOS;
+const chosen = pool.filter((s) => !filter || s.name.includes(filter));
 let failed = 0;
 let total = chosen.length;
 try {

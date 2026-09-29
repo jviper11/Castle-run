@@ -1,13 +1,20 @@
 // Generates CARDS.md: every card and its upgrade, rendered by the engine itself, plus a
-// starter-deck balance table. The text in CARDS.md is exactly what the game shows.
+// three balance tables (Floor 1, every floor, and whole runs). The text in CARDS.md is exactly what the
+// game shows.
 //   node tools/catalogue.js
 import { writeFileSync } from 'node:fs';
 import { CARDS, CARDS_BY_HERO } from '../src/content/cards.js';
 import { REWARD_POOLS } from '../src/content/rewards.js';
 import { HEROES } from '../src/content/heroes.js';
-import { ENEMIES, FLOOR_POOLS } from '../src/content/enemies.js';
+import { ENEMIES, FLOOR_POOLS, COMPANION_BOSSES } from '../src/content/enemies.js';
 import { getCard, cardTextPlain } from '../src/engine/cards.js';
-import { createRun } from '../src/engine/run.js';
+import {
+  createRun, choosePath, chooseDoor, doorOptions, finishCombat, takeCardReward, skipCardReward, restOptions,
+  restHeal, restUpgrade, restRemove, restLeave, shopLeave, soulBuy, soulLeave, leaveRoom, leaveDieCache, faceBoss,
+  leaveFloorClear,
+} from '../src/engine/run.js';
+import { soulCost } from '../src/engine/soul.js';
+import { canUpgrade } from '../src/engine/shop.js';
 import { createCombat, playCard, endTurn, reroll, playability, resolveChoice } from '../src/engine/combat.js';
 import { affinityMet, affinityLine } from '../src/engine/dice.js';
 import { DICE, STARTING_DIE } from '../src/content/dice.js';
@@ -122,6 +129,97 @@ for (const hero of heroes) {
     return `${b.win}% / ${b.turns} / ${b.hpLost}`;
   });
   out.push(`| ${HEROES[hero].name} | ${cells.join(' | ')} |`);
+}
+out.push('');
+
+// ── Per floor (step 3f) ──
+
+/** Average win % of the starter deck across a list of enemies, `n` fights each. */
+function poolWin(hero, ids, n) {
+  const wins = ids.map((id) => balance(hero, id, n).win);
+  return Math.round(wins.reduce((a, b) => a + b, 0) / wins.length);
+}
+
+out.push('## Starter-deck balance by floor', '');
+out.push('The same agent and the same unmodified starter deck at full HP, now against every floor\'s pools:');
+out.push('the win % averaged over the floor\'s five standard enemies and over its two elites, 100 fights');
+out.push('each. It measures how steeply the floors climb, not what a real run faces there — by Floor 4 a');
+out.push('run has a bigger deck, upgrades and Soul Forge purchases, which the next table includes.', '');
+const floors = Object.keys(FLOOR_POOLS).map(Number);
+out.push(`| Hero | ${floors.map((f) => `F${f} standard | F${f} elite`).join(' | ')} | Companion bosses |`);
+out.push(`|---|${floors.map(() => '---|---').join('|')}|---|`);
+for (const hero of heroes) {
+  const cells = floors.flatMap((f) => [poolWin(hero, FLOOR_POOLS[f].standard, 100), poolWin(hero, FLOOR_POOLS[f].elite, 100)]);
+  const bosses = Object.entries(COMPANION_BOSSES).filter(([k]) => k !== hero).map(([, id]) => id);
+  out.push(`| ${HEROES[hero].name} | ${cells.map((w) => `${w}%`).join(' | ')} | ${poolWin(hero, bosses, 100)}% |`);
+}
+out.push('');
+
+// ── Full runs (step 3f) ──
+// The same greedy agent for every fight, and a fixed policy between fights, so the only thing that
+// varies between heroes is the hero. It takes a random offered card, rests to heal below 60% HP and
+// otherwise upgrades a random card, buys the first affordable Soul Forge offer, and always takes
+// the plain door. It never shops, takes a Magic Door or the Mirror, or swaps its die, so the column
+// reads as a floor on a real run rather than a forecast of one.
+
+const FULL_RUNS = 200;
+const STALL_TURNS = 100;
+
+function fullRun(hero, seed) {
+  const run = createRun({ heroKey: hero, seed });
+  const rng = createRng(seed * 7717);
+  let reached = 0;
+  for (let guard = 0; guard < 5000; guard++) {
+    reached = Math.max(reached, run.floor);
+    const screen = run.state.screen;
+    if (screen === 'end') break;
+    if (screen === 'pathSelect') choosePath(run, pick(rng, ['A', 'B', 'C']));
+    else if (screen === 'doors') chooseDoor(run, doorOptions(run).options[0].id);
+    else if (screen === 'combat') {
+      const c = run.combat;
+      while (c.phase === 'player' && c.turn < STALL_TURNS) agentTurn(c, rng);
+      if (c.phase === 'player') return { reached, won: false, stalled: true };
+      finishCombat(run);
+    } else if (screen === 'reward') {
+      const cards = run.state.reward.cards;
+      if (cards.length) takeCardReward(run, pick(rng, cards).key);
+      else skipCardReward(run);
+    } else if (screen === 'rest') {
+      const o = restOptions(run);
+      if (o.canHeal && run.hp < run.maxHp * 0.6) restHeal(run);
+      else if (o.upgradable) restUpgrade(run, pick(rng, run.deck.filter(canUpgrade)).uid);
+      else if (o.canHeal) restHeal(run);
+      else if (o.canLeave) restLeave(run);
+      else restRemove(run, run.deck[0].uid);
+    } else if (screen === 'soulForge') {
+      const affordable = run.state.offers.find((id) => soulCost(run, id) <= run.souls);
+      if (affordable) soulBuy(run, affordable);
+      else soulLeave(run);
+    } else if (screen === 'shop') shopLeave(run);
+    else if (screen === 'room') leaveRoom(run);
+    else if (screen === 'dieCache') leaveDieCache(run);
+    else if (screen === 'bossIntro') faceBoss(run);
+    else if (screen === 'floorClear') leaveFloorClear(run);
+    else throw new Error(`fullRun: unhandled screen ${screen}`);
+  }
+  return { reached, won: run.state.result === 'victory', stalled: false };
+}
+
+out.push('## Full runs', '');
+out.push(`${FULL_RUNS} seeded runs per hero, start to finish, with the same agent in every fight and a fixed`);
+out.push('policy between them: take a random offered card, rest to heal below 60% HP or else upgrade, buy');
+out.push('the first affordable Soul Forge offer, always take the plain door. It never shops, uses a Magic');
+out.push('Door or the Mirror, or changes its die. "Reached" counts runs that got to at least that floor;');
+out.push(`"stalled" is a fight that ran past ${STALL_TURNS} turns. A human should do far better; the gap between`);
+out.push('heroes is the useful part.', '');
+out.push('| Hero | Reached F2 | Reached F3 | Reached F4 | Cleared F4 | Stalled |');
+out.push('|---|---|---|---|---|---|');
+const fullRuns = {};
+for (const hero of heroes) {
+  const results = Array.from({ length: FULL_RUNS }, (_, i) => fullRun(hero, i + 1));
+  const pct = (fn) => `${Math.round((results.filter(fn).length / FULL_RUNS) * 100)}%`;
+  fullRuns[hero] = results;
+  out.push(`| ${HEROES[hero].name} | ${pct((r) => r.reached >= 1)} | ${pct((r) => r.reached >= 2)} | ${pct((r) => r.reached >= 3)} | ${pct((r) => r.won)} | ${pct((r) => r.stalled)} |`);
 }
 out.push('');
 

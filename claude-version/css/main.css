@@ -519,7 +519,15 @@ button:disabled { cursor: default; }
 #screen-combat[data-floor="3"] .floor-bg { background: linear-gradient(180deg, #09060f, #070510); }
 #screen-combat[data-floor="4"] .floor-bg { background: linear-gradient(180deg, #100806, #0a0504); }
 @media (max-height: 500px) {
-  .door { min-height: 120px; }
+  /* The worst door screen at phone height is a hidden Magic Door (with its hint line) and the
+     Mirror panel together: at 844×390 that pushed "Step through" 5px off the screen. The doors
+     size to their content here instead of holding a minimum, and the Mirror panel tightens. */
+  .door { min-height: 0; padding: 0.45rem 0.5rem; gap: 0.2rem; }
+  .door-icon { font-size: 1.6rem; }
+  .door-hint { font-size: 0.7rem; }
+  .mirror-panel { padding: 0.4rem 0.8rem; gap: 0.25rem; }
+  .mirror-panel .btn { padding: 0.3em 0.9em; font-size: 0.85rem; }
+  .mirror-note { font-size: 0.72rem; }
   .path-card { padding: 0.5rem; gap: 0.3rem; }
   .room-dot { font-size: 0.8rem; }
 }
@@ -602,6 +610,7 @@ button:disabled { cursor: default; }
 .map-floor { display: flex; flex-direction: column; gap: 0.35rem; padding: 0.5rem 0.6rem; border-radius: var(--radius); border: 1px solid var(--border); background: rgba(0, 0, 0, 0.2); }
 .map-floor.current { border-color: var(--gold); background: rgba(232, 208, 128, 0.05); }
 .map-floor.cleared { opacity: 0.6; }
+.map-floor.future { border-style: dashed; background: none; padding: 0.35rem 0.6rem; }
 .map-floor-name { font-size: 0.85rem; color: var(--text3); }
 .map-floor-name b { font-family: var(--font-display); color: var(--gold2); letter-spacing: 0.04em; }
 .map-boss-note { font-size: 0.75rem; color: var(--text3); font-style: italic; }

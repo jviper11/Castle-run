@@ -495,6 +495,11 @@ come from the reference's own section comments.
 | **Card mirroring** | — | Damage hits you, Block and healing go to the enemy, a debuff meant for it lands on you and a buff meant for you goes to it. Powers and everything else (draw, Energy, the die, choices) do not mirror; a card with nothing to mirror is skipped and the enemy attacks normally instead |
 | **Player Poison and Burn** (D2) | Applied but never ticked | Burn ticks at the end of your turn, Poison after the enemy acts, both ignoring Block and losing a stack — mirroring the enemy's timing. They route through the normal HP-loss path, so Berserker's Oath sees them, as its text promises |
 
+**Found in 3f — open, for the owner:** Spell Steal as specified (D6) *replaces* the Dark Arcanist's
+attack with your last card, so against a starter deck it mostly casts a Strike or a Defend back,
+and every hero beats it 200 times in 200. Working as specified; the specification makes a Floor 3
+elite harmless. Options and a recommendation are in IMPLEMENTATION_PLAN.md, "Phase 3f".
+
 **Owner review of 3d:** approved. The Bone Wall bound is kept as implemented and logged as a V2
 design decision: the first Skill each player turn grants 8 Block, and the Block resets on its
 turn. Its text reads: "The first Skill you play on each of your turns gives it 8 Block. Later
@@ -505,10 +510,8 @@ Skills that turn give it nothing. Its Block resets at the start of its turn."
 **Same as the reference:**
 - **Boss introduction:** the boss door opens onto it; it names the boss, their title and the
   reference's pre-fight hint text, and has a single "Face them" with no way back.
-- **Map:** every floor, not only the current one. The GDD does not define the map's scope, so the
-  reference's is kept — including the room types of floors you have not reached, which path select
-  does not show. Each path's room types and Magic Door markers; the current floor, your path and
-  your room marked; a boss is "identity unknown" until beaten, then named.
+- **Map:** each path's room types and Magic Door markers; the current floor, your path and your
+  room marked; a boss is "identity unknown" until beaten, then named.
 
 **Fixed / different:**
 
@@ -518,6 +521,7 @@ Skills that turn give it nothing. Its Block resets at the start of its turn."
 | Challenge offer on the boss introduction | Present | Phase 5, with Challenges |
 | Floor cleared | The boss's reward screen is titled "Floor N cleared", then the Soul Forge | The reward names the boss; a floor-cleared summary follows it (paths walked, rooms, fights, elites, HP), then the Soul Forge. On the last floor it leads to the run end |
 | Run end | A summary line | Plus one line per floor cleared: its boss, the path, the fights |
+| **Map: floors not yet reached** — owner decision | Every floor's full layout from the start, so Floor 4's rooms can be read from Floor 1 | **Locked** until reached: a row with the floor's number and "not yet reached", and no name, paths or rooms. Floors you have reached stay visible — cleared ones ticked with their boss named — and the current floor shows its full layout. The GDD does not define the map's scope; this was the owner's call on reviewing 3e, and the smoke check fails if a future floor shows any rooms |
 | Map: Magic Door contents | Not shown | Not shown either — only that a door exists, as on path select |
 | Map: the Mirror | Not marked | Its slot is marked on your path while it is unused this floor |
 | Map: where it opens | On the whole map | Scrolled to the floor you are on |

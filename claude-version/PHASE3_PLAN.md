@@ -16,7 +16,12 @@
   has a rule test. Approved; the Bone Wall bound is a V2 design decision (COMPARISON §H7).
 - **3e (run UI) is done:** boss introduction, floor cleared, the map overlay and the run-end summary,
   plus phone-height and glyph fixes on existing screens. Both required checks pass (`npm test`,
-  `npm run smoke`). **Stopped for review before 3f**, the final Phase 3 validation.
+  `npm run smoke`). Approved; the map now hides floors not yet reached.
+- **3f (final Phase 3 validation): automated validation complete; stopped for owner review and the
+  manual playtest.** All four automated items pass. Two balance findings are flagged, not changed:
+  the Dark Arcanist loses to every starter deck (Spell Steal as specified in D6 replaces its
+  attack), and full runs are an HP-attrition test only the Vampire reliably survives
+  (IMPLEMENTATION_PLAN.md, "Phase 3f").
 - The owner approved D1–D8 as recommended, with this guidance:
   - quiet-room placeholders that preserve pacing;
   - Poison/Burn as proper engine statuses;
@@ -234,7 +239,7 @@ Each step ends with `npm test` green.
 | **3c** | ✅ Dice types d4–d20 (D8) through R4; affinity on bigger dice — High rescaled to the die's upper third (§H6), Extreme = 1 or max face, Max = max face — with the active rule and face count shown wherever a die is previewed or equipped. |
 | **3d** | ✅ Floors 2–4 enemies, elites 2–7 and companion bosses (D4), with intent lists (R5), the new hooks (R6), card mirroring (R7, D6), player DoT (D2) and every §3 fix. The intent-equals-action fuzz covers all of them. |
 | **3e** | ✅ UI:<br>• path select and an in-run map overlay<br>• the door screen (hidden doors with their hints)<br>• the Mirror panel<br>• rest, shop, die cache, Soul Forge<br>• boss intro, floor cleared, run end<br>Desktop and phone landscape. |
-| **3f** | Validation:<br>• full-run fuzz for every hero across four floors<br>• per-floor balance table in CARDS.md, plus a "full run" column for the same naive agent<br>• headless-Chrome autoplay of a full run per hero<br>• owner manual playtest |
+| **3f** | ✅ automated / ⏳ playtest — Validation:<br>• full-run fuzz for every hero across four floors<br>• per-floor balance table in CARDS.md, plus a "full run" column for the same naive agent<br>• headless-Chrome autoplay of a full run per hero<br>• owner manual playtest |
 
 ---
 

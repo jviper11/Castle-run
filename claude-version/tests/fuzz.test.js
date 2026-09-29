@@ -10,7 +10,7 @@ import { previewIntent } from '../src/engine/enemies.js';
 import { allCards } from '../src/engine/piles.js';
 import { drain } from '../src/engine/log.js';
 import { createRng, int, chance, pick } from '../src/engine/rng.js';
-import { ENEMIES } from '../src/content/enemies.js';
+import { ENEMIES, FLOOR_POOLS, COMPANION_BOSSES } from '../src/content/enemies.js';
 import { REWARD_POOLS } from '../src/content/rewards.js';
 import { DICE, DIE_CACHE_OFFERS, DIE_MIN_FLOOR } from '../src/content/dice.js';
 
@@ -136,7 +136,7 @@ test('every hero × every enemy × 150 random combats ends, with all invariants 
  * Plays a whole run with random choices: paths, doors (including Magic Doors), the Mirror when
  * affordable, card rewards, and every combat through playOut(). Returns 'end' or 'stalemate'.
  */
-function playRun(run, agent) {
+function playRun(run, agent, fought = null) {
   for (let guard = 0; guard < 5000; guard++) {
     assert.ok(run.gold >= 0 && run.souls >= 0, 'Gold and Souls never negative');
     assert.equal(new Set(run.deck.map((x) => x.uid)).size, run.deck.length, 'deck uids unique');
@@ -153,6 +153,7 @@ function playRun(run, agent) {
         break;
       }
       case 'combat':
+        fought?.add(run.combat.enemy.id);
         if (playOut(run.combat, agent) === 'stalemate') return 'stalemate';
         assert.ok(finishCombat(run));
         break;
@@ -222,6 +223,8 @@ test('random full runs for every hero end in victory or defeat, never skipping a
   let stalemates = 0;
   let total = 0;
   const results = { victory: 0, defeat: 0 };
+  const fought = new Set();
+  const perHero = Object.fromEntries(HEROES_WITH_CARDS.map((h) => [h, { victories: 0, floors: new Set() }]));
   for (const hero of HEROES_WITH_CARDS) for (let seed = 1; seed <= 40; seed++) {
     const agent = createRng(seed * 104729);
     const run = createRun({ seed, heroKey: hero });
@@ -229,8 +232,10 @@ test('random full runs for every hero end in victory or defeat, never skipping a
     // the other half play at normal HP, so defeat is exercised too.
     if (seed % 2) { run.hp = 2000; run.maxHp = 2000; }
     total += 1;
-    if (playRun(run, agent) === 'stalemate') { stalemates += 1; continue; }
+    if (playRun(run, agent, fought) === 'stalemate') { stalemates += 1; continue; }
     results[run.state.result] += 1;
+    if (run.state.result === 'victory') perHero[hero].victories += 1;
+    for (let f = 0; f <= run.floor; f++) perHero[hero].floors.add(f);
     // Per floor, rooms were entered at consecutive indices (a die cache repeats the index it guards).
     for (let f = 0; f <= run.floor; f++) {
       const idx = run.visits.filter((v) => v.floor === f && v.type !== 'die').map((v) => v.index);
@@ -239,6 +244,16 @@ test('random full runs for every hero end in victory or defeat, never skipping a
   }
   assert.ok(results.victory > 0 && results.defeat > 0, JSON.stringify(results));
   assert.ok(stalemates / total < 0.02, `${stalemates} of ${total} runs stalemated`);
+  // Step 3f: coverage, not just survival. Every hero plays all four floors and finishes the castle
+  // at least once, and every enemy, elite and companion boss is actually fought.
+  for (const [hero, r] of Object.entries(perHero)) {
+    assert.equal(r.floors.size, 4, `${hero} only reached floors ${[...r.floors].map((f) => f + 1)}`);
+    assert.ok(r.victories > 0, `${hero} never cleared Floor 4`);
+  }
+  const everyone = [...Object.values(FLOOR_POOLS).flatMap((p) => [...(p.easy || []), ...p.standard, ...p.elite]),
+    ...Object.values(COMPANION_BOSSES)];
+  const missed = everyone.filter((id) => !fought.has(id));
+  assert.deepEqual(missed, [], `never fought: ${missed.join(', ')}`);
 });
 
 test('the same seed replays the same run', () => {

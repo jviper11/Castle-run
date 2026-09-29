@@ -8,7 +8,9 @@
   - Step 3c (die types) is done and reviewed, including the affinity rescale (COMPARISON §H6),
     approved as the current V2 rule. G4 stays open for a later manual balance review.
   - Step 3d (Floors 2–4 enemies) is done and reviewed.
-  - Step 3e (run UI) is done and awaiting review. 3f (final Phase 3 validation) has not been started.
+  - Step 3e (run UI) is done and reviewed.
+  - Step 3f (final Phase 3 validation): automated validation complete; **owner review and manual
+    playtest pending**. Two balance findings are flagged for a decision (see the 3f entry).
 
 A from-scratch implementation of Castle Run that lives beside the reference build. The reference
 (`../index.html`, `../js/`, `../css/`) is not modified. Images are loaded from `../assets/` by path.
@@ -120,7 +122,69 @@ The full list, with a reason for each entry, is in `COMPARISON.md`. In summary:
 
 ## Validation log
 
-### Phase 3e — run UI: engine suite and browser smoke passed; owner review pending
+### Phase 3f — final Phase 3 validation: automated checks passed; owner playtest pending
+
+**Change applied first (owner, on reviewing 3e):** the map locks floors not yet reached — number
+and "not yet reached" only; no name, paths or rooms. Reached floors stay visible and the current
+floor shows its full layout. The smoke check now fails if a future floor shows any room, and was
+mutation-tested against a map that leaked them (it failed, naming each floor on each screen).
+
+**The four 3f items:**
+
+| Item | Result |
+|---|---|
+| Full-run fuzz, every hero, four floors | Pass. Now asserts coverage, not just survival: every hero reaches all four floors and clears the castle (18–20 times each in the large-HP half of 200 runs), and all 36 enemies, elites and companion bosses are fought at least once |
+| Per-floor balance table, plus a full-run column | Added to CARDS.md: starter deck vs every floor's standard and elite pools and the companion bosses, and 200 whole runs per hero with a fixed policy between fights |
+| Headless-browser full run per hero | Pass, after one fix below. `node tools/smoke.js --all-heroes`: one four-floor run per hero across all three sizes, touch at the phone sizes |
+| Owner manual playtest | **Pending** |
+
+**Required checks at sign-off:** `npm test` 177/177; `npm run smoke` 7/7.
+
+**Found and fixed:** at 844×390, a door screen showing both a **hidden Magic Door and the Mirror**
+pushed "Step through" 5px off the screen. No earlier check reached that combination; the per-hero
+runs did, twice. At phone height the doors now size to their content and the Mirror panel is
+tighter; the same screen now has room to spare.
+
+**Flagged for the owner — two balance findings. Neither is a code defect, and neither is changed.**
+
+1. **The Dark Arcanist is the easiest fight in the game.** Every hero's starter deck beats it 200
+   times in 200 — a 130 HP Floor 3 elite — while its Floor 3 partner, the Sanctum Guardian, wins
+   2–14% of the time. Spell Steal, as decision D6 specifies, *replaces* its 15-damage attack with
+   a mirror of your last card, and a starter deck's last card is usually a 6-damage Strike or a
+   Defend, which only gives it Block. It is working exactly as specified; the specification makes
+   it harmless. This is also why Floor 3's elite average in the new table is higher than Floor 2's.
+   Options: (a) the mirror is cast **in addition to** its attack, the smallest change — one line in
+   `planIntent`, since the intent is already a list; (b) it mirrors on alternate turns and attacks
+   on the others; (c) the mirrored card lands at the enemy's scale. Recommendation: (a).
+2. **Full runs are an HP-attrition test that only the Vampire passes.** With the fixed policy, the
+   Vampire reaches Floor 2 in 63% of runs and clears the castle in 14%; the Barbarian reaches
+   Floor 2 in 11%; the Mage, Thief and Gambler in 0 of 200. The mechanism is measured, not
+   guessed: every hero but the Vampire loses about 12 HP per standard Floor 1 fight, and a Floor 1
+   path is about nine battles and one or two elites before the boss, against 70–90 max HP and a
+   30% rest — roughly 110 HP of attrition. The Vampire's lifesteal cuts it to 3.5 HP a fight.
+   Deaths cluster at the Floor 1 elites, reached already worn down. This is **not a regression**:
+   Floor 1 is reference content that no step since Phase 1 has changed (outside the Mage's High,
+   §H6), and earlier fuzzes hid it by giving half their runs 2,000 HP. The agent is weak — it
+   never shops, removes a card, or saves Defend for a big hit — so this is a floor on real play,
+   not a forecast. Whether Floor 1's attrition is intended is the question it raises.
+
+Per-elite detail behind both (starter deck, full HP, 200 fights each):
+
+| Elite | Barbarian | Mage | Thief | Vampire | Gambler |
+|---|---|---|---|---|---|
+| F1 Dungeon Warden | 100% | 52% | 84% | 99% | 97% |
+| F1 Armored Knight | 92% | 5% | 13% | 79% | 35% |
+| F2 Death Knight | 94% | 7% | 7% | 81% | 28% |
+| F2 Bone Golem | 98% | 5% | 15% | 87% | 29% |
+| F3 Sanctum Guardian | 14% | 3% | 2% | 11% | 13% |
+| **F3 Dark Arcanist** | **100%** | **100%** | **100%** | **100%** | **100%** |
+| F4 King's Champion | 2% | 0% | 0% | 3% | 1% |
+| F4 Void Colossus | 0% | 0% | 0% | 0% | 0% |
+
+G4 (the Mage's elite weakness) remains open and is visible here: she is last or joint-last
+against every elite but the Arcanist.
+
+### Phase 3e — run UI: engine suite and browser smoke passed; reviewed
 
 **New screens and surfaces:**
 - **Boss introduction** (`bossIntro` state). The boss door opens onto it; the fight starts from
@@ -166,6 +230,9 @@ deliberately introduced defect, then the defect was reverted:
 Along the way the tool itself had three bugs, all fixed: its walker spun forever on a one-card
 choice that was already made; a failed boot waited out the full step budget instead of failing in
 seconds; and its name filter ignored the first argument.
+
+**Owner review of 3e:** approved, with one change: the map hides floors not yet reached (applied
+before 3f; COMPARISON §H8). Browser smoke stays a required check alongside the full suite.
 
 **Found by looking at the screenshots rather than by a check:** the boss introduction printed a
 literal "null" after its stat chips (the DOM's own `append()` stringifies a missing child). Fixed,

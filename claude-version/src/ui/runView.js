@@ -281,9 +281,9 @@ export function renderEndFloors(run) {
 }
 
 // ── Map overlay ──
-// Every floor, as the reference's map shows it: all three paths of each, the current floor marked
-// with where you are, cleared floors ticked. The GDD does not define the map's scope, so the
-// reference's is kept (COMPARISON §H8) — including future floors' room types.
+// Every floor you have reached: the current floor's full layout with where you are, and cleared
+// floors ticked with their boss named. Floors not yet reached are locked rows — unlike the
+// reference, whose map shows every floor's rooms from the start (owner decision, COMPARISON §H8).
 //
 // It never shows more than path select already does: room types, and that a Magic Door exists.
 // A Magic Door's contents are revealed only on the door screen (and hidden there on Floors 3–4),
@@ -306,9 +306,15 @@ export function renderMap(run) {
 }
 
 function mapFloor(run, floor, f) {
+  // A floor not yet reached is only a locked row: no name, no paths, no rooms, nothing path
+  // select on that floor would not already tell you when you get there (owner decision, §H8).
+  if (f > run.floor) {
+    return h('div', { class: 'map-floor future' },
+      h('div', { class: 'map-floor-name' }, h('b', {}, `Floor ${f + 1}`), ' · not yet reached'));
+  }
   const current = f === run.floor;
   const record = run.cleared.find((r) => r.floor === f);
-  const state = record ? '✓ cleared' : current ? 'you are here' : f > run.floor ? 'ahead' : '';
+  const state = record ? '✓ cleared' : current ? 'you are here' : '';
   const el = h('div', { class: 'map-floor' + (current ? ' current' : '') + (record ? ' cleared' : '') },
     h('div', { class: 'map-floor-name' }, h('b', {}, `Floor ${f + 1} · ${FLOOR_NAMES[f + 1]}`), state && ` · ${state}`));
 

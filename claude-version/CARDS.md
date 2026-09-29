@@ -221,3 +221,35 @@ unmet condition). Win % / average turns to win / average HP lost in a win. A hum
 | Thief | 100% / 5.5 / 9 | 100% / 4.3 / 4 | 100% / 4.8 / 6 | 100% / 8.0 / 20 | 100% / 6.0 / 7 | 100% / 5.2 / 24 | 100% / 6.8 / 8 | 100% / 6.1 / 23 | 85% / 12.6 / 59 | 12% / 22.1 / 66 |
 | Vampire | 100% / 5.8 / 7 | 100% / 4.5 / 4 | 100% / 5.2 / 5 | 100% / 8.7 / 12 | 100% / 6.4 / 6 | 100% / 5.2 / 19 | 100% / 7.2 / 6 | 100% / 6.4 / 16 | 99% / 13.6 / 36 | 82% / 32.0 / 43 |
 | Gambler | 100% / 4.1 / 9 | 100% / 3.2 / 4 | 100% / 3.7 / 6 | 100% / 5.7 / 18 | 100% / 4.3 / 7 | 100% / 4.0 / 19 | 100% / 4.8 / 8 | 100% / 4.4 / 19 | 94% / 9.0 / 51 | 32% / 14.9 / 60 |
+
+## Starter-deck balance by floor
+
+The same agent and the same unmodified starter deck at full HP, now against every floor's pools:
+the win % averaged over the floor's five standard enemies and over its two elites, 100 fights
+each. It measures how steeply the floors climb, not what a real run faces there — by Floor 4 a
+run has a bigger deck, upgrades and Soul Forge purchases, which the next table includes.
+
+| Hero | F1 standard | F1 elite | F2 standard | F2 elite | F3 standard | F3 elite | F4 standard | F4 elite | Companion bosses |
+|---|---|---|---|---|---|---|---|---|---|
+| Barbarian | 100% | 95% | 100% | 95% | 81% | 57% | 67% | 1% | 98% |
+| Mage | 100% | 24% | 80% | 3% | 40% | 50% | 15% | 0% | 39% |
+| Thief | 100% | 51% | 97% | 12% | 68% | 51% | 25% | 0% | 46% |
+| Vampire | 100% | 90% | 100% | 87% | 78% | 56% | 47% | 2% | 96% |
+| Gambler | 100% | 66% | 99% | 31% | 78% | 57% | 43% | 1% | 73% |
+
+## Full runs
+
+200 seeded runs per hero, start to finish, with the same agent in every fight and a fixed
+policy between them: take a random offered card, rest to heal below 60% HP or else upgrade, buy
+the first affordable Soul Forge offer, always take the plain door. It never shops, uses a Magic
+Door or the Mirror, or changes its die. "Reached" counts runs that got to at least that floor;
+"stalled" is a fight that ran past 100 turns. A human should do far better; the gap between
+heroes is the useful part.
+
+| Hero | Reached F2 | Reached F3 | Reached F4 | Cleared F4 | Stalled |
+|---|---|---|---|---|---|
+| Barbarian | 11% | 2% | 0% | 0% | 0% |
+| Mage | 0% | 0% | 0% | 0% | 0% |
+| Thief | 0% | 0% | 0% | 0% | 0% |
+| Vampire | 63% | 48% | 26% | 14% | 1% |
+| Gambler | 0% | 0% | 0% | 0% | 0% |

@@ -43,7 +43,8 @@ Controls:
 ## Card catalogue
 
 ```
-node tools/catalogue.js      # regenerates CARDS.md: every card's text, upgrade and pool, plus a balance table
+node tools/catalogue.js      # regenerates CARDS.md: every card's text, upgrade and pool, plus balance
+                             # tables for Floor 1, every floor, and 200 whole runs per hero
 ```
 
 ## Check
@@ -73,5 +74,6 @@ exits with an error rather than skipping. Options:
 ```
 node tools/smoke.js phone          # only scenarios whose name contains "phone"
 node tools/smoke.js glyphs         # only the glyph check (about a second)
+node tools/smoke.js --all-heroes   # one full four-floor run per hero instead (end of a phase, ~4 min)
 node tools/smoke.js --shots DIR    # also save a screenshot of every screen and door variant
 ```
