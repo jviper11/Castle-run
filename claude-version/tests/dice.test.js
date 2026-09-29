@@ -9,7 +9,8 @@ import { createCombat, playCard, useSecondDie, useGamblersEdge } from '../src/en
 import { createShopStock, itemAvailable } from '../src/engine/shop.js';
 import { playerAttackDamage } from '../src/engine/damage.js';
 import { addStatus } from '../src/engine/statuses.js';
-import { createDieFor, dieText, dieType, rollDie, offerableDice, affinityFaces, affinityLine, AFFINITIES } from '../src/engine/dice.js';
+import { createDieFor, dieText, dieType, rollDie, offerableDice, affinityFaces, affinityLine, highThreshold,
+  AFFINITIES } from '../src/engine/dice.js';
 import { getCard, describeCard } from '../src/engine/cards.js';
 import { DICE, STARTING_DIE, DIE_MIN_FLOOR, DIE_CACHE_OFFERS } from '../src/content/dice.js';
 import { HEROES } from '../src/content/heroes.js';
@@ -63,27 +64,67 @@ test('every hero starts on the d6, and only it is un-offerable', () => {
 
 // ── Affinity on a bigger die ──
 
-test('High is 6+ on every die; Max and Extreme follow the top face', () => {
+test('High scales with the die: strictly above its lower two thirds (V2 decision)', () => {
   const met = (aff, sides) => Array.from({ length: sides }, (_, i) => i + 1).filter((v) => AFFINITIES[aff].test(v, sides));
-  assert.deepEqual(met('high', 6), [6]);
-  assert.deepEqual(met('high', 4), [], 'a Cursed Die can never meet High');
-  assert.deepEqual(met('high', 20).length, 15);
-  assert.deepEqual(met('max', 20), [20]);
-  assert.deepEqual(met('extreme', 20), [1, 20]);
+  assert.deepEqual([4, 6, 8, 10, 12, 20].map(highThreshold), [3, 5, 6, 7, 9, 14]);
+  assert.deepEqual(met('high', 4), [3, 4], 'reachable on a Cursed Die');
+  assert.deepEqual(met('high', 6), [5, 6]);
+  assert.deepEqual(met('high', 8), [6, 7, 8]);
+  assert.deepEqual(met('high', 12), [9, 10, 11, 12]);
+  assert.deepEqual(met('high', 20).length, 7);
+  // floor+1, not ceil: where 3 divides the die, ceil would put the boundary face inside High and
+  // make it a half (a d6 would be 4+, 3 of 6). The threshold must clear the lower two thirds.
+  for (const sides of [4, 6, 8, 10, 12, 20]) {
+    assert.ok(highThreshold(sides) > (sides * 2) / 3, `d${sides}: threshold inside the lower two thirds`);
+    const share = affinityFaces('high', sides) / sides;
+    // A d4 is the rounding outlier at 50%: a third of 4 faces cannot be expressed more finely.
+    const ceiling = sides === 4 ? 0.5 : 0.4;
+    assert.ok(share >= 1 / 3 && share <= ceiling, `d${sides}: High is ${Math.round(share * 100)}% of faces`);
+  }
+});
+
+test('Max, Extreme, Odd and Even are unchanged by the High rescale', () => {
+  const met = (aff, sides) => Array.from({ length: sides }, (_, i) => i + 1).filter((v) => AFFINITIES[aff].test(v, sides));
+  assert.deepEqual(met('max', 20), [20], 'the highest face only');
+  assert.deepEqual(met('max', 4), [4]);
+  assert.deepEqual(met('extreme', 20), [1, 20], 'minimum or maximum face');
+  assert.deepEqual(met('extreme', 4), [1, 4]);
   assert.deepEqual(met('even', 4), [2, 4]);
   assert.deepEqual(met('odd', 4), [1, 3]);
+  assert.deepEqual(met('even', 20).length, 10);
+  assert.deepEqual(met('odd', 20).length, 10);
+});
+
+test('the rescale reaches the cards: a Mage meets High at 5 on a d6, and at 3 on a d4', () => {
+  // Frost Bolt: 5 damage, or 9 and 1 Chill on High.
+  const fire = (roll, die) => {
+    const c = makeCombat({ hero: 'mage', die, deck: Array(10).fill('strike') });
+    const [f] = giveHand(c, ['frostbolt']);
+    setRoll(c, roll);
+    playCard(c, f);
+    return eventsOf(c, 'damage')[0].amount;
+  };
+  assert.equal(fire(4, 'd6'), 5, 'below the d6 threshold; ceil(2/3) would have let a 4 through');
+  assert.equal(fire(5, 'd6'), 9, 'a 5 now meets High on a d6; under a fixed 6+ it did not');
+  assert.equal(fire(6, 'd6'), 9);
+  assert.equal(fire(2, 'd4'), 5, 'below the d4 threshold');
+  assert.equal(fire(3, 'd4'), 9, 'High is reachable on a Cursed Die');
+  assert.equal(fire(13, 'd20'), 5, 'a d20 does not hand High away');
+  assert.equal(fire(14, 'd20'), 9);
 });
 
 test('a die is described against the die equipped, not against a d6 (D8)', () => {
-  assert.equal(affinityFaces('high', 6), 1);
-  assert.equal(affinityFaces('high', 20), 15);
-  assert.equal(affinityLine('high', 6), 'High affinity: 6 or more — 1 of 6 faces.');
-  assert.equal(affinityLine('high', 20), 'High affinity: 6 or more — 15 of 20 faces.');
+  assert.equal(affinityFaces('high', 6), 2);
+  assert.equal(affinityFaces('high', 20), 7);
+  assert.equal(affinityLine('high', 6), 'High affinity: 5 or more — 2 of 6 faces.');
+  assert.equal(affinityLine('high', 20), 'High affinity: 14 or more — 7 of 20 faces.');
   assert.equal(affinityLine('extreme', 20), 'Extreme affinity: 1 or 20 — 2 of 20 faces.');
   assert.equal(affinityLine('max', 12), 'Max affinity: 12 — 1 of 12 faces.');
-  // A Cursed Die cannot reach 6, so a Mage's affinity is dead on it. The die cache says so
-  // before you take it, rather than leaving the player to find out in the next fight.
-  assert.equal(affinityLine('high', 4), 'High affinity: 6 or more — 0 of 4 faces.');
+  // No die leaves an affinity unreachable, so no die has to be withheld from a hero.
+  assert.equal(affinityLine('high', 4), 'High affinity: 3 or more — 2 of 4 faces.');
+  for (const id of ids) for (const aff of Object.keys(AFFINITIES)) {
+    assert.ok(affinityFaces(aff, DICE[id].sides) > 0, `${aff} is unreachable on a ${id}`);
+  }
   // Decision D8: the d20 has no bonus, and its text does not claim one.
   assert.equal(DICE.d20.bonus, null);
   assert.doesNotMatch(dieText('d20'), /15\+/);

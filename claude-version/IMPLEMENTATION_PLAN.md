@@ -5,7 +5,8 @@
 - Phase 3 is in progress (`PHASE3_PLAN.md`).
   - Step 3a (run skeleton) is done and reviewed.
   - Step 3b (rest sites, shops, Soul Forge) is done and reviewed.
-  - Step 3c (die types) is done and awaiting review.
+  - Step 3c (die types) is done and reviewed; the follow-up affinity rescale (COMPARISON §H6) is
+    done and awaiting review. G4 stays open — see the 3c‑a entry.
 
 A from-scratch implementation of Castle Run that lives beside the reference build. The reference
 (`../index.html`, `../js/`, `../css/`) is not modified. Images are loaded from `../assets/` by path.
@@ -106,7 +107,61 @@ The full list, with a reason for each entry, is in `COMPARISON.md`. In summary:
 
 ## Validation log
 
-### Phase 3c — die types: automated validation passed; owner review pending
+### Phase 3c‑a — High scales with the die: automated validation passed; owner review pending
+
+Owner decision, applied: High is the die's **upper third**, `floor(sides × 2/3) + 1`; Max,
+Extreme, Odd and Even unchanged; no die withheld from a hero; the active rule and face count
+still shown wherever a die is previewed or equipped. Recorded as a V2 design decision in
+COMPARISON.md §H6, because the GDD defines no multi-die affinity scaling. No Mage compensation
+applied elsewhere, and **G4 is left open** (§G4).
+
+`floor+1` rather than `ceil`: where 3 divides the die, `ceil` returns the boundary face and puts
+it inside High, making a d6 4+ — a half, not an upper third. The two formulas agree on the d4,
+d8, d10 and d20; they differ only on the d6 (5+ vs 4+) and the d12 (9+ vs 8+).
+
+| Die | High | Faces | Share |
+|---|---|---|---|
+| d4 | 3+ | 2 of 4 | 50% |
+| d6 | 5+ | 2 of 6 | 33% |
+| d8 | 6+ | 3 of 8 | 38% |
+| d10 | 7+ | 4 of 10 | 40% |
+| d12 | 9+ | 4 of 12 | 33% |
+| d20 | 14+ | 7 of 20 | 35% |
+
+**Tests:** 147/147 (2 new, both in `tests/dice.test.js`).
+- The threshold per die; that it is strictly above the lower two thirds on every die (the
+  property that separates `floor+1` from `ceil`); the 33–40% share band, with the d4 at 50% as
+  the stated rounding outlier.
+- Max, Extreme, Odd and Even asserted unchanged across die sizes.
+- Every affinity is reachable on every die — asserted across the whole cross-product.
+- A card-level test, not just a label test: a Mage's Frost Bolt fires its High branch at 5 on a
+  d6 but not at 4 (which `ceil` would have allowed), at 3 on a d4, and not at 13 on a d20.
+
+**Scope:** High is used by 20 cards, all Mage. The other four heroes' rows in CARDS.md's balance
+table are byte-identical under all three rules — fixed 6+, `ceil`, and `floor+1`.
+
+**Mage balance, three-way** (CARDS.md starter-deck table, 300 seeded fights per cell, greedy
+agent; win % / avg turns to win / avg HP lost in a win):
+
+| Matchup | Fixed 6+ (1 of 6) | `ceil` 4+ (3 of 6) | **`floor+1` 5+ (2 of 6)** |
+|---|---|---|---|
+| Dungeon Warden (elite) | 24% / 17.0 / 58 | 84% / 14.8 / 48 | **55% / 15.6 / 53** |
+| Armored Knight (elite) | 0% — never won | 20% / 29.5 / 57 | **5% / 28.9 / 59** |
+| Castle Guard | 100% / 11.5 / 30 | 100% / 9.2 / 18 | **100% / 10.2 / 23** |
+| Cursed Hound | 99% / 8.2 / 32 | 100% / 6.9 / 21 | **99% / 7.5 / 26** |
+| Iron Archer | 100% / 6.4 / 32 | 100% / 5.6 / 20 | **100% / 6.0 / 25** |
+| Skeleton | 100% / 9.2 / 13 | 100% / 7.8 / 8 | **100% / 8.5 / 11** |
+
+`floor+1` lands close to halfway between the other two on every cell, which is what halving the
+affinity gain (1→2 faces instead of 1→3) predicts. Normal fights are modestly faster and
+cheaper; the elites are where it shows.
+
+**G4 is left open, and the results support that.** Against the field, the Mage is still last of
+five on both Floor 1 elites — Dungeon Warden 55% against 85–100% for the others, Armored Knight
+5% against 12–93%. She is off zero, so the weakness is no longer absolute, but it is intact and
+undecided. Nothing was compensated elsewhere.
+
+### Phase 3c — die types: automated validation passed; reviewed
 
 **New:**
 - `content/dice.js` (the six dice as data: faces, bonus, floor gate, and a `{param}` text
@@ -143,10 +198,8 @@ shelf like the card beside them. The die cache's Leave button fell below the fol
 heights. The d6's reference emoji (`⚀`) is a text-presentation codepoint that renders as a tofu
 box in the status chip on Windows, and was replaced.
 
-**Flagged for the owner:** COMPARISON.md §H5 — "High is 6+" does not survive a change of die. A
-d20 makes High trivial and Max/Extreme rare; a d4 leaves the Mage with a dead affinity and is
-still offered to them. Both are surfaced in the UI rather than fixed, because scaling High with
-the die is new design.
+**Owner review of 3c:** approved. The flagged affinity problem (§H5) was resolved by the rescale
+above rather than left in the UI.
 
 ### Phase 3b — rest sites, shops, Soul Forge: automated validation passed; reviewed
 
@@ -230,7 +283,8 @@ playtest. Details can be added here if supplied.
 
 **Kept, documented and unchanged at the owner's request:**
 - the Mage's weakness against elites, including the 0% against the Armored Knight
-  (COMPARISON G4, diagnostic below)
+  (COMPARISON G4, diagnostic below). *The numbers below are the Phase 2 ones, under a fixed
+  High = 6+. Step 3c‑a's affinity rescale moved them to 55% / 5%; G4 itself is still open.*
 - identical upgrades (G1)
 - stalemates (G5)
 

@@ -21,15 +21,33 @@ import { DICE, STARTING_DIE, DIE_MIN_FLOOR } from '../content/dice.js';
 //
 // Every change to the value is clamped to 1…sides, so "max" checks stay meaningful.
 
-// `rule` states, for the die actually equipped, which faces meet the affinity. It exists so a
-// bigger die cannot leave the UI describing a d6: High is 6+ on every die (GDD §3), which is 1 of
-// 6 faces on a d6 but 15 of 20 on a d20, and Max and Extreme move with the die's top face.
+/**
+ * High's threshold: the first face **above** the die's lower two thirds. A **V2 design decision**
+ * (COMPARISON §H6) — the GDD fixes High at "6+" (§3) because it only ever describes a d6, and
+ * says nothing about how affinity should behave on another die. Taken literally, 6+ makes High
+ * unreachable on a d4 and near-certain on a d20, so the Mage's whole identity would swing on
+ * which die she happens to carry. Scaling keeps High meaning "a high roll" on every die.
+ *
+ *   d4 → 3+ (2 of 4)   d6 → 5+ (2 of 6)   d8 → 6+ (3 of 8)
+ *   d10 → 7+ (4 of 10)  d12 → 9+ (4 of 12)  d20 → 14+ (7 of 20)
+ *
+ * `floor(·) + 1`, not `ceil(·)`: where 3 divides the die, ceil puts the boundary face itself
+ * inside High (a d6 would be 4+, a full half), which is not an upper third. Adding one keeps the
+ * threshold strictly above the lower two thirds on every die.
+ *
+ * Note this still changes the **baseline** d6: High was 1 face in 6, and is now 2.
+ */
+export const highThreshold = (sides) => Math.floor((sides * 2) / 3) + 1;
+
+// `rule` states, for the die actually equipped, which faces meet the affinity, so a bigger die
+// cannot leave the UI describing a d6. High scales (above); Max and Extreme follow the top face;
+// Odd and Even are the same on every die.
 export const AFFINITIES = {
-  even:    { label: 'Even',    test: (r) => r % 2 === 0,               rule: () => 'an even roll' },
-  odd:     { label: 'Odd',     test: (r) => r % 2 !== 0,               rule: () => 'an odd roll' },
-  high:    { label: 'High',    test: (r) => r >= 6,                    rule: () => '6 or more' },
-  extreme: { label: 'Extreme', test: (r, s) => r === 1 || r === s,     rule: (s) => `1 or ${s}` },
-  max:     { label: 'Max',     test: (r, s) => r === s,                rule: (s) => `${s}` },
+  even:    { label: 'Even',    test: (r) => r % 2 === 0,                  rule: () => 'an even roll' },
+  odd:     { label: 'Odd',     test: (r) => r % 2 !== 0,                  rule: () => 'an odd roll' },
+  high:    { label: 'High',    test: (r, s) => r >= highThreshold(s),     rule: (s) => `${highThreshold(s)} or more` },
+  extreme: { label: 'Extreme', test: (r, s) => r === 1 || r === s,        rule: (s) => `1 or ${s}` },
+  max:     { label: 'Max',     test: (r, s) => r === s,                   rule: (s) => `${s}` },
 };
 
 /** How many of the die's faces meet an affinity. Used to describe a die honestly (decision D8). */
@@ -40,9 +58,9 @@ export function affinityFaces(affinity, sides) {
 }
 
 /**
- * The affinity rule stated against the die actually equipped. Bigger dice change it a lot — High
- * is 1 face of 6 on a d6 and 15 of 20 on a d20 — so the count is spelled out rather than left to
- * the player to work out. This is the honest-text half of decision D8.
+ * The affinity rule stated against the die actually equipped, with the count of faces that meet
+ * it. Shown wherever a die is previewed or equipped, so the player can see what a die does to
+ * their affinity before taking it rather than after.
  */
 export function affinityLine(affinity, sides) {
   const a = AFFINITIES[affinity];

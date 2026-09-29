@@ -44,7 +44,7 @@ Shared cards in this pool: Soul Steal (uncommon), Steal & Heal (uncommon), Iron 
 
 ## 🔮 Mage
 
-70 HP · d6 · affinity **high** · High affinity: 6 or more — 1 of 6 faces. · Spells unleash full power on high rolls.
+70 HP · d6 · affinity **high** · High affinity: 5 or more — 2 of 6 faces. · Spells unleash full power on high rolls.
 
 Starter deck: Strike, Strike, Defend, Defend, Frost Bolt, Frost Bolt, Arcane Shield, Mana Surge, Arcane Boost, Void Channel.
 
@@ -217,7 +217,7 @@ unmet condition). Win % / average turns to win / average HP lost in a win. A hum
 | Hero | Castle Guard (easy) | Dungeon Rat (easy) | Skeleton (easy) | Castle Guard | Dungeon Rat | Iron Archer | Skeleton | Cursed Hound | Dungeon Warden (elite) | Armored Knight (elite) |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Barbarian | 100% / 4.5 / 6 | 100% / 3.5 / 2 | 100% / 4.0 / 4 | 100% / 6.6 / 13 | 100% / 4.8 / 5 | 100% / 4.4 / 17 | 100% / 5.5 / 6 | 100% / 5.0 / 15 | 100% / 10.5 / 43 | 93% / 21.3 / 67 |
-| Mage | 100% / 7.4 / 13 | 100% / 5.8 / 6 | 100% / 6.6 / 9 | 100% / 11.5 / 30 | 100% / 8.1 / 11 | 100% / 6.4 / 32 | 100% / 9.2 / 13 | 99% / 8.2 / 32 | 24% / 17.0 / 58 | 0% / – / – |
+| Mage | 100% / 6.7 / 11 | 100% / 5.2 / 5 | 100% / 6.0 / 8 | 100% / 10.2 / 23 | 100% / 7.5 / 9 | 100% / 6.0 / 25 | 100% / 8.5 / 11 | 99% / 7.5 / 26 | 55% / 15.6 / 53 | 5% / 28.9 / 59 |
 | Thief | 100% / 5.5 / 9 | 100% / 4.3 / 4 | 100% / 4.8 / 6 | 100% / 8.0 / 20 | 100% / 6.0 / 7 | 100% / 5.2 / 24 | 100% / 6.8 / 8 | 100% / 6.1 / 23 | 85% / 12.6 / 59 | 12% / 22.1 / 66 |
 | Vampire | 100% / 5.8 / 7 | 100% / 4.5 / 4 | 100% / 5.2 / 5 | 100% / 8.7 / 12 | 100% / 6.4 / 6 | 100% / 5.2 / 19 | 100% / 7.2 / 6 | 100% / 6.4 / 16 | 99% / 13.6 / 36 | 82% / 32.0 / 43 |
 | Gambler | 100% / 4.1 / 9 | 100% / 3.2 / 4 | 100% / 3.7 / 6 | 100% / 5.7 / 18 | 100% / 4.3 / 7 | 100% / 4.0 / 19 | 100% / 4.8 / 8 | 100% / 4.4 / 19 | 94% / 9.0 / 51 | 32% / 14.9 / 60 |

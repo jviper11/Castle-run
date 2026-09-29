@@ -18,6 +18,7 @@ Each entry has one of these statuses:
 | **Kept + flagged** | Reference behaviour kept, but it conflicts with the GDD or is ambiguous. Needs an owner decision. |
 | **Planned** | An agreed fix for content that does not exist here yet. |
 | **Structural** | A different mechanism with the same player-facing result. |
+| **V2 design** | New design, deliberately neither the reference's behaviour nor a GDD rule, adopted because the GDD does not cover the case. Decided, not pending. |
 
 ---
 
@@ -265,16 +266,23 @@ Regen stack for both base and upgrade.
 per-stack part. A base plus an upgraded copy with 10 Regen deals 2 + 15 = 17.
 - Covered by `tests/mechanics.test.js` and `tests/heroes.test.js`.
 
-### G4. The Mage starter deck struggles against Floor 1 elites — **owner: documented, unchanged**
+### G4. The Mage starter deck struggles against Floor 1 elites — **STILL OPEN**
 Kept unchanged after the Phase 2 manual validation. The diagnostic is in the IMPLEMENTATION_PLAN.md
 validation log: an isolated starter-deck fight, naive agent, Knight Block absorbing most damage.
-CARDS.md's balance table shows the greedy agent's win rate with the Mage starter deck:
-- 21% against the Dungeon Warden
-- 0% against the Armored Knight
 
-The other heroes win 13–92% against the Knight. The numbers are the reference's, so the reference
-Mage very likely has the same curve. The agent is weak, but the gap between heroes is still
-informative.
+**Not resolved by §H6.** The affinity rescale moved these numbers, so the original ones no
+longer describe the build, but it did not close the gap and **no compensation has been applied
+elsewhere**. Current greedy-agent win rates for the Mage starter deck, against the whole field:
+
+| Elite | Mage (was, fixed 6+) | Mage (now) | Barbarian | Vampire | Gambler | Thief |
+|---|---|---|---|---|---|---|
+| Dungeon Warden | 24% | **55%** | 100% | 99% | 94% | 85% |
+| Armored Knight | 0% | **5%** | 93% | 82% | 32% | 12% |
+
+She is off zero and no longer unable to win at all, but she is **still last of five against both
+Floor 1 elites**, and still an outlier against the Knight. So the weakness §G4 records is intact
+and the decision is still yours; it has only stopped being absolute. The agent is weak, but the
+gap between heroes remains informative.
 
 ### G5. Stalemates exist — **owner: unchanged; documented and monitored**
 A degenerate deck can loop forever, for example two Strikes plus Blood Lord against an enemy
@@ -382,7 +390,7 @@ reference build's invention, carried over so the run plays the same. Flagged for
 
 | Topic | Reference | Here |
 |---|---|---|
-| **D8: the d20** | Its `legendary` bonus is declared but never read, and its text claims "affinity activates on rolls 15+", which nothing implements — High is 6+ on every die | No bonus, and text that describes only what happens. Every screen that names a die also states what the hero's affinity means **on that die** — "High affinity: 6 or more — 15 of 20 faces" — because a d20 changes the odds far more than it changes the rules |
+| **D8: the d20** | Its `legendary` bonus is declared but never read, and its text claims "affinity activates on rolls 15+", which nothing implements — High stays a flat 6+ on every die | No bonus, and text that describes only what happens. Every screen that names a die also states what the hero's affinity means **on that die** — "High affinity: 14 or more — 7 of 20 faces" — with the threshold itself now scaling (§H6) |
 | Die bonuses on a reroll | The Arcane Die's Energy and the Titan's Die's card are applied in the turn-start block, after that turn's roll | Unchanged in effect, but stated as a rule: only the turn-start roll pays, so rerolling into an even number does not re-pay the Arcane Die. Covered by a test |
 | The Cursed Die's floor | A separate `min3` branch after the hero's own floor and House Edge | The same number, expressed as the die's roll floor and combined with the hero's (`max`). One floor, not two rules; the Gambler on a d4 floors at 3 |
 | Die reward on a Magic Door | A die cache **skips** the room behind the door (X1), and re-rolls its two offers every time the screen is drawn | Its own stop, with offers fixed when it is entered. Skipping it keeps your die and still plays the room the door guarded |
@@ -393,15 +401,59 @@ reference build's invention, carried over so the run plays the same. Flagged for
 - A second shop die tile at 80 Gold, floor-gated like a cache's offers and naming the die it
   sells before purchase. The reference shop stocks only the fixed Hunter Die. Flagged with D3.
 
-**Still open (D8), and the same shape in the reference:** "High is 6+" does not survive a change
-of die.
-- The **d20** makes High trivial — 15 of its 20 faces — while making Max (1 of 20) and Extreme
-  (2 of 20) far rarer. So the same die is a large buff to the Mage and a large nerf to the
-  Gambler and the Vampire.
-- The **d4** cannot roll a 6 at all, so a Mage on a Cursed Die has a **dead affinity**: 0 of 4
-  faces. It is still offerable to them.
+**Resolved by §H6:** "High is 6+" did not survive a change of die — a d20 made High near-certain
+(15 of 20 faces) and a d4 made it impossible (0 of 4). High now scales with the die instead.
 
-Neither is fixed here, because scaling High with the die is new design. Both are made visible
-instead: every die offer states the count ("High affinity: 6 or more — 0 of 4 faces"), so the
-player sees it before choosing rather than after. Whether High should scale, and whether a die
-with a dead affinity should be offered at all, is your call.
+### H6. High scales with the die — **V2 design decision**
+
+**Status: deliberate V2 design, not a reproduction of the reference and not a GDD rule.**
+
+The GDD fixes the Mage's affinity at "High rolls (6+)" (§3) and never revisits it, because v0.10
+only ever describes a d6 — there is no die-type table in the document at all, so **the GDD does
+not define multi-die affinity scaling**. Read literally against the dice the reference build
+ships, a fixed 6+ makes the Mage's entire identity a function of which die she happens to carry:
+impossible on a d4, near-certain on a d20.
+
+**The rule now:** High is the die's **upper third** — the first face strictly above its lower two
+thirds, `floor(sides × 2/3) + 1`. Max (highest face only), Extreme (minimum or maximum face) and
+Odd/Even are **unchanged**.
+
+`floor(·) + 1` rather than `ceil(·)`: where 3 divides the die evenly, `ceil` returns the boundary
+face itself and puts it inside High, making a d6 4+ — a full half, not an upper third. Adding one
+keeps the threshold strictly above the lower two thirds on every die.
+
+| Die | High is | Faces | Share | Fixed 6+ was | `ceil` would be |
+|---|---|---|---|---|---|
+| d4 | 3+ | 2 of 4 | 50% | 0 of 4 — impossible | 3+ (same) |
+| **d6** | **5+** | **2 of 6** | **33%** | **1 of 6 — 17%** | 4+ — 3 of 6 |
+| d8 | 6+ | 3 of 8 | 38% | 3 of 8 — unchanged | 6+ (same) |
+| d10 | 7+ | 4 of 10 | 40% | 5 of 10 | 7+ (same) |
+| d12 | 9+ | 4 of 12 | 33% | 7 of 12 | 8+ — 5 of 12 |
+| d20 | 14+ | 7 of 20 | 35% | 15 of 20 — 75% | 14+ (same) |
+
+High's share now sits in a 33–40% band, against 17–75% under a fixed 6+. The d4 is the one
+outlier at 50%, because a third of four faces cannot be expressed more finely; the formula, not
+a special case, produces it.
+
+**Consequences, all Mage-only.** High is used by 20 cards and every one of them is in the Mage
+pool; no shared card and no other hero's card uses it. The other four heroes' balance rows in
+CARDS.md are byte-identical under all three rules.
+
+- On the **baseline d6** the Mage's affinity fires twice as often as before (2 faces, not 1).
+- **No die leaves any affinity unreachable** any more, on any hero, so no die needs to be
+  withheld from a hero: the d4 is offered to the Mage like any other. A test asserts this holds
+  for every affinity × every die.
+- **G4 stays open.** The rescale does not resolve the Mage's elite weakness — it moves her off
+  0% against the Armored Knight to 5%, still last of five. Measurements are in
+  IMPLEMENTATION_PLAN.md under "Phase 3c‑a"; no compensation has been applied elsewhere.
+- A d20 is now a *downgrade* for High relative to a d6 (35% of faces against 33%… marginally up,
+  but far below the 75% a fixed 6+ handed out). The Mage no longer has one strictly best die.
+
+Every die preview and every equipped-die label states the exact active rule and the eligible-face
+count for the hero carrying it — "High affinity: 5 or more — 2 of 6 faces" — so the threshold is
+never something the player has to infer.
+
+**Open:** whether an upper third is the right share at all. It is one reading of "high rolls";
+above the midpoint (d6 → 4+) or a fixed quarter (d6 → 5+, d20 → 16+) are others, and each moves
+the Mage again. The threshold is one exported function, `highThreshold()` in `engine/dice.js`, so
+changing it is a one-line change plus regenerating CARDS.md.

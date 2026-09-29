@@ -44,7 +44,7 @@ export const DICE = {
     id: 'd20', sides: 20, emoji: '🌟', name: 'Legendary Die', bonus: null, params: {},
     // Decision D8: the reference's `legendary` bonus was never read and its "affinity activates on
     // 15+" text was false. Shipped with no bonus and text that describes only what happens.
-    text: 'No bonus of its own. A huge spread: High (6+) is almost certain, Max and Extreme are rare.',
+    text: 'No bonus of its own. A huge spread, so Max and Extreme are rare; High scales with it.',
   },
 };
 

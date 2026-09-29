@@ -1,4 +1,4 @@
-// Mage — affinity High (6+). Numbers from the reference build (../js/data.js CARDS /
+// Mage — affinity High (the die's upper third; 5+ on a d6, see engine/dice.js). Numbers from the reference build (../js/data.js CARDS /
 // CARD_UPGRADES). Fireball, Blizzard and Time Warp are generic in the reference but only the Mage
 // pool offers them, so they live here. Deliberate differences are listed in COMPARISON.md (§F).
 
