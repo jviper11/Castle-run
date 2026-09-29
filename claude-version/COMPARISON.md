@@ -358,5 +358,50 @@ the map and run flow.
 | Rest site with nothing to do | No way to leave. At full HP, with nothing left to upgrade and an empty deck, the run soft-locks. | A Leave option appears only in that case |
 | Upgrade / remove target | "The first matching key" in `G.deck` | The exact copy chosen (per-copy identity) |
 | Gambler's Edge downside | Suppresses a natural roll equal to the **die's** max. On a d6 that is 6, which is never odd, so the downside does nothing for the Thief. Forced maxes (Loaded House, Gambler's Fallacy) were also suppressed. | Suppresses a natural roll of **the hero's own affinity maximum** (GDD §15: "its own affinity max"): Thief 5, Barbarian 6, Mage 6, Vampire 6, Gambler 6. Forced and card-set values are exempt, as the upgrade's own note promises. |
-| Shop dice (Hunter Die, the random die) | Buyable | Shown but not buyable until step 3c adds dice types |
 | Shop relic shelf, shop consumables | Present | Phase 4 |
+
+### H5. Step 3c — die types
+
+**No GDD authority.** GDD §8 says only that "each character has one active die (d6 by default)";
+there is no die-type table anywhere in v0.10, and no die prices in §13. Every number below is the
+reference build's invention, carried over so the run plays the same. Flagged for design.
+
+**Same as the reference:**
+- Six dice, with the reference's faces and bonuses: d4 Cursed Die (rolls below 3 become 3),
+  d6 Standard, d8 Hunter's Die (+2 damage on an odd roll), d10 Arcane Die (+1 Energy on an even
+  turn-start roll), d12 Titan's Die (a max turn-start roll draws 1 extra card), d20 Legendary Die.
+- One die equipped at a time; a new one replaces it. Every hero starts on the d6.
+- A die cache offers **2**, never the d6 and never the die you already carry, gated by floor:
+  d4 and d8 from Floor 1, d10 from Floor 2, d12 from Floor 3, d20 from Floor 4.
+- The Hunter's Die's +2 is a flat term beside Strength, so Weak and Vulnerable both apply to it
+  (`../js/combat.js:2349`).
+- The Arcane Die's Energy may sit one over the maximum, and no more.
+- The shop's fixed Hunter Die tile at 55 Gold.
+
+**Fixed / different:**
+
+| Topic | Reference | Here |
+|---|---|---|
+| **D8: the d20** | Its `legendary` bonus is declared but never read, and its text claims "affinity activates on rolls 15+", which nothing implements — High is 6+ on every die | No bonus, and text that describes only what happens. Every screen that names a die also states what the hero's affinity means **on that die** — "High affinity: 6 or more — 15 of 20 faces" — because a d20 changes the odds far more than it changes the rules |
+| Die bonuses on a reroll | The Arcane Die's Energy and the Titan's Die's card are applied in the turn-start block, after that turn's roll | Unchanged in effect, but stated as a rule: only the turn-start roll pays, so rerolling into an even number does not re-pay the Arcane Die. Covered by a test |
+| The Cursed Die's floor | A separate `min3` branch after the hero's own floor and House Edge | The same number, expressed as the die's roll floor and combined with the hero's (`max`). One floor, not two rules; the Gambler on a d4 floors at 3 |
+| Die reward on a Magic Door | A die cache **skips** the room behind the door (X1), and re-rolls its two offers every time the screen is drawn | Its own stop, with offers fixed when it is entered. Skipping it keeps your die and still plays the room the door guarded |
+| A die you already have | The shop's Hunter Die can be bought again at 55 Gold when you are already on a d8 | Shown, labelled "Already equipped", and refused |
+| Where dice are read | `G.activeDie` / `G.diceMax` are written directly by purchases and by Loaded Coat mid-fight | `run.die`, read once by `createCombat()` like every other run modifier. A die bought mid-run applies from the next fight |
+
+**Added, not in the reference:**
+- A second shop die tile at 80 Gold, floor-gated like a cache's offers and naming the die it
+  sells before purchase. The reference shop stocks only the fixed Hunter Die. Flagged with D3.
+
+**Still open (D8), and the same shape in the reference:** "High is 6+" does not survive a change
+of die.
+- The **d20** makes High trivial — 15 of its 20 faces — while making Max (1 of 20) and Extreme
+  (2 of 20) far rarer. So the same die is a large buff to the Mage and a large nerf to the
+  Gambler and the Vampire.
+- The **d4** cannot roll a 6 at all, so a Mage on a Cursed Die has a **dead affinity**: 0 of 4
+  faces. It is still offerable to them.
+
+Neither is fixed here, because scaling High with the die is new design. Both are made visible
+instead: every die offer states the count ("High affinity: 6 or more — 0 of 4 faces"), so the
+player sees it before choosing rather than after. Whether High should scale, and whether a die
+with a dead affinity should be offered at all, is your call.

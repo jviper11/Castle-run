@@ -8,13 +8,15 @@ import { FLOOR_COUNT, MIRROR_COST } from '../content/map.js';
 import { REST, SHOP } from '../content/rooms.js';
 import { soulOffers, soulCost, applySoulUpgrade } from './soul.js';
 import { createShopStock, itemAvailable, canShopRemove, canUpgrade, upgradeCopy, removeCopy } from './shop.js';
+import { offerableDice } from './dice.js';
+import { STARTING_DIE, DICE, DIE_CACHE_OFFERS } from '../content/dice.js';
 
 // The run: everything that persists between fights, and the flow between rooms.
 //
 // The run is a small state machine. `run.state.screen` is always exactly one of:
-//   pathSelect → doors → (combat → reward | rest | shop | room) → doors … → boss → reward
-//   → soulForge → pathSelect (next floor) … → end
-// ('room' is a placeholder for rooms whose content arrives later: events, the die cache.)
+//   pathSelect → doors → (combat → reward | rest | shop | dieCache | room) → doors … → boss
+//   → reward → soulForge → pathSelect (next floor) … → end
+// ('room' is a placeholder for rooms whose content arrives later: events.)
 // Every player action below checks the current screen and returns false if it is not legal
 // there, so the UI cannot drive the run into a state the rules don't allow. The UI only renders
 // the current state.
@@ -43,6 +45,7 @@ export function createRun({ heroKey = 'barbarian', seed = randomSeed() } = {}) {
     rareOffset: 0,
     lastEnemy: null,
     goldSpent: 0,
+    die: STARTING_DIE, // the equipped die type; one at a time, a new one replaces it
     // Soul Forge results, read by createCombat() at every fight start.
     soul: {}, // purchases by upgrade id
     startBlock: 0,
@@ -124,7 +127,7 @@ export function chooseDoor(run, id) {
     room.magic = null;
     if (magic.type === 'die') {
       // A die cache is its own stop; the room behind the door is still played (fix X1).
-      run.state = { screen: 'room', room: 'die', returnTo: 'doors' };
+      run.state = { screen: 'dieCache', offers: dieOffers(run) };
       run.visits.push({ floor: run.floor, path: run.path, index: run.index, type: 'die' });
       return true;
     }
@@ -178,11 +181,38 @@ function startFight(run, kind, enemyId) {
   run.state = { screen: 'combat', kind };
 }
 
-/** Leaves a placeholder room (quiet room, die cache). */
+/** Leaves a placeholder room (the quiet room that stands in for an event until Phase 4). */
 export function leaveRoom(run) {
   if (!at(run, 'room')) return false;
-  if (run.state.returnTo === 'next') return roomDone(run);
-  run.state = { screen: 'doors' }; // a die cache: the room behind the door is still ahead
+  return roomDone(run);
+}
+
+// ── Dice ──
+
+/** Equips a die type, replacing the current one. Read at the next fight start, never mid-fight. */
+export function equipDie(run, id) {
+  if (!DICE[id] || id === run.die) return false;
+  run.die = id;
+  return true;
+}
+
+/** What a die cache offers: 2 of the dice offerable on this floor (reference showDieReward()). */
+export function dieOffers(run) {
+  return shuffle(run.rng, offerableDice(run)).slice(0, DIE_CACHE_OFFERS);
+}
+
+export function takeDie(run, id) {
+  if (!at(run, 'dieCache') || !run.state.offers.includes(id) || !equipDie(run, id)) return false;
+  return leaveDieCache(run);
+}
+
+/**
+ * Back to the doors without advancing: a die cache sits behind a Magic Door, and the room that
+ * door guarded is still ahead (fix X1).
+ */
+export function leaveDieCache(run) {
+  if (!at(run, 'dieCache')) return false;
+  run.state = { screen: 'doors' };
   return true;
 }
 
@@ -231,9 +261,13 @@ function spend(run, amount) {
 export function shopBuy(run, itemId) {
   if (!at(run, 'shop')) return false;
   const item = run.state.stock.find((x) => x.id === itemId);
-  if (!item || !itemAvailable(item) || !spend(run, item.price)) return false;
+  if (!item || !itemAvailable(item, run) || !spend(run, item.price)) return false;
   item.sold = true;
+  // Explicit per kind, and loud on an unknown one: the Gold has already been taken by this point,
+  // so a shelf added in Phase 4 without a branch here must not fail silently.
   if (item.kind === 'card') addCard(run, item.key);
+  else if (item.kind === 'die') equipDie(run, item.die);
+  else throw new Error(`Shop item ${item.id}: unknown kind "${item.kind}"`);
   return true;
 }
 

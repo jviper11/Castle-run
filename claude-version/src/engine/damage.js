@@ -6,12 +6,25 @@ import { stacks, reduceStatus, chillReductionPct } from './statuses.js';
 //
 // Rounding floors at every multiplier, matching the reference build.
 
-/** Player attack: base → +Strength → Weak ×0.75 → enemy Vulnerable ×1.5. Block is applied later. */
+/**
+ * Player attack: base → +Strength → +the die's own bonus → Weak ×0.75 → enemy Vulnerable ×1.5.
+ * Block is applied later.
+ */
 export function playerAttackDamage(c, base) {
-  let amount = base + stacks(c.player, 'rage');
+  let amount = base + stacks(c.player, 'rage') + dieAttackBonus(c);
   if (stacks(c.player, 'weak')) amount = Math.floor(amount * 0.75);
   if (stacks(c.enemy, 'vulnerable')) amount = Math.floor(amount * 1.5);
   return Math.max(0, amount);
+}
+
+/**
+ * Hunter's Die: +2 while the die shows an odd number. A flat term beside Strength, so Weak and
+ * Vulnerable both apply to it afterwards — the reference's placement (../js/combat.js:2349).
+ * Card previews call playerAttackDamage() too, so the bonus shows on the card before it is played.
+ */
+function dieAttackBonus(c) {
+  const d = c.dieType;
+  return d?.bonus === 'oddDamage' && c.die.value % 2 !== 0 ? d.params.damage : 0;
 }
 
 /**

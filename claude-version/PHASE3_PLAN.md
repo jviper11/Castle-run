@@ -2,7 +2,11 @@
 
 **Status:**
 - **3a (map and run flow) is done:** a playable full-run skeleton, reviewed by the owner.
-- **3b (rest sites, shops, Soul Forge) is done:** playable, stopped for review.
+- **3b (rest sites, shops, Soul Forge) is done:** reviewed and approved by the owner, with no
+  architecture changes requested.
+- **3c (die types) is done:** playable, stopped for review. Two D8 consequences are flagged in
+  COMPARISON §H5 rather than fixed — a d20 makes High trivial, and a d4 leaves the Mage with a
+  dead affinity.
 - The owner approved D1–D8 as recommended, with this guidance:
   - quiet-room placeholders that preserve pacing;
   - Poison/Burn as proper engine statuses;
@@ -215,9 +219,9 @@ Each step ends with `npm test` green.
 
 | Step | Content |
 |---|---|
-| **3a** | `content/map.js` + `engine/map.js` + the run state machine (R1–R3). Path select, doors, Magic Doors, Mirror, floor progression, run end. Tests, plus a run-flow fuzz that walks random seeded runs to the end with combat auto-resolved. |
-| **3b** | Rest, shop (D3), die cache, Soul Forge with all 8 upgrades (including the Second Die and Gambler's Edge die-panel buttons), floor-clear rewards. |
-| **3c** | Dice types d4–d20 (D8) through R4; affinity on bigger dice (High 6+, Extreme = 1 or max face). |
+| **3a** | ✅ `content/map.js` + `engine/map.js` + the run state machine (R1–R3). Path select, doors, Magic Doors, Mirror, floor progression, run end. Tests, plus a run-flow fuzz that walks random seeded runs to the end with combat auto-resolved. |
+| **3b** | ✅ Rest, shop (D3), die cache, Soul Forge with all 8 upgrades (including the Second Die and Gambler's Edge die-panel buttons), floor-clear rewards. |
+| **3c** | ✅ Dice types d4–d20 (D8) through R4; affinity on bigger dice (High 6+, Extreme = 1 or max face), with the face count shown wherever a die is offered. |
 | **3d** | Floors 2–4 enemies, elites 2–7 and companion bosses (D4), with intent lists (R5), the new hooks (R6), card mirroring (R7, D6), player DoT (D2) and every §3 fix. The intent-equals-action fuzz covers all of them. |
 | **3e** | UI:<br>• path select and an in-run map overlay<br>• the door screen (hidden doors with their hints)<br>• the Mirror panel<br>• rest, shop, die cache, Soul Forge<br>• boss intro, floor cleared, run end<br>Desktop and phone landscape. |
 | **3f** | Validation:<br>• full-run fuzz for every hero across four floors<br>• per-floor balance table in CARDS.md, plus a "full run" column for the same naive agent<br>• headless-Chrome autoplay of a full run per hero<br>• owner manual playtest |

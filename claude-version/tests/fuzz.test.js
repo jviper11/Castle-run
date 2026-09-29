@@ -2,7 +2,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRun, choosePath, chooseDoor, useMirror, leaveRoom, finishCombat, takeCardReward, skipCardReward, doorOptions,
-  restOptions, restHeal, restUpgrade, restRemove, restLeave, shopBuy, shopRemove, shopUpgrade, shopLeave, soulBuy, soulLeave } from '../src/engine/run.js';
+  restOptions, restHeal, restUpgrade, restRemove, restLeave, shopBuy, shopRemove, shopUpgrade, shopLeave, soulBuy, soulLeave,
+  takeDie, leaveDieCache } from '../src/engine/run.js';
 import { soulCost } from '../src/engine/soul.js';
 import { createCombat, playCard, endTurn, reroll, playability, resolveChoice } from '../src/engine/combat.js';
 import { previewIntent } from '../src/engine/enemies.js';
@@ -11,6 +12,7 @@ import { drain } from '../src/engine/log.js';
 import { createRng, int, chance, pick } from '../src/engine/rng.js';
 import { ENEMIES } from '../src/content/enemies.js';
 import { REWARD_POOLS } from '../src/content/rewards.js';
+import { DICE, DIE_CACHE_OFFERS, DIE_MIN_FLOOR } from '../src/content/dice.js';
 
 const MAX_TURNS = 200;
 const MAX_ACTIONS_PER_TURN = 80; // 0-cost loops (e.g. two Arcane Recall+) must not hang the fuzz
@@ -112,6 +114,10 @@ test('every hero × every enemy × 150 random combats ends, with all invariants 
       const run = createRun({ seed, heroKey: hero });
       run.deck = randomDeck(agent, hero).map((key, i) => ({ uid: i + 1, key }));
       if (chance(agent, 0.3)) run.hp = 1 + int(agent, run.maxHp);
+      // Any die may be equipped by this point in a run, so every invariant below — the intent
+      // matching the hit, the die staying within its faces, Energy never going negative — is
+      // checked against d4–d20 as well as the d6.
+      if (chance(agent, 0.5)) run.die = pick(agent, Object.keys(DICE));
       const c = createCombat(run, enemyId);
       if (playOut(c, agent) === 'stalemate') stalemates += 1;
       total += 1;
@@ -153,6 +159,16 @@ function playRun(run, agent) {
       case 'room':
         assert.ok(leaveRoom(run));
         break;
+      case 'dieCache': {
+        // Take an offered die, or leave it. Either way the room the door guarded is still ahead.
+        const offers = run.state.offers;
+        assert.ok(offers.length && offers.length <= DIE_CACHE_OFFERS, `die cache offers ${offers}`);
+        assert.ok(!offers.includes(run.die), 'never offers the die already equipped');
+        assert.ok(offers.every((id) => run.floor >= DIE_MIN_FLOOR[id]), `floor-gated: ${offers} on floor ${run.floor}`);
+        if (chance(agent, 0.7)) assert.ok(takeDie(run, pick(agent, offers)));
+        else assert.ok(leaveDieCache(run));
+        break;
+      }
       case 'rest': {
         const o = restOptions(run);
         const acts = [];

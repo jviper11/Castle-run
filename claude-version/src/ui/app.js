@@ -8,13 +8,17 @@ import { playCard, endTurn, reroll, resolveChoice, useSecondDie, useGamblersEdge
 import {
   createRun, addCard, choosePath, chooseDoor, useMirror, leaveRoom, finishCombat, takeCardReward, skipCardReward,
   restHeal, restUpgrade, restRemove, restLeave, shopBuy, shopRemove, shopUpgrade, shopLeave, soulBuy, soulLeave,
+  equipDie, takeDie, leaveDieCache,
 } from '../engine/run.js';
-import { renderRunStatus, renderPathSelect, renderDoors, renderRoom, renderRest, renderShop, renderSoulForge } from './runView.js';
+import {
+  renderRunStatus, renderPathSelect, renderDoors, renderRoom, renderRest, renderShop, renderSoulForge, renderDieCache,
+} from './runView.js';
 import { canShopRemove, canUpgrade } from '../engine/shop.js';
 import { applySoulUpgrade } from '../engine/soul.js';
 import { randomSeed } from '../engine/rng.js';
 import { HEROES, FLOOR_BACKGROUNDS } from '../content/heroes.js';
 import { REWARD_ODDS } from '../content/rewards.js';
+import { DICE, STARTING_DIE } from '../content/dice.js';
 
 // App controller: screen flow and input. Game rules live in the engine; drawing lives in the
 // views. This file only connects them.
@@ -25,6 +29,7 @@ import { REWARD_ODDS } from '../content/rewards.js';
 //   ?hp=500         starting max HP (for walking a whole run in review)
 //   ?gold=300       starting Gold      ?souls=20   starting Souls (to try the shop and Soul Forge)
 //   ?soul=secondDie,gamblersEdge   start with these Soul Forge upgrades (ids in content/rooms.js)
+//   ?die=d20        start with that die equipped (ids in content/dice.js)
 //   ?fast=1         near-instant animations
 //   ?deck=a,b+,c    replace the starting deck (card keys; + for upgraded)
 
@@ -50,7 +55,7 @@ function showHeroes() {
     h('img', { src: hero.portrait, alt: '', loading: 'lazy' }),
     h('div', { class: 'hero-tile-body' },
       h('div', { class: 'hero-tile-name' }, hero.emoji, ' ', hero.name),
-      h('div', { class: 'hero-tile-meta' }, `${hero.hp} HP · d${hero.die.sides} · ${hero.affinity} affinity`),
+      h('div', { class: 'hero-tile-meta' }, `${hero.hp} HP · ${DICE[STARTING_DIE].id} · ${hero.affinity} affinity`),
       h('div', { class: 'hero-tile-blurb' }, hero.available ? hero.blurb : 'Arrives in Phase 2'),
     )));
   }
@@ -68,6 +73,7 @@ function newRun(heroKey) {
   if (params.has('gold')) ui.run.gold = Math.max(0, Number(params.get('gold')));
   if (params.has('souls')) ui.run.souls = Math.max(0, Number(params.get('souls')));
   for (const id of (params.get('soul') || '').split(',').filter(Boolean)) applySoulUpgrade(ui.run, id.trim());
+  if (params.has('die')) equipDie(ui.run, params.get('die'));
   if (params.has('floor')) ui.run.floor = Math.max(0, Math.min(3, Number(params.get('floor')) - 1));
   params.delete('floor');
   show();
@@ -95,6 +101,10 @@ function show() {
       renderRunStatus(run);
       renderRoom(run);
       return showScreen('room');
+    case 'dieCache':
+      renderRunStatus(run);
+      renderDieCache(run, { onTake: (id) => runAction(() => takeDie(run, id)) });
+      return showScreen('dieCache');
     case 'rest':
       renderRunStatus(run);
       renderRest(run, {
@@ -353,6 +363,7 @@ const ACTIONS = {
   'new-run': showHeroes,
   'skip-reward': () => runAction(() => skipCardReward(ui.run)),
   'leave-room': () => runAction(() => leaveRoom(ui.run)),
+  'leave-die-cache': () => runAction(() => leaveDieCache(ui.run)),
   'leave-shop': () => runAction(() => shopLeave(ui.run)),
   'leave-forge': () => runAction(() => soulLeave(ui.run)),
   'close-deck': () => { $('deck-overlay').hidden = true; },

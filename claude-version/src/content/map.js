@@ -51,5 +51,4 @@ export const PLACEHOLDERS = {
     text: 'Dust hangs in the still air. Nothing stirs here — for now.',
     note: 'Placeholder: events arrive in Phase 4.',
   },
-  die: { title: 'Die Cache', text: 'An empty velvet case.', note: 'Placeholder: dice arrive in step 3c.' },
 };

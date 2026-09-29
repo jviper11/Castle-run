@@ -2,6 +2,7 @@ import { $, h, clear } from './dom.js';
 import { doorOptions, currentFloor, currentPath, restOptions, rarityOf } from '../engine/run.js';
 import { itemAvailable, canShopRemove, canUpgrade } from '../engine/shop.js';
 import { soulCost, soulText } from '../engine/soul.js';
+import { dieType, dieText, affinityLine } from '../engine/dice.js';
 import { SHOP, SOUL_UPGRADES } from '../content/rooms.js';
 import { cardView } from './cardView.js';
 import { mirrorIndex } from '../engine/map.js';
@@ -12,7 +13,7 @@ import { HEROES } from '../content/heroes.js';
 // placeholder rooms and the status bar they share. Each function renders the run's current state
 // and wires buttons to the handlers it is given; none of them changes the run itself.
 
-/** The HP / Gold / Souls / deck bar shown on every run screen. */
+/** The HP / Gold / Souls / deck / die bar shown on every run screen. */
 export function renderRunStatus(run) {
   const hero = HEROES[run.heroKey];
   for (const el of document.querySelectorAll('[data-run-status]')) {
@@ -22,10 +23,25 @@ export function renderRunStatus(run) {
       h('span', { class: 'chip' }, '💰 ', h('b', {}, run.gold)),
       h('span', { class: 'chip' }, '👻 ', h('b', {}, run.souls)),
       h('span', { class: 'chip' }, '🂠 ', h('b', {}, `${run.deck.length} cards`)),
+      dieChip(run),
       h('span', { class: 'chip' }, `Floor ${run.floor + 1}/${FLOOR_COUNT}`),
     );
   }
 }
+
+/** The equipped die, with its bonus and what the hero's affinity means on it. */
+function dieChip(run) {
+  const die = dieType(run.die);
+  return h('span', {
+    class: 'chip',
+    dataset: {
+      tipTitle: `${die.emoji} ${die.name} (${die.id})`,
+      tip: `${dieText(run.die)}\n${heroAffinityLine(run, die.sides)}`,
+    },
+  }, die.emoji, ' ', h('b', {}, die.id));
+}
+
+const heroAffinityLine = (run, sides) => affinityLine(HEROES[run.heroKey].affinity, sides);
 
 function roomIcon(type, magic) {
   return h('span', { class: `room-dot room-${type}`, title: ROOMS[type].label },
@@ -105,6 +121,37 @@ function doorTile(opt, onclick) {
   );
 }
 
+// ── Dice ──
+
+/**
+ * One die, described the same way wherever it is offered. The shop's tile is card-shaped and
+ * narrow, so it gets the short form; a die cache is a choice between dice and gets the affinity
+ * line too, because that is what the choice turns on (decision D8).
+ */
+function dieParts(run, id, { note, full = false } = {}) {
+  const die = dieType(id);
+  const replaces = `Replaces your ${dieType(run.die).id}.`;
+  return [
+    h('div', { class: 'option-icon' }, die.emoji),
+    h('div', { class: 'option-title' }, `${die.name} (${die.id})`),
+    h('div', { class: 'option-text' }, dieText(id)),
+    h('div', { class: 'option-note' }, note || (full ? `Rolls 1–${die.sides}. ${replaces}` : replaces)),
+    full && h('div', { class: 'option-note' }, heroAffinityLine(run, die.sides)),
+  ];
+}
+
+export function renderDieCache(run, { onTake }) {
+  const offers = run.state.offers;
+  $('die-cache-sub').textContent = offers.length
+    ? 'A velvet case, something inside it still rattling. Take one — it replaces the die you carry.'
+    : 'A velvet case, long since emptied. There is nothing here you do not already have.';
+  const row = clear($('die-cache-offers'));
+  for (const id of offers) {
+    row.append(h('button', { class: 'option-tile die-offer', type: 'button', onclick: () => onTake(id) },
+      ...dieParts(run, id, { full: true })));
+  }
+}
+
 export function renderRoom(run) {
   const room = run.state.room;
   const p = PLACEHOLDERS[room];
@@ -142,19 +189,14 @@ export function renderRest(run, { onHeal, onPick, onLeave }) {
 export function renderShop(run, { onBuy, onPick }) {
   const shelf = clear($('shop-shelf'));
   for (const item of run.state.stock) {
-    const available = itemAvailable(item);
+    const available = itemAvailable(item, run);
     const affordable = run.gold >= item.price;
     const tile = h('button', {
       class: 'shop-item' + (item.sold ? ' sold' : '') + (!available && !item.sold ? ' unavailable' : ''),
       type: 'button', disabled: item.sold || !available || !affordable, onclick: () => onBuy(item.id),
     });
     if (item.kind === 'card') tile.append(cardView(item.key, { rarity: rarityOf(run.heroKey, item.key) }));
-    else {
-      tile.append(h('div', { class: 'shop-die' },
-        h('div', { class: 'option-icon' }, '🎲'),
-        h('div', { class: 'option-title' }, item.kind === 'die' ? `${item.name} (${item.die})` : 'A random die'),
-        h('div', { class: 'option-text' }, available ? 'Replaces your die.' : 'Dice arrive in step 3c.')));
-    }
+    else tile.append(h('div', { class: 'shop-die' }, ...dieParts(run, item.die, { note: available ? null : 'Already equipped.' })));
     tile.append(h('div', { class: 'price' + (affordable ? '' : ' too-dear') }, item.sold ? 'Sold' : `💰 ${item.price}`));
     shelf.append(tile);
   }

@@ -9,7 +9,8 @@ import { ENEMIES, FLOOR_POOLS } from '../src/content/enemies.js';
 import { getCard, cardTextPlain } from '../src/engine/cards.js';
 import { createRun } from '../src/engine/run.js';
 import { createCombat, playCard, endTurn, reroll, playability, resolveChoice } from '../src/engine/combat.js';
-import { affinityMet } from '../src/engine/dice.js';
+import { affinityMet, affinityLine } from '../src/engine/dice.js';
+import { DICE, STARTING_DIE } from '../src/content/dice.js';
 import { createRng, int, pick } from '../src/engine/rng.js';
 
 const TYPE = { attack: 'Attack', skill: 'Skill', power: 'Power' };
@@ -86,7 +87,8 @@ out.push(`**${total} cards**, each with an upgrade: ${heroes.map((h) => `${HEROE
 for (const hero of heroes) {
   const h = HEROES[hero];
   out.push(`## ${h.emoji} ${h.name}`, '');
-  out.push(`${h.hp} HP · d${h.die.sides}${h.die.minRoll ? ` (min ${h.die.minRoll})` : ''} · affinity **${h.affinity}** · ${h.blurb}`, '');
+  const start = DICE[STARTING_DIE];
+  out.push(`${h.hp} HP · ${start.id}${h.minRoll ? ` (min roll ${h.minRoll})` : ''} · affinity **${h.affinity}** · ${affinityLine(h.affinity, start.sides)} · ${h.blurb}`, '');
   out.push(`Starter deck: ${h.starterDeck.map((k) => getCard(k).name).join(', ')}.`, '');
   out.push('| Card | Cost | Type | Pool | Text | Upgraded |', '|---|---|---|---|---|---|');
   for (const key of CARDS_BY_HERO[hero]) out.push(cardRow(key, hero));

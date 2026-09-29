@@ -1,21 +1,24 @@
-import { shuffle } from './rng.js';
+import { shuffle, pick } from './rng.js';
 import { SHOP } from '../content/rooms.js';
+import { offerableDice } from './dice.js';
 import { baseKey, isUpgraded, getCard } from './cards.js';
 
 // Shop stock and deck services. Stock is rolled once when you enter the shop and kept in the run
 // state; a bought item is marked sold and cannot be bought again (PHASE3_PLAN X2).
 
-// Dice are equipped from step 3c; until then die items are shown but cannot be bought.
-export const DICE_AVAILABLE = false;
-
 export function createShopStock(run) {
   const shelf = shuffle(run.rng, SHOP.items).slice(0, SHOP.shelfSize).map((item) => ({ ...item, sold: false }));
-  shelf.push({ id: 'dieTile', kind: 'dieRandom', price: SHOP.dieTilePrice, sold: false });
+  // The random die tile names the die it sells, rolled with the stock rather than at purchase, for
+  // the same reason Magic Door contents are rolled with the map (X3): what is shown is what is
+  // bought. It is dropped when there is nothing left to offer.
+  const spare = offerableDice(run).filter((id) => !shelf.some((item) => item.die === id));
+  if (spare.length) shelf.push({ id: 'dieTile', kind: 'die', die: pick(run.rng, spare), price: SHOP.dieTilePrice, sold: false });
   return shelf;
 }
 
-export function itemAvailable(item) {
-  return !item.sold && (DICE_AVAILABLE || (item.kind !== 'die' && item.kind !== 'dieRandom'));
+/** A die you already have equipped is shown, but is not a purchase worth allowing. */
+export function itemAvailable(item, run) {
+  return !item.sold && !(item.kind === 'die' && item.die === run.die);
 }
 
 export const canShopRemove = (card) => !SHOP.unremovable.includes(baseKey(card.key));

@@ -1,7 +1,7 @@
 import { $, h, clear } from './dom.js';
 import { cardView } from './cardView.js';
 import { STATUSES } from '../engine/statuses.js';
-import { AFFINITIES, canReroll, rerollsAvailable } from '../engine/dice.js';
+import { AFFINITIES, canReroll, rerollsAvailable, dieText, affinityLine } from '../engine/dice.js';
 import { previewIntent, describeAbilities, DEFEND_BLOCK } from '../engine/enemies.js';
 import { playability } from '../engine/combat.js';
 import { currentPath } from '../engine/run.js';
@@ -135,8 +135,13 @@ export function renderDie(c, value, rolling = false) {
   const aff = $('die-affinity');
   aff.textContent = `${AFFINITIES[hero.affinity].label} ${met ? '✓' : '✗'}`;
   aff.classList.toggle('met', met);
-  aff.dataset.tipTitle = `d${c.die.sides} · ${hero.name} affinity: ${AFFINITIES[hero.affinity].label}`;
-  aff.dataset.tip = 'Cards with a matching affinity line gain their bonus while the die shows an affinity roll.';
+  // The die's own name and rules: with d4–d20 equippable, "d6, High" is not a safe assumption.
+  aff.dataset.tipTitle = `${c.dieType.emoji} ${c.dieType.name} (${c.dieType.id})`;
+  aff.dataset.tip = [
+    dieText(c.dieType.id),
+    affinityLine(hero.affinity, c.die.sides),
+    'Cards with a matching affinity line gain their bonus while the die shows an affinity roll.',
+  ].join('\n');
   const btn = $('reroll-btn');
   btn.disabled = !canReroll(c);
   btn.querySelector('span').textContent = `(${rerollsAvailable(c)})`;

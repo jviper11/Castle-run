@@ -1,6 +1,6 @@
 import { emit } from './log.js';
 import { int } from './rng.js';
-import { createDie, rollDie, reroll as rerollDie, changeDie, setDie } from './dice.js';
+import { createDieFor, dieType, rollDie, reroll as rerollDie, changeDie, setDie } from './dice.js';
 import { createPiles, drawCards, discardHand, takeFromHand } from './piles.js';
 import { stacks, reduceStatus, clearStatus } from './statuses.js';
 import { damageEnemyDirect, heal, burnTick, poisonTick, gainBlock } from './damage.js';
@@ -66,7 +66,10 @@ export function createCombat(run, enemyId, { kind = 'normal' } = {}) {
       hp: run.hp, maxHp: run.maxHp, block: 0, statuses: {},
       energy: 0, maxEnergy: run.maxEnergy,
     },
-    die: createDie(hero.die),
+    // The equipped die is run state (run.die); like every other run modifier it is read once,
+    // here, so a die bought mid-fight could not change the fight in progress.
+    dieType: dieType(run.die),
+    die: createDieFor(run.die, hero),
     enemy: createEnemy(enemyId),
   };
   c.piles = createPiles(c, run.deck);
@@ -97,7 +100,29 @@ export function startTurn(c) {
 
   rollDie(c, 'turn');
   if (checkEnd(c)) return; // Lucky Streak can finish the enemy on the opening roll
-  drawCards(c, c.drawPerTurn);
+  drawCards(c, c.drawPerTurn + turnStartDieBonus(c));
+}
+
+/**
+ * The equipped die's turn-start bonus, for the roll that just landed. Only the turn-start roll
+ * pays it (a reroll into an even number does not re-pay the Arcane Die), so it lives here rather
+ * than in rollDie(). Returns the extra cards to draw; the Energy bonus is applied in place,
+ * because it has to land before the hand is dealt.
+ */
+function turnStartDieBonus(c) {
+  const { bonus, params, emoji, name } = c.dieType;
+  if (bonus === 'evenEnergy' && c.die.value % 2 === 0) {
+    // Reference: the refund may push Energy one over the maximum, and no further.
+    const p = c.player;
+    p.energy = Math.min(p.energy + params.energy, p.maxEnergy + params.energy);
+    emit(c, 'message', { text: `${emoji} ${name} — even roll, +${params.energy} Energy.` });
+    return 0;
+  }
+  if (bonus === 'maxDraw' && c.die.value === c.die.sides) {
+    emit(c, 'message', { text: `${emoji} ${name} — max roll, +${params.draw} card.` });
+    return params.draw;
+  }
+  return 0;
 }
 
 /** Whether a hand card can be played. `warning` is set for a gated card that is still tappable. */

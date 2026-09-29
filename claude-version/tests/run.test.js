@@ -1,8 +1,9 @@
 // Phase 3a: map generation and run flow.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createRun, choosePath, chooseDoor, useMirror, leaveRoom, finishCombat, takeCardReward, skipCardReward,
-  doorOptions, currentFloor, currentPath, restOptions, restHeal, restUpgrade, restRemove, shopLeave, soulLeave } from '../src/engine/run.js';
+import { createRun, choosePath, chooseDoor, useMirror, leaveRoom, leaveDieCache, finishCombat, takeCardReward,
+  skipCardReward, doorOptions, currentFloor, currentPath, restOptions, restHeal, restUpgrade, restRemove, shopLeave,
+  soulLeave } from '../src/engine/run.js';
 import { generateMap, mirrorIndex } from '../src/engine/map.js';
 import { createRng } from '../src/engine/rng.js';
 import { PATH_TEMPLATES, MAGIC_DOOR, MIRROR_COST, FLOOR_COUNT } from '../src/content/map.js';
@@ -53,6 +54,7 @@ function step(run) {
     case 'combat': return winFight(run);
     case 'reward': return skipCardReward(run);
     case 'room': return leaveRoom(run);
+    case 'dieCache': return leaveDieCache(run);
     case 'rest': return restOptions(run).canHeal ? restHeal(run) : restRemove(run, run.deck[0].uid);
     case 'shop': return shopLeave(run);
     case 'soulForge': return soulLeave(run);
@@ -109,8 +111,8 @@ test('X1: a die cache does not skip the room behind the door', () => {
           const idx = run.index;
           const type = currentPath(run)[idx].type;
           chooseDoor(run, 'magic');
-          assert.equal(run.state.room, 'die');
-          leaveRoom(run);
+          assert.equal(run.state.screen, 'dieCache');
+          leaveDieCache(run);
           assert.equal(run.index, idx, 'still facing the same room');
           chooseDoor(run, 'continue');
           assert.equal(run.visits.at(-1).index, idx);

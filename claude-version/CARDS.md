@@ -10,7 +10,7 @@ Formula values ("2× your roll") show their live number in combat.
 
 ## 🪓 Barbarian
 
-90 HP · d6 · affinity **even** · Raw aggression. Hits harder on even rolls.
+90 HP · d6 · affinity **even** · Even affinity: an even roll — 3 of 6 faces. · Raw aggression. Hits harder on even rolls.
 
 Starter deck: Strike, Strike, Strike, Defend, Defend, Heavy Blow, Heavy Blow, War Shout, War Shout, Iron Bash.
 
@@ -44,7 +44,7 @@ Shared cards in this pool: Soul Steal (uncommon), Steal & Heal (uncommon), Iron 
 
 ## 🔮 Mage
 
-70 HP · d6 · affinity **high** · Spells unleash full power on high rolls.
+70 HP · d6 · affinity **high** · High affinity: 6 or more — 1 of 6 faces. · Spells unleash full power on high rolls.
 
 Starter deck: Strike, Strike, Defend, Defend, Frost Bolt, Frost Bolt, Arcane Shield, Mana Surge, Arcane Boost, Void Channel.
 
@@ -82,7 +82,7 @@ Shared cards in this pool: Soul Steal (uncommon), Iron Wall (uncommon), Cursed R
 
 ## 🗡️ Thief
 
-75 HP · d6 · affinity **odd** · Fast combos triggered by odd rolls.
+75 HP · d6 · affinity **odd** · Odd affinity: an odd roll — 3 of 6 faces. · Fast combos triggered by odd rolls.
 
 Starter deck: Strike, Strike, Defend, Defend, Quick Strike, Quick Strike, Shadow Step, Poison Blade, Pick Pocket, Smoke Screen.
 
@@ -119,7 +119,7 @@ Shared cards in this pool: Soul Steal (uncommon), Steal & Heal (uncommon), Curse
 
 ## 🧛 Vampire
 
-78 HP · d6 · affinity **extreme** · Feast or famine. Lifesteal on extreme rolls.
+78 HP · d6 · affinity **extreme** · Extreme affinity: 1 or 6 — 2 of 6 faces. · Feast or famine. Lifesteal on extreme rolls.
 
 Starter deck: Strike, Strike, Defend, Defend, Blood Drain, Blood Drain, Night Shroud, Life Leech, Crimson Bite, Dark Embrace.
 
@@ -156,7 +156,7 @@ Shared cards in this pool: Iron Wall (uncommon), Soul Steal (uncommon), Steal & 
 
 ## 🎲 Gambler
 
-72 HP · d6 (min 2) · affinity **max** · Dice manipulation master. Never rolls a 1; a max roll grants a bonus reroll.
+72 HP · d6 (min roll 2) · affinity **max** · Max affinity: 6 — 1 of 6 faces. · Dice manipulation master. Never rolls a 1; a max roll grants a bonus reroll.
 
 Starter deck: Strike, Strike, Defend, Defend, High or Low, High or Low, Double Down, Lucky Strike, Hedge Bet, Wild Card.
 

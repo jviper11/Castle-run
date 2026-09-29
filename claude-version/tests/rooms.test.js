@@ -76,12 +76,12 @@ test('shop: the fixed stock plus a die tile; cards bought once at exactly their 
   assert.equal(run.deck.filter((x) => x.key === 'ironwall').length, 1);
 });
 
-test('shop: dice cannot be bought until step 3c; too little Gold is refused', () => {
-  const run = runAt('shop', { gold: 59 });
+test('shop: too little Gold is refused, and nothing is charged', () => {
+  const run = runAt('shop', { gold: 54 });
   assert.equal(shopBuy(run, 'hunterDie'), false);
-  assert.equal(shopBuy(run, 'dieTile'), false);
   assert.equal(shopBuy(run, 'blizzard'), false);
-  assert.equal(run.gold, 59);
+  assert.equal(run.gold, 54);
+  assert.equal(run.die, 'd6', 'a refused die is not equipped');
 });
 
 test('shop: removal costs 75, never takes Strike/Defend, and can be repeated', () => {

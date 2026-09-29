@@ -4,7 +4,8 @@
 - Phases 0–2 are complete and manually validated (see the *Validation log*).
 - Phase 3 is in progress (`PHASE3_PLAN.md`).
   - Step 3a (run skeleton) is done and reviewed.
-  - Step 3b (rest sites, shops, Soul Forge) is done and awaiting review.
+  - Step 3b (rest sites, shops, Soul Forge) is done and reviewed.
+  - Step 3c (die types) is done and awaiting review.
 
 A from-scratch implementation of Castle Run that lives beside the reference build. The reference
 (`../index.html`, `../js/`, `../css/`) is not modified. Images are loaded from `../assets/` by path.
@@ -105,7 +106,49 @@ The full list, with a reason for each entry, is in `COMPARISON.md`. In summary:
 
 ## Validation log
 
-### Phase 3b — rest sites, shops, Soul Forge: automated validation passed; owner review pending
+### Phase 3c — die types: automated validation passed; owner review pending
+
+**New:**
+- `content/dice.js` (the six dice as data: faces, bonus, floor gate, and a `{param}` text
+  template so a die's description cannot drift from its effect).
+- Die state moved to the run (`run.die`), read once by `createCombat()` like every other run
+  modifier. Heroes no longer declare a die size; the Gambler keeps her own roll floor.
+- The four bonuses, each at the choke point that owns it: the Cursed Die's floor inside the roll,
+  the Hunter's Die in the player attack pipeline, the Arcane Die and the Titan's Die in
+  `startTurn()` on the turn-start roll only.
+- A real die-cache screen (2 floor-gated offers, or leave), replacing the step-3b placeholder.
+  Shop die tiles are live, name the die they sell, and refuse a die already equipped.
+- `affinityLine()`: every screen that names a die states what the hero's affinity means **on that
+  die**, with the face count (decision D8).
+- Review option `?die=`.
+
+**Tests:** 145/145 (19 new, `tests/dice.test.js`).
+- Content lint over every die: no unresolved `{param}`, and each bonus declares the number it reads.
+- One rule test per bonus, including the negatives: an even **reroll** does not re-pay the Arcane
+  Die; no other die pays the Hunter's Die's +2; the d6's max face is not the Titan's Die's bonus.
+- The Hunter's Die's +2 sits inside Weak and Vulnerable, and the number previewed on the card is
+  the number that lands.
+- Acquisition: floor gates, never the d6, never the die held, a cache never advancing past the
+  room it guards, shop tiles equipping what they advertise, and no two tiles for the same die.
+- The combat fuzz now equips a random die in half of its runs, so the intent-equals-action,
+  die-within-its-faces and Energy invariants all run against d4–d20.
+
+**Browser:** full four-floor runs through every screen, taking dice from caches, as the Barbarian
+and the Gambler at 1280×720; the die cache and the shop at 844×390; a d20 combat as the Vampire at
+844×390. No page errors.
+
+**Found and fixed during validation:** the shop's die tiles used fixed font sizes inside a tile
+sized from `--card-h`, so their text spilled out of the tile at 844×390; they now scale with the
+shelf like the card beside them. The die cache's Leave button fell below the fold at phone
+heights. The d6's reference emoji (`⚀`) is a text-presentation codepoint that renders as a tofu
+box in the status chip on Windows, and was replaced.
+
+**Flagged for the owner:** COMPARISON.md §H5 — "High is 6+" does not survive a change of die. A
+d20 makes High trivial and Max/Extreme rare; a d4 leaves the Mage with a dead affinity and is
+still offered to them. Both are surfaced in the UI rather than fixed, because scaling High with
+the die is new design.
+
+### Phase 3b — rest sites, shops, Soul Forge: automated validation passed; reviewed
 
 **New:**
 - `content/rooms.js` (rest, shop stock and prices, the 8 Soul upgrades as data).
@@ -129,6 +172,8 @@ the shop at phone size; the Second Die and Gambler's Edge buttons. No page error
 **Found and fixed during validation:** a deck picker could stay open after the screen changed.
 The screen change now always closes it. The phone shop layout was tightened so everything fits at
 844×390.
+
+**Owner review of 3b:** approved; no architecture changes requested. Step 3c follows.
 
 **Owner review of 3a:** approved; no architecture changes requested.
 

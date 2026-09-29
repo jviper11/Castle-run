@@ -8,14 +8,18 @@ export const REST = {
 export const SHOP = {
   // Fixed stock for every hero, as in the reference (PHASE3_PLAN D3; flagged for design review).
   // In the reference the shelf is 4 of these plus 2 consumables; consumables arrive in Phase 4.
+  // A die item declares only its type; its name and text are read from content/dice.js when the
+  // tile renders, so a shop tile cannot advertise something the die does not do.
   items: [
     { id: 'blizzard', kind: 'card', key: 'blizzard', price: 60 },
-    { id: 'hunterDie', kind: 'die', die: 'd8', name: 'Hunter Die', price: 55 },
+    { id: 'hunterDie', kind: 'die', die: 'd8', price: 55 },
     { id: 'lifeleech', kind: 'card', key: 'lifeleech', price: 70 },
     { id: 'ironwall', kind: 'card', key: 'ironwall', price: 65 },
   ],
   shelfSize: 4,
-  dieTilePrice: 80, // a random die, gated by floor (step 3c)
+  // A second die tile, floor-gated like a die cache's offers. The reference shop has no such
+  // tile; it is a claude-version addition, flagged in COMPARISON §H5.
+  dieTilePrice: 80,
   removePrice: 75, // GDD §13 says 100 (COMPARISON §H)
   upgradePrice: 80,
   // Shop removal cannot take the starter basics (reference ../js/ui.js:816). Rest removal can.

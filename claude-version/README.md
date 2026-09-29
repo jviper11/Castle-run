@@ -25,6 +25,7 @@ URL options for testing:
 | `?hp=500` | Starting max HP, to walk a whole run |
 | `?gold=300`, `?souls=20` | Starting Gold / Souls, to try the shop and Soul Forge |
 | `?soul=secondDie,gamblersEdge` | Start with those Soul Forge upgrades (ids in `src/content/rooms.js`) |
+| `?die=d20` | Start with that die equipped (`d4`, `d6`, `d8`, `d10`, `d12`, `d20`) |
 | `?fast=1` | Near-instant animations |
 | `?deck=a,b+,c` | Replace the starting deck (card keys; `+` means upgraded) |
 
@@ -33,7 +34,8 @@ Heroes: all five are playable. `?hero=mage` (or thief, vampire, gambler, barbari
 Controls:
 - **Desktop:** click a card to play it. Keys `1`–`9` play cards, `E` ends the turn, `R` rerolls.
 - **Touch:** tap a card to preview it, then tap it again (or tap the preview) to play it.
-- Hover or tap any status, ability, intent or die label to see its rules text.
+- Hover or tap any status, ability, intent or die label to see its rules text. The die label names
+  the die you carry and what your affinity means on it.
 
 ## Card catalogue
 
