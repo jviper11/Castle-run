@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0809">
+<link rel="icon" href="data:,">
+<title>Castle Run — claude-version</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- Title -->
+  <section class="screen" id="screen-title">
+    <div class="title-block">
+      <h1 class="title">Castle Run</h1>
+      <p class="subtitle">Save your companions. Storm the castle. Free the king.</p>
+      <button class="btn btn-primary" data-action="to-heroes">Enter the Castle</button>
+      <p class="build-note">claude-version · Phase 1 combat slice</p>
+    </div>
+  </section>
+
+  <!-- Hero select -->
+  <section class="screen" id="screen-heroes">
+    <h2 class="screen-title">Choose your hero</h2>
+    <div class="hero-grid" id="hero-grid"></div>
+  </section>
+
+  <!-- Path select -->
+  <section class="screen run-screen" id="screen-paths">
+    <div class="run-status" data-run-status></div>
+    <h2 class="screen-title" id="paths-title"></h2>
+    <p class="screen-sub">Choose a path. You are committed to it for the whole floor.</p>
+    <div class="path-grid" id="path-grid"></div>
+  </section>
+
+  <!-- Doors -->
+  <section class="screen run-screen" id="screen-doors">
+    <div class="run-status" data-run-status></div>
+    <div class="path-strip" id="path-strip"></div>
+    <h2 class="screen-title" id="doors-title"></h2>
+    <div class="door-row" id="door-row"></div>
+    <div class="mirror-panel" id="mirror-panel" hidden></div>
+  </section>
+
+  <!-- Rest site -->
+  <section class="screen run-screen" id="screen-rest">
+    <div class="run-status" data-run-status></div>
+    <div class="room-icon">🔥</div>
+    <h2 class="screen-title">Rest Site</h2>
+    <p class="screen-sub">Choose one.</p>
+    <div class="option-row" id="rest-options"></div>
+  </section>
+
+  <!-- Shop -->
+  <section class="screen run-screen" id="screen-shop">
+    <div class="run-status" data-run-status></div>
+    <h2 class="screen-title">Shop</h2>
+    <div class="shop-shelf" id="shop-shelf"></div>
+    <div class="option-row" id="shop-services"></div>
+    <button class="btn btn-primary" data-action="leave-shop">Leave the shop</button>
+  </section>
+
+  <!-- Soul Forge -->
+  <section class="screen run-screen" id="screen-soulForge">
+    <div class="run-status" data-run-status></div>
+    <div class="room-icon">⚒️</div>
+    <h2 class="screen-title">Soul Forge</h2>
+    <p class="screen-sub" id="forge-sub"></p>
+    <div class="option-row" id="forge-offers"></div>
+    <button class="btn" data-action="leave-forge" id="forge-leave"></button>
+  </section>
+
+  <!-- Non-combat rooms (placeholders until step 3b / Phase 4) -->
+  <section class="screen run-screen" id="screen-room">
+    <div class="run-status" data-run-status></div>
+    <div class="room-icon" id="room-icon"></div>
+    <h2 class="screen-title" id="room-title"></h2>
+    <p class="screen-sub" id="room-text"></p>
+    <p class="placeholder-note" id="room-note"></p>
+    <button class="btn btn-primary" data-action="leave-room">Continue</button>
+  </section>
+
+  <!-- Combat -->
+  <section class="screen" id="screen-combat">
+    <div class="floor-bg"></div>
+    <header class="topbar">
+      <div class="topbar-group">
+        <span class="chip" id="hud-progress"></span>
+      </div>
+      <div class="topbar-group">
+        <span class="chip" title="Gold">💰 <b id="hud-gold"></b></span>
+        <span class="chip" title="Souls">👻 <b id="hud-souls"></b></span>
+      </div>
+      <div class="topbar-group">
+        <button class="chip chip-btn" data-pile="draw" title="Draw pile">🂠 <b id="pile-draw"></b></button>
+        <button class="chip chip-btn" data-pile="discard" title="Discard pile">♻ <b id="pile-discard"></b></button>
+        <button class="chip chip-btn" data-pile="exhaust" title="Exhausted">✖ <b id="pile-exhaust"></b></button>
+      </div>
+    </header>
+
+    <main class="stage">
+      <div class="fighter fighter-player" id="fighter-player">
+        <div class="portrait"><img id="player-portrait" alt=""></div>
+        <div class="fighter-name" id="player-name"></div>
+        <div class="bar-row">
+          <div class="block-badge" id="player-block" hidden>🛡 <b></b></div>
+          <div class="hpbar"><div class="hpbar-fill"></div><span class="hpbar-text"></span></div>
+        </div>
+        <div class="status-row" id="player-statuses"></div>
+      </div>
+
+      <div class="stage-center">
+        <div class="banner" id="banner"></div>
+        <div class="toast-stack" id="toasts"></div>
+      </div>
+
+      <div class="fighter fighter-enemy" id="fighter-enemy">
+        <button class="intent" id="enemy-intent" type="button"></button>
+        <div class="enemy-sprite" id="enemy-sprite"></div>
+        <div class="fighter-name" id="enemy-name"></div>
+        <div class="bar-row">
+          <div class="block-badge" id="enemy-block" hidden>🛡 <b></b></div>
+          <div class="hpbar"><div class="hpbar-fill"></div><span class="hpbar-text"></span></div>
+        </div>
+        <div class="status-row" id="enemy-statuses"></div>
+        <div class="ability-row" id="enemy-abilities"></div>
+      </div>
+    </main>
+
+    <footer class="dock">
+      <div class="dock-side dock-left">
+        <div class="energy" id="energy" title="Energy"><b></b><small></small></div>
+        <div class="die-panel">
+          <div class="die" id="die"></div>
+          <div class="die-affinity" id="die-affinity"></div>
+          <button class="btn btn-small" id="reroll-btn" type="button">Reroll <span></span></button>
+          <button class="btn btn-small soul-die-btn" id="second-die-btn" type="button" hidden
+            data-tip-title="🎲 Second Die" data-tip="Once per combat: add a d2 (1–2) to the die, up to its max face.">+d2</button>
+          <button class="btn btn-small soul-die-btn" id="edge-btn" type="button" hidden
+            data-tip-title="♠️ Gambler's Edge" data-tip="Once per combat: set the die to any value. Uses this turn's die set.">Set die</button>
+        </div>
+      </div>
+      <div class="hand" id="hand"></div>
+      <div class="dock-side dock-right">
+        <button class="btn btn-end" id="end-turn-btn" type="button">End Turn</button>
+      </div>
+    </footer>
+    <div class="card-preview" id="card-preview" hidden></div>
+  </section>
+
+  <!-- Reward -->
+  <section class="screen" id="screen-reward">
+    <h2 class="screen-title" id="reward-title">Victory</h2>
+    <p class="reward-loot" id="reward-loot"></p>
+    <p class="screen-sub">Choose a card to add to your deck</p>
+    <div class="reward-cards" id="reward-cards"></div>
+    <button class="btn" data-action="skip-reward" id="skip-btn"></button>
+  </section>
+
+  <!-- Run end -->
+  <section class="screen" id="screen-end">
+    <h2 class="screen-title" id="end-title"></h2>
+    <p class="screen-sub" id="end-text"></p>
+    <button class="btn btn-primary" data-action="new-run">New Run</button>
+  </section>
+
+  <!-- Overlays -->
+  <div class="overlay" id="pile-overlay" hidden>
+    <div class="overlay-panel">
+      <div class="overlay-head"><h3 id="pile-title"></h3><button class="btn btn-small" data-action="close-pile">Close</button></div>
+      <div class="pile-grid" id="pile-grid"></div>
+    </div>
+  </div>
+  <div class="overlay" id="choice-overlay" hidden>
+    <div class="overlay-panel choice-panel">
+      <div class="overlay-head"><h3 id="choice-title"></h3><button class="btn btn-primary btn-small" id="choice-confirm" type="button">Confirm</button></div>
+      <div class="pile-grid" id="choice-grid"></div>
+    </div>
+  </div>
+  <div class="overlay" id="deck-overlay" hidden>
+    <div class="overlay-panel">
+      <div class="overlay-head"><h3 id="deck-title"></h3><button class="btn btn-small" data-action="close-deck">Cancel</button></div>
+      <div class="pile-grid" id="deck-grid"></div>
+    </div>
+  </div>
+  <div class="tooltip" id="tooltip" hidden></div>
+  <div class="rotate-overlay"><div>↻</div><p>Rotate your device to landscape</p></div>
+</div>
+<script type="module" src="src/ui/app.js"></script>
+</body>
+</html>
